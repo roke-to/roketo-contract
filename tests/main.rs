@@ -62,7 +62,7 @@ fn test_mint_tokens() {
     let e = Env::init();
     let tokens = Tokens::init(&e);
     let users = Users::init(&e);
-    e.mint_tokens(&tokens, &users.alice);
+    e.mint_tokens(&tokens, &users.alice, 100);
 }
 
 #[test]
@@ -88,48 +88,51 @@ fn test_dev_setup() {
 }
 
 #[test]
-fn test_saved_storage_deposit() {
-    let (mut e, tokens, users) = basic_setup();
-    let stream_id = e.create_stream(&users.alice, &users.charlie, &tokens.wnear, d(1, 23) + 1, 1);
-    assert_eq!(
-        *e.streams.get(&String::from(&stream_id)).unwrap(),
-        125 * env::STORAGE_PRICE_PER_BYTE
-    );
+fn test_finance_transfers() {
+    let (e, tokens, users) = basic_setup();
 
-    let stream_id = e.create_stream(&users.alice, &users.charlie, &tokens.ndai, d(1, 18) + 1, 1);
-    assert_eq!(
-        *e.streams.get(&String::from(&stream_id)).unwrap(),
-        125 * env::STORAGE_PRICE_PER_BYTE
-    );
-
-    let stream_id = e.create_stream(&users.alice, &users.charlie, &tokens.nusdt, d(1, 6) + 1, 1);
-    assert_eq!(
-        *e.streams.get(&String::from(&stream_id)).unwrap(),
-        125 * env::STORAGE_PRICE_PER_BYTE
-    );
-
-    let stream_id = e.create_stream(
+    let amount = d(101, 23);
+    e.create_stream_ext_err(
         &users.alice,
         &users.charlie,
-        &tokens.aurora,
-        d(1, 15) + 1,
-        1,
+        &tokens.wnear,
+        amount,
+        d(1, 23),
+        None,
+        None,
+        None,
+        None,
+        None,
     );
-    assert_eq!(*e.streams.get(&String::from(&stream_id)).unwrap(), 0);
 
-    e.account_deposit_near(&users.alice, d(1, 23));
-    let stream_id = e.create_stream(&users.alice, &users.charlie, &tokens.dacha, d(1, 10), 1);
+    let stream_id = e.get_account(&users.alice).last_created_stream.unwrap();
+    let stream = e.get_stream(&stream_id);
+
     assert_eq!(
-        *e.streams.get(&String::from(&stream_id)).unwrap(),
-        DEFAULT_STORAGE_BALANCE
+        e.get_balance(&tokens.wnear, &e.streaming.user_account),
+        d(101, 23)
     );
+    assert_eq!(e.get_balance(&tokens.wnear, &e.finance), 0);
+
+    let res = e.contract_ft_transfer_call(
+        &tokens.wnear,
+        &users.alice,
+        1,
+        &serde_json::to_string(&TransferCallRequest::Push).unwrap(),
+    );
+    res.assert_success();
+    let amount_accepted: U128 = res.unwrap_json();
+    assert_eq!(amount_accepted, U128(1));
+
+    assert_eq!(e.get_balance(&tokens.wnear, &e.streaming.user_account), 1);
+    assert_eq!(e.get_balance(&tokens.wnear, &e.finance), d(101, 23));
 }
 
 // Actual tests start here
 
 #[test]
 fn test_stream_sanity() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(101, 23);
     let stream_id = e.create_stream(
@@ -177,7 +180,7 @@ fn test_stream_sanity() {
 
 #[test]
 fn test_stream_min_value() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 6) + 3700;
     let stream_id = e.create_stream(
@@ -244,7 +247,7 @@ fn test_stream_min_value() {
 
 #[test]
 fn test_stream_max_value() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
     e.mint_ft(&tokens.wnear, &users.alice, MAX_AMOUNT);
 
     let dao = e.get_dao();
@@ -300,7 +303,7 @@ fn test_stream_max_value() {
 
 #[test]
 fn test_stream_max_value_min_speed() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
     e.mint_ft(&tokens.wnear, &users.alice, MAX_AMOUNT);
 
     let dao = e.get_dao();
@@ -345,7 +348,7 @@ fn test_stream_max_value_min_speed() {
 
 #[test]
 fn test_stream_start_pause_stop() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 24);
 
@@ -455,7 +458,7 @@ fn test_stream_start_pause_stop() {
 
 #[test]
 fn test_stream_unlisted_sanity() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 20);
     let token = tokens.dacha;
@@ -484,7 +487,7 @@ fn test_stream_unlisted_sanity() {
     assert!(!users
         .alice
         .function_call(
-            e.contract.contract.account_deposit_near(),
+            e.streaming.contract.account_deposit_near(),
             MAX_GAS,
             dao.commission_unlisted - 1,
         )
@@ -492,14 +495,14 @@ fn test_stream_unlisted_sanity() {
 
     let account: Result<AccountView, ContractError> = e
         .near
-        .view_method_call(e.contract.contract.get_account(users.alice.account_id()))
+        .view_method_call(e.streaming.contract.get_account(users.alice.account_id()))
         .unwrap_json();
     assert!(account.is_err());
 
     assert!(users
         .alice
         .function_call(
-            e.contract.contract.account_deposit_near(),
+            e.streaming.contract.account_deposit_near(),
             MAX_GAS,
             dao.commission_unlisted,
         )
@@ -513,7 +516,7 @@ fn test_stream_unlisted_sanity() {
     let account = e.get_account(&users.alice);
     assert_eq!(account.deposit, 0);
     assert_eq!(
-        last_alice_balance - amount,
+        last_alice_balance - amount - 1,
         e.get_balance(&token, &users.alice)
     );
 
@@ -524,7 +527,7 @@ fn test_stream_unlisted_sanity() {
 
 #[test]
 fn test_stream_unlisted_start_pause_stop() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 20);
     let token = tokens.dacha;
@@ -629,7 +632,7 @@ fn test_stream_unlisted_start_pause_stop() {
 
 #[test]
 fn test_withdraw_invalid() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
     let token = tokens.wnear;
     let amount = d(1, 26);
 
@@ -729,8 +732,8 @@ fn test_withdraw_invalid() {
 
 #[test]
 fn test_withdraw_multiple() {
-    let (mut e, tokens, users) = basic_setup();
-    e.mint_tokens(&tokens, &users.charlie);
+    let (e, tokens, users) = basic_setup();
+    e.mint_tokens(&tokens, &users.charlie, 1000);
     let token = tokens.wnear;
     let amount = d(1, 26);
 
@@ -823,7 +826,7 @@ fn test_withdraw_multiple() {
 
 #[test]
 fn test_withdraw_multiple_allow_cron() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
     let token = tokens.wnear;
     let amount = d(1, 26);
 
@@ -887,7 +890,7 @@ fn test_withdraw_multiple_allow_cron() {
 
 #[test]
 fn test_dao_unlist_list() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
     let token = tokens.wnear;
     let amount = d(1, 26);
 
@@ -946,7 +949,7 @@ fn test_dao_unlist_list() {
 
 #[test]
 fn test_stream_myself() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
     let token = tokens.wnear;
     let amount = d(1, 24);
 
@@ -972,7 +975,7 @@ fn test_stream_myself() {
 
 #[test]
 fn test_stats_sanity() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let stats = e.get_stats();
     assert_eq!(stats.total_streams, 0);
@@ -1045,7 +1048,7 @@ fn test_stats_sanity() {
 
 #[test]
 fn test_dao_collect_commission_sanity() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let dao = e.get_dao();
     let t = dao.tokens.get(&tokens.wnear.account_id()).unwrap();
@@ -1082,7 +1085,7 @@ fn test_dao_collect_commission_sanity() {
 
 #[test]
 fn test_stream_cliff_sanity() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 24);
 
@@ -1162,7 +1165,7 @@ fn test_stream_cliff_sanity() {
 
 #[test]
 fn test_stream_withdraw_after_cliff() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 24);
 
@@ -1222,7 +1225,7 @@ fn test_stream_withdraw_after_cliff() {
 
 #[test]
 fn test_stream_cliff_pause() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 24);
 
@@ -1262,11 +1265,11 @@ fn test_stream_cliff_pause() {
 
 #[test]
 fn test_stream_cliff_stop() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 24);
 
-    let initial_balance = e.get_balance(&tokens.wnear, &users.alice);
+    let initial_balance = e.get_balance(&tokens.wnear, &users.alice) - 1;
 
     let stream_id = e.create_stream_ext(
         &users.alice,
@@ -1317,11 +1320,11 @@ fn test_stream_cliff_stop() {
 
 #[test]
 fn test_stream_stop_after_cliff() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 24);
 
-    let initial_balance = e.get_balance(&tokens.wnear, &users.alice);
+    let initial_balance = e.get_balance(&tokens.wnear, &users.alice) - 1;
 
     let stream_id = e.create_stream_ext(
         &users.alice,
@@ -1375,11 +1378,11 @@ fn test_stream_stop_after_cliff() {
 
 #[test]
 fn test_stream_locked_sanity() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 24);
 
-    let initial_balance = e.get_balance(&tokens.wnear, &users.alice);
+    let initial_balance = e.get_balance(&tokens.wnear, &users.alice) - 1;
 
     let stream_id = e.create_stream_ext(
         &users.alice,
@@ -1402,7 +1405,7 @@ fn test_stream_locked_sanity() {
         &users.eve,
         &e.near,
         &e.dao,
-        &e.contract.user_account,
+        &e.streaming.user_account,
     ] {
         assert!(!e.start_stream_err(user, &stream_id).is_ok());
         assert!(!e.pause_stream_err(user, &stream_id).is_ok());
@@ -1434,7 +1437,7 @@ fn test_stream_locked_sanity() {
         &users.eve,
         &e.near,
         &e.dao,
-        &e.contract.user_account,
+        &e.streaming.user_account,
     ] {
         assert!(!e.start_stream_err(user, &stream_id).is_ok());
         assert!(!e.pause_stream_err(user, &stream_id).is_ok());
@@ -1459,7 +1462,7 @@ fn test_stream_locked_sanity() {
         &users.eve,
         &e.near,
         &e.dao,
-        &e.contract.user_account,
+        &e.streaming.user_account,
     ] {
         assert!(!e.start_stream_err(user, &stream_id).is_ok());
         assert!(!e.pause_stream_err(user, &stream_id).is_ok());
@@ -1510,11 +1513,11 @@ fn test_stream_locked_sanity() {
 
 #[test]
 fn test_stream_locked_commissions() {
-    let (mut e, tokens, users) = basic_setup();
+    let (e, tokens, users) = basic_setup();
 
     let amount = d(1, 24);
 
-    let initial_balance = e.get_balance(&tokens.wnear, &users.alice);
+    let initial_balance = e.get_balance(&tokens.wnear, &users.alice) - 1;
 
     let dao = e.get_dao();
     assert_eq!(
@@ -1648,7 +1651,7 @@ fn test_stream_locked_commissions() {
 
 #[test]
 fn test_nft_sanity() {
-    let (mut e, tokens, users, nfts) = basic_nft_setup();
+    let (e, tokens, users, nfts) = basic_nft_setup();
 
     let amount = d(101, 23);
     let stream_id = e.create_stream(

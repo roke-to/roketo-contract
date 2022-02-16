@@ -3,9 +3,9 @@ use crate::*;
 impl Contract {
     pub(crate) fn process_create_stream(
         &mut self,
-        sender_id: &AccountId,
-        owner_id: AccountId,
         description: Option<String>,
+        creator_id: AccountId,
+        owner_id: AccountId,
         receiver_id: AccountId,
         token_account_id: AccountId,
         initial_balance: Balance,
@@ -15,6 +15,9 @@ impl Contract {
         is_expirable: Option<bool>,
         is_locked: Option<bool>,
     ) -> Result<(), ContractError> {
+        // NEP-141 forbids zero-token transfers, so this should never happen.
+        assert_ne!(initial_balance, 0);
+
         if description.is_some() && description.clone().unwrap().len() >= MAX_DESCRIPTION_LEN {
             return Err(ContractError::DescriptionTooLong {
                 max_description_len: MAX_DESCRIPTION_LEN,
@@ -41,11 +44,11 @@ impl Contract {
             None => false,
         };
 
-        self.create_account_if_not_exist(sender_id)?;
+        self.create_account_if_not_exist(&creator_id)?;
         self.create_account_if_not_exist(&owner_id)?;
         self.create_account_if_not_exist(&receiver_id)?;
 
-        let mut sender = self.extract_account(sender_id)?;
+        let mut creator = self.extract_account(&creator_id)?;
         let mut balance = initial_balance;
 
         let mut token = self.dao.get_token_or_unlisted(&token_account_id);
@@ -78,16 +81,14 @@ impl Contract {
 
             self.dao.tokens.insert(token_account_id.clone(), token);
         } else {
-            if sender.deposit < self.dao.commission_unlisted {
+            if creator.deposit < self.dao.commission_unlisted {
                 return Err(ContractError::InsufficientNearBalance {
                     requested: self.dao.commission_unlisted,
-                    left: sender.deposit,
+                    left: creator.deposit,
                 });
             }
-            sender.deposit -= self.dao.commission_unlisted;
+            creator.deposit -= self.dao.commission_unlisted;
         }
-        sender.total_streams_created += 1;
-        self.save_account(sender)?;
 
         if balance > MAX_AMOUNT {
             return Err(ContractError::ExceededMaxBalance {
@@ -108,15 +109,21 @@ impl Contract {
 
         let mut stream = Stream::new(
             description,
-            owner_id.clone(),
-            receiver_id.clone(),
+            creator_id,
+            owner_id,
+            receiver_id,
             token_account_id,
-            balance.into(),
+            balance,
             tokens_per_sec,
             cliff,
+            initial_balance,
             is_expirable,
             is_locked,
         );
+
+        creator.total_streams_created += 1;
+        creator.last_created_stream = Some(stream.id);
+        self.save_account(creator)?;
 
         self.process_action(&mut stream, ActionType::Init)?;
 
@@ -143,6 +150,9 @@ impl Contract {
         stream_id: CryptoHash,
         amount: Balance,
     ) -> Result<(), ContractError> {
+        // NEP-141 forbids zero-token transfers, so this should never happen.
+        assert_ne!(amount, 0);
+
         let stream_id = stream_id.into();
         let mut stream = self.extract_stream(&stream_id)?;
         if stream.status.is_terminated() {
@@ -194,6 +204,7 @@ impl Contract {
         // Validations passed
 
         stream.balance += amount;
+        stream.amount_to_push = amount;
 
         self.save_stream(stream)?;
 
@@ -352,7 +363,6 @@ impl Contract {
         &mut self,
         sender_id: &AccountId,
         stream_id: CryptoHash,
-        is_storage_deposit_needed: bool,
     ) -> Result<Vec<Promise>, ContractError> {
         let mut stream = self.extract_stream(&stream_id)?;
 
@@ -387,12 +397,7 @@ impl Contract {
 
         // Validations passed
 
-        let promises = self.process_action(
-            &mut stream,
-            ActionType::Withdraw {
-                is_storage_deposit_needed,
-            },
-        )?;
+        let promises = self.process_action(&mut stream, ActionType::Withdraw)?;
 
         self.save_stream(stream)?;
 
@@ -406,7 +411,7 @@ impl Contract {
         receiver_id: AccountId,
         storage_balance_needed: Balance,
     ) -> Result<Vec<Promise>, ContractError> {
-        let promises = self.process_withdraw(sender_id, stream_id, true)?;
+        let promises = self.process_withdraw(sender_id, stream_id)?;
 
         let mut stream = self.extract_stream(&stream_id)?;
 

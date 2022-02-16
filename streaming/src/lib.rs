@@ -54,6 +54,7 @@ enum StorageKey {
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct Contract {
     pub dao: Dao,
+    pub finance_id: AccountId,
     pub accounts: UnorderedMap<AccountId, VAccount>,
     pub streams: UnorderedMap<StreamId, VStream>,
     pub stats: LazyOption<VStats>,
@@ -62,9 +63,15 @@ pub struct Contract {
 #[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new(dao_id: AccountId, utility_token_id: AccountId, utility_token_decimals: u8) -> Self {
+    pub fn new(
+        dao_id: AccountId,
+        finance_id: AccountId,
+        utility_token_id: AccountId,
+        utility_token_decimals: u8,
+    ) -> Self {
         Self {
             dao: Dao::new(dao_id, utility_token_id, utility_token_decimals),
+            finance_id,
             accounts: UnorderedMap::new(StorageKey::Accounts),
             streams: UnorderedMap::new(StorageKey::Streams),
             stats: LazyOption::new(StorageKey::Stats, Some(Stats::default().into())),

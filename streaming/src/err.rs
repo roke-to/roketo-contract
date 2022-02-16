@@ -18,7 +18,7 @@ pub enum ContractError {
         receiver: AccountId,
         caller: AccountId,
     },
-    UnknownExchanger {
+    UnknownOracle {
         received: AccountId,
     },
     UnknownToken {
@@ -88,6 +88,11 @@ pub enum ContractError {
     DescriptionTooLong {
         max_description_len: usize,
         received: usize,
+    },
+    UnpushedBalanceFound {
+        account_id: AccountId,
+        #[serde(with = "u128_dec_format")]
+        amount: Balance,
     },
     InvalidStreamingSpeed {
         #[serde(with = "u128_dec_format")]

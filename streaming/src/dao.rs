@@ -16,7 +16,7 @@ pub struct Dao {
     // Related to charges in Aurora
     pub eth_near_ratio: SafeFloat,
 
-    pub exchangers: HashSet<AccountId>,
+    pub oracles: HashSet<AccountId>,
 }
 
 impl Dao {
@@ -32,7 +32,7 @@ impl Dao {
             utility_token_id,
             utility_token_decimals,
             eth_near_ratio: SafeFloat::ZERO,
-            exchangers: HashSet::new(),
+            oracles: HashSet::new(),
         }
     }
 
@@ -61,10 +61,10 @@ impl Dao {
         }
     }
 
-    pub(crate) fn check_exchanger(&self, sender_id: &AccountId) -> Result<(), ContractError> {
-        match self.exchangers.get(sender_id) {
+    pub(crate) fn check_oracle(&self, sender_id: &AccountId) -> Result<(), ContractError> {
+        match self.oracles.get(sender_id) {
             Some(_) => Ok(()),
-            None => Err(ContractError::UnknownExchanger {
+            None => Err(ContractError::UnknownOracle {
                 received: sender_id.clone(),
             }),
         }

@@ -1,6 +1,6 @@
 [package]
-name = "non-fungible-token-w-roketo"
-version = "1.0.0"
+name = "finance"
+version = "0.1.0"
 authors = ["Alex Kouprin <hello@kikimora.tech>"]
 edition = "2018"
 

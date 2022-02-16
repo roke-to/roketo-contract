@@ -4,10 +4,21 @@ mod tests {
     use near_sdk::test_utils::test_env::{alice, bob, carol};
     use near_sdk::{env, test_utils::VMContextBuilder, testing_env};
 
+    fn finance_id() -> AccountId {
+        "finance.near".parse().unwrap()
+    }
+    fn dao_id() -> AccountId {
+        "dao.near".parse().unwrap()
+    }
+    fn utility_token_id() -> AccountId {
+        "utilitytoken.near".parse().unwrap()
+    }
+
     fn new_stream() -> Stream {
         Stream {
             id: env::sha256(&[44, 55, 66]).as_slice().try_into().unwrap(),
             description: Some("blah".to_string()),
+            creator_id: carol(),
             owner_id: alice(),
             receiver_id: bob(),
             token_account_id: "token.near".parse().unwrap(),
@@ -18,6 +29,7 @@ mod tests {
             status: StreamStatus::Active,
             tokens_total_withdrawn: 0,
             cliff: None,
+            amount_to_push: 0,
             is_expirable: true,
             is_locked: false,
         }
@@ -25,9 +37,7 @@ mod tests {
 
     #[test]
     fn test_save_extract_stream() {
-        let dao_id = "dao.near".parse().unwrap();
-        let utility_token_id = "utilitytoken.near".parse().unwrap();
-        let mut contract = Contract::new(dao_id, utility_token_id, 18);
+        let mut contract = Contract::new(dao_id(), finance_id(), utility_token_id(), 18);
         let stream_id = new_stream().id;
         assert!(contract.extract_stream(&stream_id).is_err());
         assert!(contract.save_stream(new_stream()).is_ok());
@@ -38,16 +48,14 @@ mod tests {
 
     #[test]
     fn test_create_stream() {
-        let dao_id = "dao.near".parse().unwrap();
-        let utility_token_id = "utilitytoken.near".parse().unwrap();
-        let mut contract = Contract::new(dao_id, utility_token_id, 18);
+        let mut contract = Contract::new(dao_id(), finance_id(), utility_token_id(), 18);
         testing_env!(VMContextBuilder::new().signer_account_id(carol()).build());
         let stream = new_stream();
         assert_eq!(
             contract.process_create_stream(
-                &carol(),
-                stream.owner_id,
                 stream.description,
+                carol(),
+                stream.owner_id,
                 stream.receiver_id,
                 stream.token_account_id,
                 stream.balance,
@@ -72,9 +80,9 @@ mod tests {
         testing_env!(VMContextBuilder::new().signer_account_id(carol()).build());
         assert!(contract
             .process_create_stream(
-                &carol(),
-                stream.owner_id,
                 stream.description,
+                carol(),
+                stream.owner_id,
                 stream.receiver_id,
                 stream.token_account_id,
                 stream.balance,
@@ -89,9 +97,7 @@ mod tests {
 
     #[test]
     fn test_create_stream_to_aurora() {
-        let dao_id = "dao.near".parse().unwrap();
-        let utility_token_id = "utilitytoken.near".parse().unwrap();
-        let mut contract = Contract::new(dao_id, utility_token_id, 18);
+        let mut contract = Contract::new(dao_id(), finance_id(), utility_token_id(), 18);
         testing_env!(VMContextBuilder::new()
             .signer_account_id(carol())
             .attached_deposit(DEFAULT_COMMISSION_UNLISTED)
@@ -103,9 +109,9 @@ mod tests {
         testing_env!(VMContextBuilder::new().signer_account_id(carol()).build());
         assert!(contract
             .process_create_stream(
-                &carol(),
-                stream.owner_id,
                 stream.description,
+                carol(),
+                stream.owner_id,
                 stream.receiver_id,
                 stream.token_account_id,
                 stream.balance,

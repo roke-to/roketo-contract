@@ -41,13 +41,8 @@ impl Contract {
         assert_one_yocto();
         self.dao.check_owner().unwrap();
 
-        self.ft_transfer(
-            &self.dao.get_token(&token_account_id).unwrap(),
-            &receiver_id,
-            amount.into(),
-            false,
-        )
-        .unwrap()
+        self.ft_transfer_from_self(token_account_id, receiver_id, amount.into())
+            .unwrap()
     }
 
     #[payable]
@@ -59,18 +54,18 @@ impl Contract {
     }
 
     #[payable]
-    pub fn dao_add_exchanger(&mut self, new_exchanger_id: AccountId) {
+    pub fn dao_add_oracle(&mut self, new_oracle_id: AccountId) {
         assert_one_yocto();
         self.dao.check_owner().unwrap();
 
-        self.dao.exchangers.insert(new_exchanger_id);
+        self.dao.oracles.insert(new_oracle_id);
     }
 
     #[payable]
-    pub fn dao_remove_exchanger(&mut self, exchanger_id: AccountId) {
+    pub fn dao_remove_oracle(&mut self, oracle_id: AccountId) {
         assert_one_yocto();
         self.dao.check_owner().unwrap();
 
-        self.dao.exchangers.remove(&exchanger_id);
+        self.dao.oracles.remove(&oracle_id);
     }
 }

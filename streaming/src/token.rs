@@ -51,97 +51,96 @@ impl Token {
 }
 
 #[ext_contract]
-pub trait FungibleTokenContract {
-    fn storage_deposit(
+pub trait ExtFinanceContract {
+    fn streaming_ft_transfer(
         &mut self,
-        account_id: Option<AccountId>,
-        registration_only: Option<bool>,
-    ) -> StorageBalance;
+        token_account_id: AccountId,
+        receiver: AccountId,
+        amount: U128,
+    ) -> Promise;
 }
 
 impl Contract {
-    pub(crate) fn ft_transfer(
+    pub(crate) fn ft_transfer_from_finance(
         &self,
-        token: &Token,
-        receiver: &AccountId,
+        token_account_id: AccountId,
+        receiver: AccountId,
         amount: Balance,
-        is_storage_deposit_needed: bool,
     ) -> Result<Promise, ContractError> {
         if amount == 0 {
             // NEP-141 forbids zero token transfers
             //
             // Return empty promise
-            return Ok(Promise::new(receiver.clone()));
+            return Ok(Promise::new(receiver));
         }
 
-        if Contract::is_aurora_address(receiver) {
+        // TODO check gas
+        Ok(ext_finance_contract::streaming_ft_transfer(
+            token_account_id,
+            receiver,
+            amount.into(),
+            self.finance_id.clone(),
+            ONE_YOCTO,
+            Gas::ONE_TERA * 50,
+        ))
+    }
+
+    pub(crate) fn ft_transfer_from_self(
+        &self,
+        token_account_id: AccountId,
+        receiver_id: AccountId,
+        amount: Balance,
+    ) -> Result<Promise, ContractError> {
+        if amount == 0 {
+            // NEP-141 forbids zero token transfers
+            //
+            // Return empty promise
+            return Ok(Promise::new(receiver_id));
+        }
+
+        if Contract::is_aurora_address(&receiver_id) {
             if env::prepaid_gas() - env::used_gas() < MIN_GAS_FOR_AURORA_TRANFSER {
                 return Err(ContractError::InsufficientGas {
                     expected: MIN_GAS_FOR_AURORA_TRANFSER,
                     left: env::prepaid_gas() - env::used_gas(),
                 });
             }
-            if token.account_id == Contract::aurora_account_id() {
+            if token_account_id == Contract::aurora_account_id() {
                 return Ok(ext_fungible_token::ft_transfer_call(
                     Contract::aurora_account_id(),
                     U128(amount),
                     None,
-                    Contract::aurora_transfer_call_msg(receiver),
+                    Contract::aurora_transfer_call_msg(&receiver_id),
                     Contract::aurora_account_id(),
                     ONE_YOCTO,
-                    token.gas_for_ft_transfer,
+                    MIN_GAS_FOR_AURORA_TRANFSER,
                 ));
             } else {
                 return Ok(ext_fungible_token::ft_transfer_call(
                     Contract::aurora_account_id(),
                     U128(amount),
                     None,
-                    receiver.to_string(),
-                    token.account_id.clone(),
+                    receiver_id.to_string(),
+                    token_account_id,
                     ONE_YOCTO,
-                    token.gas_for_ft_transfer,
+                    MIN_GAS_FOR_AURORA_TRANFSER,
                 ));
             }
-        }
-
-        if is_storage_deposit_needed {
-            if env::prepaid_gas() - env::used_gas()
-                < token.gas_for_ft_transfer + token.gas_for_storage_deposit
-            {
-                return Err(ContractError::InsufficientGas {
-                    expected: token.gas_for_ft_transfer + token.gas_for_storage_deposit,
-                    left: env::prepaid_gas() - env::used_gas(),
-                });
-            }
-            Ok(fungible_token_contract::storage_deposit(
-                Some(receiver.clone()),
-                Some(true),
-                token.account_id.clone(),
-                token.storage_balance_needed,
-                token.gas_for_storage_deposit,
-            )
-            .then(ext_fungible_token::ft_transfer(
-                receiver.clone(),
-                U128(amount),
-                None,
-                token.account_id.clone(),
-                ONE_YOCTO,
-                token.gas_for_ft_transfer,
-            )))
         } else {
-            if env::prepaid_gas() - env::used_gas() < token.gas_for_ft_transfer {
+            if env::prepaid_gas() - env::used_gas() < MIN_GAS_FOR_FT_TRANFSER {
                 return Err(ContractError::InsufficientGas {
-                    expected: token.gas_for_ft_transfer,
+                    expected: MIN_GAS_FOR_FT_TRANFSER,
                     left: env::prepaid_gas() - env::used_gas(),
                 });
             }
             Ok(ext_fungible_token::ft_transfer(
-                receiver.clone(),
+                receiver_id,
                 U128(amount),
+                // TODO write full explanation
                 None,
-                token.account_id.clone(),
+                token_account_id,
                 ONE_YOCTO,
-                token.gas_for_ft_transfer,
+                MIN_GAS_FOR_FT_TRANFSER,
             ))
         }
     }

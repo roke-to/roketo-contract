@@ -28,11 +28,12 @@ impl Contract {
 
         assert!(env::prepaid_gas() - env::used_gas() >= MIN_GAS_FOR_PROCESS_ACTION);
 
-        self.ft_transfer(
-            &self.dao.get_token_or_unlisted(&self.dao.utility_token_id),
-            &env::signer_account_id(),
+        self.ft_transfer_from_self(
+            self.dao
+                .get_token_or_unlisted(&self.dao.utility_token_id)
+                .account_id,
+            env::signer_account_id(),
             amount,
-            false,
         )
         .unwrap()
     }

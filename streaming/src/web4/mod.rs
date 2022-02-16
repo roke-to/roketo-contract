@@ -90,12 +90,10 @@ impl Contract {
             return Web4Response::plain(include_str!("../interface/account_calls.rs").to_string());
         } else if path == "/interface/dao_calls.rs" {
             return Web4Response::plain(include_str!("../interface/dao_calls.rs").to_string());
-        } else if path == "/interface/exchanger_calls.rs" {
-            return Web4Response::plain(
-                include_str!("../interface/exchanger_calls.rs").to_string(),
-            );
         } else if path == "/interface/mod.rs" {
             return Web4Response::plain(include_str!("../interface/mod.rs").to_string());
+        } else if path == "/interface/oracle_calls.rs" {
+            return Web4Response::plain(include_str!("../interface/oracle_calls.rs").to_string());
         } else if path == "/interface/stream_calls.rs" {
             return Web4Response::plain(include_str!("../interface/stream_calls.rs").to_string());
         } else if path == "/interface/token_calls.rs" {

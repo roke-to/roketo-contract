@@ -8,6 +8,7 @@ mod tests {
         Stream {
             id: env::sha256(&[44, 55, 66]).as_slice().try_into().unwrap(),
             description: Some("blah".to_string()),
+            creator_id: alice(),
             owner_id: alice(),
             receiver_id: bob(),
             token_account_id: "token.near".parse().unwrap(),
@@ -18,6 +19,7 @@ mod tests {
             status: StreamStatus::Active,
             tokens_total_withdrawn: 0,
             cliff: None,
+            amount_to_push: 0,
             is_expirable: true,
             is_locked: false,
         }

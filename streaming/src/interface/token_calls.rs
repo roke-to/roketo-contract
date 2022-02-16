@@ -5,6 +5,7 @@ use crate::*;
 pub enum TransferCallRequest {
     Stake,
     Create { request: CreateRequest },
+    Push,
     Deposit { stream_id: Base58CryptoHash },
 }
 
@@ -12,6 +13,7 @@ pub enum TransferCallRequest {
 #[serde(crate = "near_sdk::serde")]
 pub struct CreateRequest {
     pub description: Option<String>,
+    pub owner_id: AccountId,
     pub receiver_id: AccountId,
     pub tokens_per_sec: Balance,
     pub cliff_period_sec: Option<u32>,
@@ -24,19 +26,10 @@ pub struct CreateRequest {
 #[serde(crate = "near_sdk::serde")]
 pub enum AuroraOperationalRequest {
     AccountDeposit,
-    StartStream {
-        stream_id: Base58CryptoHash,
-    },
-    PauseStream {
-        stream_id: Base58CryptoHash,
-    },
-    StopStream {
-        stream_id: Base58CryptoHash,
-    },
-    Withdraw {
-        stream_id: Base58CryptoHash,
-        is_storage_deposit_needed: bool,
-    },
+    StartStream { stream_id: Base58CryptoHash },
+    PauseStream { stream_id: Base58CryptoHash },
+    StopStream { stream_id: Base58CryptoHash },
+    Withdraw { stream_id: Base58CryptoHash },
 }
 
 #[near_bindgen]
@@ -80,17 +73,10 @@ impl FungibleTokenReceiver for Contract {
                         // in Aurora->NEAR calls with attached eth
                         self.process_stop_stream(&sender_id, (*stream_id).into())
                     }
-                    AuroraOperationalRequest::Withdraw {
-                        stream_id,
-                        is_storage_deposit_needed,
-                    } => {
+                    AuroraOperationalRequest::Withdraw { stream_id } => {
                         // TODO cover storage deposit
                         // in Aurora->NEAR calls with attached eth
-                        self.process_withdraw(
-                            &sender_id,
-                            (*stream_id).into(),
-                            *is_storage_deposit_needed,
-                        )
+                        self.process_withdraw(&sender_id, (*stream_id).into())
                     }
                 };
                 return match res {
@@ -121,16 +107,33 @@ impl FungibleTokenReceiver for Contract {
         match key.unwrap() {
             TransferCallRequest::Stake => {
                 assert_eq!(token_account_id, self.dao.utility_token_id);
-                let mut account = self.extract_account(&sender_id).unwrap();
-                account.stake += u128::from(amount);
-                self.save_account(account).unwrap();
+                let mut sender = self.extract_account(&sender_id).unwrap();
+                sender.stake += u128::from(amount);
+                self.save_account(sender).unwrap();
+                PromiseOrValue::Value(U128::from(0))
+            }
+            TransferCallRequest::Push => {
+                let sender = self.view_account(&sender_id).unwrap();
+                let stream_id = sender.last_created_stream.unwrap();
+                let mut stream = self.extract_stream(&stream_id).unwrap();
+                let amount = stream.amount_to_push;
+                // For unknown reasons this promise cannot be used
+                // to return PromiseOrValue::Promise().
+                self.ft_transfer_from_self(
+                    stream.token_account_id.clone(),
+                    self.finance_id.clone(),
+                    amount,
+                )
+                .unwrap();
+                stream.amount_to_push = 0;
+                self.save_stream(stream).unwrap();
                 PromiseOrValue::Value(U128::from(0))
             }
             TransferCallRequest::Create { request } => {
                 match self.process_create_stream(
-                    &sender_id.clone(),
-                    sender_id,
                     request.description,
+                    sender_id,
+                    request.owner_id,
                     request.receiver_id,
                     token_account_id,
                     amount.into(),
