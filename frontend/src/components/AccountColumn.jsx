@@ -49,23 +49,19 @@ export function AccountColumn({
 
   let streamGroups = {};
   if (streams !== undefined) {
-    streamGroups = streams.reduce((groups, item) => {
-      const group = groups[item.ticker] || [];
-      group.push(item);
-      groups[item.ticker] = group;
+    streamGroups = streams.reduce((groups, stream) => {
+      // groups[stream.ticker] = [...(groups[stream.ticker] || []), stream];
+      const group = groups[stream.ticker] || [];
+      group.push(stream);
+      groups[stream.ticker] = group;
       return groups;
     }, {});
   }
 
-  // console.debug('AccountColumn', {
-  //   streamsType,
-  //   tokensField,
-  //   streams,
-  //   allStreams,
-  //   streamGroups,
-  // });
+  // BUG:
+  // total_outgoing & total_receiving are broken on smart contract right now
+  // streams go to static_streams insted of dynamics
   const tokensData = account !== undefined ? account[tokensField] : [];
-
   const periodsOptions = useFilter({options: PERIODS});
   const [opened, setOpened] = useState(false);
   const selectedPeriod = periodsOptions.option;

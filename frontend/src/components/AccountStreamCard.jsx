@@ -5,18 +5,9 @@ import {TokenIcon} from './icons';
 import classNames from 'classnames';
 import {useNear} from '../features/near-connect/useNear';
 import {TokenImage} from './kit';
+import {useTokenFormatter} from '../lib/useTokenFormatter';
 
-export function AccountStreamCard({
-  token,
-  balance,
-  streamsLength,
-  period = '',
-  showPeriod = true,
-  className,
-}) {
-  const near = useNear();
-  const tokenMeta = near.tokens.get(token);
-  console.debug(tokenMeta);
+function multiplyAmountByTimePeriod(amount, period) {
   let multiplier = 1;
   switch (period) {
     case 'min':
@@ -30,9 +21,24 @@ export function AccountStreamCard({
       break;
   }
 
-  balance = utils.format.formatNearAmount(balance);
+  return amount * multiplier;
+}
+export function AccountStreamCard({
+  token,
+  balance,
+  streamsLength,
+  period = '',
+  showPeriod = true,
+  className,
+}) {
+  const near = useNear();
+  const tokenMeta = near.tokens.get(token);
+  const tf = useTokenFormatter(token);
 
-  balance = balance * multiplier;
+  console.debug(tokenMeta);
+
+  balance = multiplyAmountByTimePeriod(balance, period);
+  balance = tf.amount(balance);
 
   return (
     <div

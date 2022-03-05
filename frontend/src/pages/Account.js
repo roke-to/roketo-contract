@@ -41,12 +41,7 @@ export function AccountPage() {
     e.preventDefault();
     await near.contractApi.startCron();
   }
-
   const account = accountSWR.data;
-  console.debug(account);
-  const inputs = (account && account.inputs) || __INPUTS;
-  const outputs = (account && account.outputs) || __OUTPUTS;
-
   const pageError = accountSWR.error;
 
   return (
