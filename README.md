@@ -1,4 +1,4 @@
-# Roke.to dApp
+# Roke.to contract [tmp]
 
 Direct X-to-Y tokens streaming with no 3rd parties. Forget about paydays and boost control of your payment flows on a new level.
 
@@ -8,11 +8,29 @@ For a freelancer, artist, community member, new project, or any other earner —
 
 Developed by [Kikimora Labs](https://kikimora.ch/).
 
+# Repository structure
+
+- [streaming](#streaming)
+- [finance](#finance)
+- [examples](#examples)
+- [tests](#tests)
+
+## Streaming
+
+All source code is located at `streaming/src` folder. Files `calls.rs` and `views.rs` are about interacting with the contract.
+Other files contains of helpers and primitives.
+
+# Build
+
+Run `sh build.sh`. It will put the compiled contracts into `res` folder named as `*.wasm`.
+
+# Tests
+
+Run `sh test.sh`. It will build the contract followed by running simulation tests from `tests/main.rs`.
 
 # Links
 
-- [Official Website](https://www.roke.to/)
-- [Roke.to dApp](https://app.roke.to/)
-- [Docs](https://docs.roke.to/)
-- [Cover letter for Jury](https://docs.google.com/document/d/1Ct9lsAe2l7s6GB-eCTNo5woS6xy9iLsd7KagfmgxVgA/edit)
-# roketo
+- [Landing](https://www.roke.to/) (webflow, outside repo)
+- [dApp](test.app-v2.roke.to) (testnet)
+- [Docs](https://www.notion.so/kikimora-labs/Roketo-2056455fdcf4452f9e690601cc49d7a4)
+- [API docs](/streaming/README.md)
