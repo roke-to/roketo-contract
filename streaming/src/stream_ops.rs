@@ -125,6 +125,8 @@ impl Contract {
         creator.last_created_stream = Some(stream.id);
         self.save_account(creator)?;
 
+        log!("{:?}", stream.id);
+
         self.process_action(&mut stream, ActionType::Init)?;
 
         self.stats_inc_stream_deposit(&stream.token_account_id, &balance, &commission);
