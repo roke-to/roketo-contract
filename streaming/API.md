@@ -2,25 +2,118 @@
 
 - [x] Calls and views
 - [x] How to use section
-- [ ] roketo-sdk examples
-- [ ] errors detail 
+- [ ] Roketo-sdk examples
+- [ ] Rrrors details
+
+## Content
+- How to
+    - [near-api-js](#near-api-js)
+    - [near cli](#near-cli)
+- Structures
+    - [Basic structures](#basic-structures)
+    - [Stream](#stream)
+    - [Account](#account)
+    - [Token](#token)
+    - [Token Stats](#tokenstats)
+- Views
+    - Main views
+        - [get_stream](#get_stream)
+        - [get_account](#get_account)
+        - [get_account_incoming_streams](#get_account_incoming_streams)
+        - [get_account_outgoing_streams](#get_account_outgoing_streams)
+    - [Other views](#other-views)
+- Calls
+    - Through NEP-141 FT ([ft_on_transfer](#ft_on_transfer))
+        - [Create](#create)
+        - [Push](#push)
+        - [Deposit](#deposit)
+        - [Stake](#stake)
+    - Main calls
+        - [start_stream](#start_stream)
+        - [pause_stream](#pause_stream)
+        - [stop_stream](#stop_stream)
+        - [withdraw](#withdraw)
+    - [Other calls](#other-calls)
+    - [Dao calls](#dao-calls)
+    - [Oracle calls](#oracle-calls)
+
 
 ## How to use contract
-The rocketo contract is a regular Near contract. You need to have a general understanding of working with NEAR before. Suggested to read [nomicon](https://nomicon.io). 
+The rocketo contract is a regular Near contract. You need to have a general understanding of working with NEAR before. Suggested to read [nomicon](https://nomicon.io). You can doing call through several methdos.  
 
 ### roketo-sdk
 > Todo
 
 ### near-api-js
+Lets start from install package and connecting to wallet ([see quick reference](https://github.com/near/near-api-js/blob/master/examples/quick-reference.md)). After login we can create stream ([see signature](#create)):
+```ts
+const fTcontract = new Contract(account, 'wrap.testnet', {
+    changeMethods: ['ft_transfer_call', 'near_deposit'],
+});
 
+// only for NEAR, we need deposit NEAR on wrap 
+await fTcontract.near_deposit({}, 200000000000000, 1000000000000000000000000);
 
-### cli
+await fTcontract.ft_transfer_call({
+    receiver_id: 'streaming-roketo.dcversus.testnet'
+    amount: '1000000000000000000000000', // 1 NEAR
+    memo: 'Roketo transfer',
+    msg: JSON.stringify({
+        Create: {
+            request: {
+                "owner_id": "yourname.testnet",
+                "receiver_id": "dcversus.testnet",
+                "tokens_per_sec": 385802469135802469, // 1 month for 1 NEAR
+            }
+        }
+    }),
+}, 200000000000000);
+
+await fTcontract.ft_transfer_call({
+    receiver_id: 'streaming-roketo.dcversus.testnet'
+    amount: '1', // 1 yocto
+    memo: 'Roketo transfer',
+    msg: '"Push"',
+}, 200000000000000);
+```
+
+### near cli
+Install node and do `npm install -g near-cli` in console ([read more](https://github.com/near/near-cli)).
+```bash
+near login
+```
+and after as example lets call [get_stats](#getstats):
+```bash
+near call streaming-roketo.dcversus.testnet get_stats --accountId yourname.testnet
+```
+After calling you will got something like [this in explorer](https://explorer.testnet.near.org/transactions/29nT6VWaSpXugWeAp2kBmoYy2J13WRa8SMA58gzcN7K8).
+
+#### Stream creation
+For stream creation in NEAR we need NEAR->wNEAR before ([explorer](https://explorer.testnet.near.org/transactions/8XkzRbeMQJykiN9EwJykKvH9fmLASChYQXwWwaQvF5Ex))
+```bash
+near call wrap.testnet near_deposit --deposit 1 --accountId dcversus.testnet
+```
+stream creation through ft_transfer_call ([explorer](https://explorer.testnet.near.org/transactions/4nCQoP6i57obfgkzLgwaUDw97ZC18eZWyyVvRc7AiGF9))
+```bash
+near call wrap.testnet ft_transfer_call '{"amount": "1000000000000000000000000","receiver_id": "streaming-roketo.dcversus.testnet", "memo": "test", "msg": "{\"Create\":{\"request\":{\"owner_id\":\"dcversus.testnet\",\"receiver_id\":\"lebedev.testnet\",\"tokens_per_sec\":385802469135802500}}}"}' --depositYocto 1 --gas 200000000000000 --accountId dcversus.testnet
+```
+dont forget push! ([explorer](https://explorer.testnet.near.org/transactions/Cckoemb4haAL43AGe699w3nREqANqKLsd6g1bHEbRA8D))
+```bash
+near call wrap.testnet ft_transfer_call '{"amount": "1", "receiver_id": "streaming-roketo.dcversus.testnet", "memo": "test", "msg": "\"Push\""}' --depositYocto 1 --gas 200000000000000 --accountId dcversus.testnet
+```
+lets pause our stream ([explorer](https://explorer.testnet.near.org/transactions/GWoSGiCwioMbjwegNp9N5EESYHzsjRSgjg4TnVTzdL7w))
+```bash
+near call streaming-roketo.dcversus.testnet pause_stream '{"stream_id": "CUr4BNXQgXqPWCJVvxu5v6jarGnV8y9s6iVWTK2g6fkt"}'  --depositYocto 1 --gas 200000000000000 --accountId dcversus.testnet
+```
+You are awesome <3
+
 
 ## Roketo structures
 
 ### Basic structures
-- `AccountId` near account id eg 'test.near'
-- `StreamId` near sdk CryptoHash eg '4q7BJuzBBcuv72bbLYAVXiL21mic3Cn3WPpWxMtS6tyP'
+- `AccountId` near account id eg 'test.near', `string`
+- `StreamId` near sdk CryptoHash eg '4q7BJuzBBcuv72bbLYAVXiL21mic3Cn3WPpWxMtS6tyP', `string`
+- `Timestamp` is a `string` representation of unix time in nanosec
 - `SafeFloat`
 ```json
 { "val": "number", "pow": "number" }
@@ -36,77 +129,62 @@ Examples
 ### Stream
 ```jsonc
 {
-    "id": "StreamId",
-    "description": "?string",
-    "creator_id": "AccountId",
-    "owner_id": "AccountId",
-    "receiver_id": "AccountId",
-    "token_account_id": "AccountId",
+    "id": "StreamId", // stream id, is a CryptoHash
+    "description": "?string", // optional text description of the stream, max 255 symbols
+    "creator_id": "AccountId", // stream creator
+    "owner_id": "AccountId", // is an owner (or sender) of the stream
+    "receiver_id": "AccountId", // receiver
+    "token_account_id": "AccountId", // NEP-141 token account id
 
-    "timestamp_created": "string", // Timestamp
-    "last_action": "string", // Timestamp
+    "timestamp_created": "Timestamp", // is a timestamp when the stream has been created
+    "last_action": "Timestamp", // is a timestamp of the last update called
 
-    "balance": "string",
-    "tokens_per_sec": "string",
+    "balance": "string", // remaining tokens to stream in yocto
+    "tokens_per_sec": "string", // stream speed, values in yocto
 
-    "status": "string", // StreamStatus
-    "tokens_total_withdrawn": "string",
+    "status": "string", // StreamStatus, see details below
+    "tokens_total_withdrawn": "string", // amount of withdrawn tokens
 
-    "cliff": "?string", // Timestamp
+    "cliff": "?Timestamp", // optional, when is will be available to withdraw
 
-    "amount_to_push": "string",
+    "amount_to_push": "string", // tokens amount what should be pushed to finance contract
 
-    "is_expirable": "boolean",
-    "is_locked": "boolean",
+    "is_expirable": "boolean", // if true, owner can add deposit before stream finished
+    "is_locked": "boolean", //  if true, any actions (stop, start etc are forbidden)
 }
 ```
-- `id` stream id, is a CryptoHash
-- `description` optional text description of the stream, max 255 symbols
-- `creator_id` stream creator near account id
-- `owner_id` account id, is an owner (or sender) of the stream
-- `receiver_id` receiver near account id
-- `token_account_id` NEP-141 token account id
-- `timestamp_created` is a timestamp when the stream has been created
-- `last_action` is a timestamp of the last update called
-- `balance` remaining tokens to stream in yocto
-- `tokens_per_sec` stream speed, values in yocto
-- `status` stream status, can be:
-  - **Initialized** - stream created with `is_auto_start_enabled` = false, tokens not sending before stream will be started
-  - **Active** - tokens are in process of streaming
-  - **Paused** - streamed tokens are withdrawn to reciever and sending paused
-  - **Finished** - stream over, can not 
-- `tokens_total_withdrawn` amount of withdrawn tokens
-- `cliff` optional, timestamp when is will be available to withdraw
-- `amount_to_push` tokens amount what should be pushed to finance contract, for normal operations should be 0
-- `is_expirable` if true, owner can add deposit before stream finished
-- `is_locked` if true, any actions (stop, start etc are forbidden)
+#### Stream status
+- **Initialized** - stream created with `is_auto_start_enabled` = false, tokens not sending before stream will be started
+- **Active** - tokens are in process of streaming
+- **Paused** - streamed tokens are withdrawn to reciever and sending paused
+- **Finished** - stream over, can not 
 
 ### Account
-```json
+```jsonc
 {
+    // stream counters (like statistics)
     "active_incoming_streams": "number",
     "active_outgoing_streams": "number",
     "inactive_incoming_streams": "number",
     "inactive_outgoing_streams": "number",
 
+    // hashmaps with calculation of total token amount by token account id
     "total_incoming": { "AccountId": "number" },
     "total_outgoing": { "AccountId": "number" },
     "total_received": { "AccountId": "number" },
 
-    "deposit": "string",
+    "deposit": "string", // near deposited on account
 
-    "stake": "string",
+    "stake": "string", // stacked count on account
 
-    "last_created_stream": "StreamId",
+    "last_created_stream": "StreamId", // last created stream id
+
+    // boolean, if true anyone can call `withdraw` for income streams,
+    // otherwise only reciever can do it.
+    // Property and call are needed for internal purposes. 
     "is_cron_allowed": "boolean"
 }
 ```
-- `active_incoming_streams`, `active_outgoing_streams`, `inactive_incoming_streams`, `inactive_outgoing_streams` stream counters (like statistics)
-- `total_incoming`, `total_outgoing`, `total_received` hashmaps with calculation of total token amount by token account id
-- `deposit` near deposited on account
-- `stake` stacked count on account
-- `last_created_stream` last created stream id
-- `is_cron_allowed` boolean, if true anyone can call `withdraw` for income streams, otherwise only reciever can do it. Property and call are needed for internal purposes. 
 
 ### Token
 ```jsonc
@@ -116,7 +194,7 @@ Examples
     "collected_commission": "string",
 
     "commission_on_create": "string", // taken in current fts in case of listed token
-    "commission_coef": "SafeFloat", // percentage of tokens taken for commission
+    "commission_coef": SafeFloat, // percentage of tokens taken for commission
 
     "storage_balance_needed": "string",
     "gas_for_ft_transfer": "string",
@@ -136,14 +214,16 @@ Examples
     "streams": "number",
     "active_streams": "number",
 
-    "last_update_time": "string", // Timestamp
+    "last_update_time": "Timestamp",
 }
 ```
 
 ## Roketo views
 View methods of contract.
 
-### `get_stream`
+### Main views
+
+#### `get_stream`
 Returns the data about the stream. Request:
 ```json
 {
@@ -153,7 +233,7 @@ Returns the data about the stream. Request:
 
 Response are [stream representation](#stream)
 
-### `get_account`
+#### `get_account`
 Returns the account requested. Request: 
 ```json
 {
@@ -163,7 +243,8 @@ Returns the account requested. Request:
 Response are [account representation](#account)
 
 
-### `get_account_incoming_streams` and `get_account_outgoing_streams`
+#### `get_account_incoming_streams` 
+#### `get_account_outgoing_streams`
 Return list of incoming (or outgoing) streams for account. Request:
 ```json
 {
@@ -176,11 +257,12 @@ Response are array of [stream representation](#stream)
 
 ### Other views
 
-- `get_stats` return contract stats:
+#### `get_stats`
+Return contract stats:
 ```jsonc
 {
     "dao_tokens": { // Hashmap of listed tokens and it stats
-        "AccountId": "TokenStats" // object, see roketo structures
+        "AccountId": TokenStats // object, see roketo structures
     },
 
     "total_accounts": "number",
@@ -193,33 +275,37 @@ Response are array of [stream representation](#stream)
     "total_account_deposit_near": "string",
     "total_account_deposit_eth": "string",
 
-    "last_update_time": "string" // Timestamp
+    "last_update_time": "Timestamp"
 }
 ```
-- `get_dao` return contract 'settings'
+
+#### `get_dao`
+Return contract 'settings'
 ```jsonc
 {
     "dao_id": "AccountId",
     "tokens": { // Hashmap of listed tokens and it configs
-        "AccountId": "Token", // object 
+        "AccountId": Token, // object, see roketo structures 
     },
     "commission_unlisted": "string", // Balance
 
     "utility_token_id": "AccountId",
     "utility_token_decimals": "number",
 
-    "eth_near_ratio": "SafeFloat", // object, related to charges in Aurora
+    "eth_near_ratio": SafeFloat, // object, related to charges in Aurora
 
     "oracles": [ "AccountId" ], // Hashset of account ids
 }
 ```
-- `get_token` return `[Token, TokenStats]` (see [Token](#token), [TokenStats](#tokenstats)) and request 
+#### `get_token`
+return `[Token, TokenStats]` (see [Token](#token), [TokenStats](#tokenstats)) and request:
 ```json
 {
     "token_account_id": "string"
 }
 ```
-- `get_account_ft` response account token stats (number) `[total_incoming, total_outgoing, total_received]`
+#### `get_account_ft`
+response account token stats (numbers) `[total_incoming, total_outgoing, total_received]`, request: 
 ```json
 {
     "account_id": "AccountId",
@@ -229,7 +315,7 @@ Response are array of [stream representation](#stream)
 
 ## Roketo calls
 
-Modifying methods of contract, require a deposit. Some methods should be called through NEP-141 FT with [ft_on_transfer](#ft_on_transfer) its a [Create](#create), [Push](#push), [Deposit](#deposit), [Stake](#stake). Main contract methods: [start_stream](#start_stream), [pause_stream](#pause_stream), [stop_stream](#stop_stream), [withdraw](#withdraw) and [other calls](#other-calls), [dao calls](#dao-calls), [oracle calls](#oracle-calls)
+Modifying methods of contract, require a deposit. Some methods should be called through NEP-141 FT [(ft_on_transfer)](#ftontransfer)
 
 ### `ft_on_transfer`
 **Don't make this call directly.** You should call `ft_transfer_call` at any compatible NEP-141 FT with deposit and payload:
@@ -252,7 +338,7 @@ The action will create users and stream with the transferred payload. Attached d
         "request": {
             "owner_id": "AccountId",
             "receiver_id": "AccountId",
-            "tokens_per_sec": "string", 
+            "tokens_per_sec": "number",  // Attention! it should be a BigInt and you need serialize by right way
             "description": "string?",
             "cliff_period_sec": "number?",
             "is_auto_start_enabled": "boolean?",
@@ -297,33 +383,35 @@ Expect only `utility_token`! Stake attached deposit to account.
 "Stake"
 ```
 
-### `start_stream` 
+### Main calls
 
-Starts initialized or paused stream. Can be executed only by the owner of the stream in case of initialization or the receiver too if stream was paused. Expects one yocto as deposit[^1]. Signature: 
+#### `start_stream` 
+
+Starts initialized or paused stream. Can be executed only by the owner of the stream in case of initialization or the receiver too if stream was paused. Expects one yocto as deposit. Signature: 
 ```json
 {
     "stream_id": "StreamId"
 }
 ```
 
-### `pause_stream`
-Pauses the stream and transfer streamed tokens to the reciever. Stream can be paused only if it was in the active state. Can be executed only by the owner or the receiver of the stream. Expects one yocto as deposit[^1]. Signature: 
+#### `pause_stream`
+Pauses the stream and transfer streamed tokens to the reciever. Stream can be paused only if it was in the active state. Can be executed only by the owner or the receiver of the stream. Expects one yocto as deposit. Signature: 
 ```json
 {
     "stream_id": "StreamId"
 }
 ```
 
-### `stop_stream`
-Finishing the stream. Finished streams cannot be restarted. All remaining deposit sends back to the owner, all streamed deposit will be send to reciever. Can be executed only by the owner of the stream. Expects one yocto as deposit[^1]. Signature: 
+#### `stop_stream`
+Finishing the stream. Finished streams cannot be restarted. All remaining deposit sends back to the owner, all streamed deposit will be send to reciever. Can be executed only by the owner of the stream. Expects one yocto as deposit. Signature: 
 ```json
 {
     "stream_id": "StreamId"
 }
 ```
 
-### `withdraw`
-Transfer streamed tokens to the reciever. If stream deposit was streamed, then the stream will finish. Can be executed only by the receiver of the stream. Expects one yocto as deposit[^1] Signature: 
+#### `withdraw`
+Transfer streamed tokens to the reciever. If stream deposit was streamed, then the stream will finish. Can be executed only by the receiver of the stream. Expects one yocto as deposit Signature: 
 ```json
 {
     "stream_ids": ["StreamId"]
@@ -333,38 +421,42 @@ Transfer streamed tokens to the reciever. If stream deposit was streamed, then t
 ### Other calls
 These methods are not essential for the functioning of the main task of the contract, but may be useful
 
-- `change_receiver` sets a new reciever for the stream. Can be executed only by the receiver of the stream. Expects `storage_balance_needed` from token as deposit[^2]. Call signature:
+#### `change_receiver`
+sets a new reciever for the stream. Can be executed only by the receiver of the stream. Expects `storage_balance_needed` from token as deposit. Call signature:
 ```jsonc
 {
     "stream_id": "StreamId",
     "receiver_id": "AccountId" // New receiver 
 }
 ```
-- `account_update_cron_flag` update user property `is_cron_allowed`. [See more](#get_account) Expects one yocto as deposit[^1]. Signature:
+#### `account_update_cron_flag`
+update user property `is_cron_allowed`. [See more](#get_account) Expects one yocto as deposit. Signature:
 ```json
 {
     "is_cron_allowed": "boolean"
 }
 ```
-- `account_unstake` send staked `utility_token` to your account. Expects one yocto as deposit[^1].
+#### `account_unstake`
+send staked `utility_token` to your account. Expects one yocto as deposit.
 ```json
 {
     "amount": "string"
 }
 ```
-- `account_deposit_near` add a near deposit to your account. No props, need only attached deposit[^1].
+#### `account_deposit_near`
+add a near deposit to your account. No props, need only attached deposit.
 
 ### Dao calls
 Methods can be executed only by dao account. 
 
-- `dao_update_token` add or update token configration.[^3]
+- `dao_update_token` add or update token configration.
 ```jsonc
 {
     "token": {
         "account_id": "AccountId", // token account id
         "is_listed": "boolean", // if true we apply commission otherwise apply commission_unlisted
         "commission_on_create": "number", // taken in current fts in case of listed token
-        "commission_coef": "SafeFloat", //  percentage of tokens taken for commission
+        "commission_coef": SafeFloat, //  percentage of tokens taken for commission
         "storage_balance_needed": "string", 
         "gas_for_ft_transfer": "string", // gas settings for UI purposes
         "gas_for_storage_deposit": "string", // gas settings for UI purposes
@@ -372,19 +464,22 @@ Methods can be executed only by dao account.
 }
 ```
 
-- `dao_change_owner` sets a new dao account
+#### `dao_change_owner`
+sets a new dao account
 ```json
 {
     "new_dao_id": "AccountId"
 }
 ```
-- `dao_update_commission_unlisted` sets a commission for unlisted tokens
+#### `dao_update_commission_unlisted`
+sets a commission for unlisted tokens
 ```json
 {
     "commission_unlisted": "number"
 }
 ```
-- `dao_withdraw_ft` withdraw collected FT commission
+#### `dao_withdraw_ft`
+withdraw collected FT commission
 ```json
 {
 
@@ -393,7 +488,8 @@ Methods can be executed only by dao account.
     "amount": "number",
 }
 ```
-- `dao_withdraw_near` withdraw collected NEAR commission
+#### `dao_withdraw_near`
+withdraw collected NEAR commission
 ```json
 {
 
@@ -401,13 +497,15 @@ Methods can be executed only by dao account.
     "amount": "number",
 }
 ```
-- `dao_add_oracle` add new oracle
+#### `dao_add_oracle`
+add new oracle
 ```json
 {
     "new_oracle_id": "AccountId"
 }
 ```
-- `dao_remove_oracle` remove oracle from list
+#### `dao_remove_oracle`
+remove oracle from list
 ```json
 {
     "oracle_id": "AccountId"
@@ -417,16 +515,18 @@ Methods can be executed only by dao account.
 ### Oracle calls
 The oracle is an external contract that we register as Dao (see [dao calls](#dao-calls)). Oracle purpose is a update `commission_on_create` for tokens.
 
-- `oracle_update_commission_on_create` update `commission_on_create` for specified token.
+#### `oracle_update_commission_on_create`
+update `commission_on_create` for specified token.
 ```json
 {
     "token_account_id": "AccountId",
     "commission_on_create": "number",
 }
 ```
-- `oracle_update_eth_near_ratio` update dao `eth_near_ratio` (used only for Aurora calls)
-
-
-[^1]: one yocto
-[^2]: storage_balance_needed
-[^3]: token listing
+#### `oracle_update_eth_near_ratio`
+update dao `eth_near_ratio` (used only for Aurora calls)
+```jsonc
+{
+    "ratio": SafeFloat
+}
+```
