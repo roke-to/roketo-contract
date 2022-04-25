@@ -3,7 +3,7 @@
 - [x] Calls and views
 - [x] How to use section
 - [ ] Roketo-sdk examples
-- [ ] Rrrors details
+- [ ] Error details
 
 ## Content
 - How to
