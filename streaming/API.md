@@ -3,12 +3,12 @@
 - [x] Calls and views
 - [x] How to use section
 - [ ] Roketo-sdk examples
-- [ ] Error details
+- [ ] Rrrors details
 
 ## Content
 - How to
-    - [near-api-js](#near-api-js)
     - [near cli](#near-cli)
+    - [near-api-js](#near-api-js)
 - Structures
     - [Basic structures](#basic-structures)
     - [Stream](#stream)
@@ -39,22 +39,53 @@
 
 
 ## How to use contract
-The rocketo contract is a regular Near contract. You need to have a general understanding of working with NEAR before. Suggested to read [nomicon](https://nomicon.io). You can doing call through several methdos.  
+The roketo contract is a regular Near contract. To get some basic understanding of NEAR Protocol contracts read [nomicon](https://nomicon.io). You can doing call through several methods.  
 
 ### roketo-sdk
 > Todo
 
+### near cli
+Install node and do `npm install -g near-cli` in console ([read more](https://github.com/near/near-cli)).
+```bash
+near login
+```
+In examples below just repleace `yourname.testnet` to your near testnet login. As example lets call view method [get_stats](#getstats):
+```bash
+near view streaming-roketo.dcversus.testnet get_stats --accountId yourname.testnet
+```
+After calling you will got something like [this in explorer as response](https://explorer.testnet.near.org/transactions/29nT6VWaSpXugWeAp2kBmoYy2J13WRa8SMA58gzcN7K8).
+
+#### Stream creation
+Roketo streaming contract works with NEP-141 tokens. The easiest way to obtain NEP-141 tokens is to wrap NEAR tokens with contract `wrap.near/wrap.testnet` to receive wNEAR. Lets deposit: ([response](https://explorer.testnet.near.org/transactions/8XkzRbeMQJykiN9EwJykKvH9fmLASChYQXwWwaQvF5Ex))
+```bash
+near call wrap.testnet near_deposit --deposit 1 --accountId yourname.testnet
+```
+To create a stream, it's needed to send some initial amount of tokens and bring instructions of how the stream should be processed at the contract. Stream creation process is optimized to be executed with the only transaction, based on NEP-141 feature `ft_transfer_call`. The idea is to send tokens with proper message that will be interpreted by roketo streaming contract as instructions.
+To do that we need to call token contract to send tokens onto roketo streaming contract with msg filled with [CreateRequest](#create) structure packed to JSON. Example below: ([response](https://explorer.testnet.near.org/transactions/4nCQoP6i57obfgkzLgwaUDw97ZC18eZWyyVvRc7AiGF9))
+```bash
+near call wrap.testnet ft_transfer_call '{"amount": "1000000000000000000000000","receiver_id": "streaming-roketo.dcversus.testnet", "memo": "test", "msg": "{\"Create\":{\"request\":{\"owner_id\":\"yourname.testnet\",\"receiver_id\":\"dcversus.testnet\",\"tokens_per_sec\":385802469135802500}}}"}' --depositYocto 1 --gas 200000000000000 --accountId yourname.testnet
+```
+As roketo contains of several contracts, the tokens sent to roketo streaming contract must always be transferred to roketo finance contract. To do that there is an instruction called [Push](#push). It also must be executed with ft_transfer_call from token contract as it's expected to combine several transactions into a single batch signed and broadcasted once. Push call: ([response](https://explorer.testnet.near.org/transactions/Cckoemb4haAL43AGe699w3nREqANqKLsd6g1bHEbRA8D))
+```bash
+near call wrap.testnet ft_transfer_call '{"amount": "1", "receiver_id": "streaming-roketo.dcversus.testnet", "memo": "test", "msg": "\"Push\""}' --depositYocto 1 --gas 200000000000000 --accountId yourname.testnet
+```
+lets pause our stream ([response](https://explorer.testnet.near.org/transactions/GWoSGiCwioMbjwegNp9N5EESYHzsjRSgjg4TnVTzdL7w))
+```bash
+near call streaming-roketo.dcversus.testnet pause_stream '{"stream_id": "CUr4BNXQgXqPWCJVvxu5v6jarGnV8y9s6iVWTK2g6fkt"}'  --depositYocto 1 --gas 200000000000000 --accountId yourname.testnet
+```
+You are awesome <3
+
 ### near-api-js
 Lets start from install package and connecting to wallet ([see quick reference](https://github.com/near/near-api-js/blob/master/examples/quick-reference.md)). After login we can create stream ([see signature](#create)):
 ```ts
-const fTcontract = new Contract(account, 'wrap.testnet', {
+const ftContract = new Contract(account, 'wrap.testnet', {
     changeMethods: ['ft_transfer_call', 'near_deposit'],
 });
 
 // only for NEAR, we need deposit NEAR on wrap 
-await fTcontract.near_deposit({}, 200000000000000, 1000000000000000000000000);
+await ftContract.near_deposit({}, 200000000000000, 1000000000000000000000000);
 
-await fTcontract.ft_transfer_call({
+await ftContract.ft_transfer_call({
     receiver_id: 'streaming-roketo.dcversus.testnet'
     amount: '1000000000000000000000000', // 1 NEAR
     memo: 'Roketo transfer',
@@ -69,44 +100,13 @@ await fTcontract.ft_transfer_call({
     }),
 }, 200000000000000);
 
-await fTcontract.ft_transfer_call({
+await ftContract.ft_transfer_call({
     receiver_id: 'streaming-roketo.dcversus.testnet'
     amount: '1', // 1 yocto
     memo: 'Roketo transfer',
     msg: '"Push"',
 }, 200000000000000);
 ```
-
-### near cli
-Install node and do `npm install -g near-cli` in console ([read more](https://github.com/near/near-cli)).
-```bash
-near login
-```
-and after as example lets call [get_stats](#getstats):
-```bash
-near call streaming-roketo.dcversus.testnet get_stats --accountId yourname.testnet
-```
-After calling you will got something like [this in explorer](https://explorer.testnet.near.org/transactions/29nT6VWaSpXugWeAp2kBmoYy2J13WRa8SMA58gzcN7K8).
-
-#### Stream creation
-For stream creation in NEAR we need NEAR->wNEAR before ([explorer](https://explorer.testnet.near.org/transactions/8XkzRbeMQJykiN9EwJykKvH9fmLASChYQXwWwaQvF5Ex))
-```bash
-near call wrap.testnet near_deposit --deposit 1 --accountId dcversus.testnet
-```
-stream creation through ft_transfer_call ([explorer](https://explorer.testnet.near.org/transactions/4nCQoP6i57obfgkzLgwaUDw97ZC18eZWyyVvRc7AiGF9))
-```bash
-near call wrap.testnet ft_transfer_call '{"amount": "1000000000000000000000000","receiver_id": "streaming-roketo.dcversus.testnet", "memo": "test", "msg": "{\"Create\":{\"request\":{\"owner_id\":\"dcversus.testnet\",\"receiver_id\":\"lebedev.testnet\",\"tokens_per_sec\":385802469135802500}}}"}' --depositYocto 1 --gas 200000000000000 --accountId dcversus.testnet
-```
-dont forget push! ([explorer](https://explorer.testnet.near.org/transactions/Cckoemb4haAL43AGe699w3nREqANqKLsd6g1bHEbRA8D))
-```bash
-near call wrap.testnet ft_transfer_call '{"amount": "1", "receiver_id": "streaming-roketo.dcversus.testnet", "memo": "test", "msg": "\"Push\""}' --depositYocto 1 --gas 200000000000000 --accountId dcversus.testnet
-```
-lets pause our stream ([explorer](https://explorer.testnet.near.org/transactions/GWoSGiCwioMbjwegNp9N5EESYHzsjRSgjg4TnVTzdL7w))
-```bash
-near call streaming-roketo.dcversus.testnet pause_stream '{"stream_id": "CUr4BNXQgXqPWCJVvxu5v6jarGnV8y9s6iVWTK2g6fkt"}'  --depositYocto 1 --gas 200000000000000 --accountId dcversus.testnet
-```
-You are awesome <3
-
 
 ## Roketo structures
 
