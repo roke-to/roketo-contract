@@ -99,9 +99,9 @@ await ftContract.ft_transfer_call({
 ## Roketo structures
 
 ### Basic structures
-- `AccountId` near account id eg 'test.near', `string`
-- `StreamId` near sdk CryptoHash eg '4q7BJuzBBcuv72bbLYAVXiL21mic3Cn3WPpWxMtS6tyP', `string`
-- `Timestamp` is a `string` representation of unix time in nanosec
+- `AccountId` near account id eg 'test.near' from near_sdk in a JSON is a `string`
+- `StreamId` near sdk CryptoHash eg '4q7BJuzBBcuv72bbLYAVXiL21mic3Cn3WPpWxMtS6tyP' in a JSON is a `string`
+- `Timestamp` from near sdk, is a unix time in nanosec in a JSON is a `string`
 - `SafeFloat`
 ```json
 { "val": "number", "pow": "number" }
