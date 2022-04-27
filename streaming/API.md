@@ -135,8 +135,6 @@ Examples
 
     "cliff": "?Timestamp", // optional, when is will be available to withdraw
 
-    "amount_to_push": "string", // tokens amount what should be pushed to finance contract
-
     "is_expirable": "boolean", // if true, owner can add deposit before stream finished
     "is_locked": "boolean", //  if true, any actions (stop, start etc are forbidden)
 }
