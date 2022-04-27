@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use std::cmp::max;
 
     fn res(x: u128, f: &SafeFloat) -> u128 {
         let mut y = x as f64 * f.val as f64;

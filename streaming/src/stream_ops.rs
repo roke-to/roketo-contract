@@ -116,7 +116,6 @@ impl Contract {
             balance,
             tokens_per_sec,
             cliff,
-            initial_balance,
             is_expirable,
             is_locked,
         );
@@ -138,6 +137,12 @@ impl Contract {
         if is_auto_start_enabled {
             self.process_action(&mut stream, ActionType::Start)?;
         }
+
+        self.ft_transfer_from_self(
+            stream.token_account_id.clone(),
+            self.finance_id.clone(),
+            stream.balance,
+        )?;
 
         self.save_stream(stream)?;
 
@@ -204,7 +209,12 @@ impl Contract {
         // Validations passed
 
         stream.balance += amount;
-        stream.amount_to_push = amount;
+
+        self.ft_transfer_from_self(
+            stream.token_account_id.clone(),
+            self.finance_id.clone(),
+            amount,
+        )?;
 
         self.save_stream(stream)?;
 

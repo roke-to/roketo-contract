@@ -5,9 +5,9 @@ authors = ["Alex Kouprin <hello@kikimora.tech>"]
 edition = "2018"
 
 [dev-dependencies]
-near-contract-standards = "=4.0.0-pre.6"
-near-sdk = { version = "=4.0.0-pre.6", features = ["unstable"] }
-near-sdk-sim = "=4.0.0-pre.6"
+near-contract-standards = "=4.0.0-pre.7"
+near-sdk = { version = "=4.0.0-pre.7", features = ["unstable"] }
+near-sdk-sim = "=4.0.0-pre.7"
 
 streaming = { path = "./streaming" }
 finance = { path = "./finance" }

@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
 use near_contract_standards::non_fungible_token::metadata::{
     NFTContractMetadata, NFT_METADATA_SPEC,
@@ -550,16 +548,6 @@ impl Env {
             is_locked,
         );
         assert_eq!(amount_accepted, U128(amount));
-
-        let res = self.contract_ft_transfer_call(
-            &token,
-            &owner,
-            1,
-            &serde_json::to_string(&TransferCallRequest::Push).unwrap(),
-        );
-        res.assert_success();
-        let amount_accepted: U128 = res.unwrap_json();
-        assert_eq!(amount_accepted, U128(1));
         self.get_account(&owner).last_created_stream.unwrap()
     }
 

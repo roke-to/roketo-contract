@@ -91,6 +91,9 @@ fn test_dev_setup() {
 fn test_finance_transfers() {
     let (e, tokens, users) = basic_setup();
 
+    assert_eq!(e.get_balance(&tokens.wnear, &e.streaming.user_account), 0);
+    assert_eq!(e.get_balance(&tokens.wnear, &e.finance), 0);
+
     let amount = d(101, 23);
     e.create_stream_ext_err(
         &users.alice,
@@ -105,27 +108,11 @@ fn test_finance_transfers() {
         None,
     );
 
-    let stream_id = e.get_account(&users.alice).last_created_stream.unwrap();
-    let stream = e.get_stream(&stream_id);
-
     assert_eq!(
         e.get_balance(&tokens.wnear, &e.streaming.user_account),
-        d(101, 23)
+        d(1, 23)
     );
-    assert_eq!(e.get_balance(&tokens.wnear, &e.finance), 0);
-
-    let res = e.contract_ft_transfer_call(
-        &tokens.wnear,
-        &users.alice,
-        1,
-        &serde_json::to_string(&TransferCallRequest::Push).unwrap(),
-    );
-    res.assert_success();
-    let amount_accepted: U128 = res.unwrap_json();
-    assert_eq!(amount_accepted, U128(1));
-
-    assert_eq!(e.get_balance(&tokens.wnear, &e.streaming.user_account), 1);
-    assert_eq!(e.get_balance(&tokens.wnear, &e.finance), d(101, 23));
+    assert_eq!(e.get_balance(&tokens.wnear, &e.finance), d(100, 23));
 }
 
 // Actual tests start here
@@ -516,7 +503,7 @@ fn test_stream_unlisted_sanity() {
     let account = e.get_account(&users.alice);
     assert_eq!(account.deposit, 0);
     assert_eq!(
-        last_alice_balance - amount - 1,
+        last_alice_balance - amount,
         e.get_balance(&token, &users.alice)
     );
 
@@ -1269,7 +1256,7 @@ fn test_stream_cliff_stop() {
 
     let amount = d(1, 24);
 
-    let initial_balance = e.get_balance(&tokens.wnear, &users.alice) - 1;
+    let initial_balance = e.get_balance(&tokens.wnear, &users.alice);
 
     let stream_id = e.create_stream_ext(
         &users.alice,
@@ -1324,7 +1311,7 @@ fn test_stream_stop_after_cliff() {
 
     let amount = d(1, 24);
 
-    let initial_balance = e.get_balance(&tokens.wnear, &users.alice) - 1;
+    let initial_balance = e.get_balance(&tokens.wnear, &users.alice);
 
     let stream_id = e.create_stream_ext(
         &users.alice,
@@ -1382,7 +1369,7 @@ fn test_stream_locked_sanity() {
 
     let amount = d(1, 24);
 
-    let initial_balance = e.get_balance(&tokens.wnear, &users.alice) - 1;
+    let initial_balance = e.get_balance(&tokens.wnear, &users.alice);
 
     let stream_id = e.create_stream_ext(
         &users.alice,
@@ -1517,7 +1504,7 @@ fn test_stream_locked_commissions() {
 
     let amount = d(1, 24);
 
-    let initial_balance = e.get_balance(&tokens.wnear, &users.alice) - 1;
+    let initial_balance = e.get_balance(&tokens.wnear, &users.alice);
 
     let dao = e.get_dao();
     assert_eq!(

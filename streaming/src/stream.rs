@@ -26,9 +26,6 @@ pub struct Stream {
 
     pub cliff: Option<Timestamp>,
 
-    #[serde(with = "u128_dec_format")]
-    pub amount_to_push: Balance,
-
     pub is_expirable: bool,
     pub is_locked: bool,
 }
@@ -62,7 +59,6 @@ impl Stream {
         balance: Balance,
         tokens_per_sec: Balance,
         cliff: Option<Timestamp>,
-        initial_balance: Balance,
         is_expirable: bool,
         is_locked: bool,
     ) -> Stream {
@@ -84,7 +80,6 @@ impl Stream {
             status: StreamStatus::Initialized,
             tokens_total_withdrawn: 0,
             cliff,
-            amount_to_push: initial_balance,
             is_expirable,
             is_locked,
         }

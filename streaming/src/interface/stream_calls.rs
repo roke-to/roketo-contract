@@ -12,12 +12,6 @@ impl Contract {
     #[payable]
     pub fn pause_stream(&mut self, stream_id: Base58CryptoHash) -> Vec<Promise> {
         assert_one_yocto();
-        let stream_id = stream_id.into();
-        let stream_view = self.view_stream(&stream_id).unwrap();
-        let token = self
-            .dao
-            .get_token_or_unlisted(&stream_view.token_account_id);
-
         self.process_pause_stream(&env::signer_account_id(), stream_id.into())
             .unwrap()
     }
@@ -25,13 +19,7 @@ impl Contract {
     #[payable]
     pub fn stop_stream(&mut self, stream_id: Base58CryptoHash) -> Vec<Promise> {
         assert_one_yocto();
-        let stream_id = stream_id.into();
-        let stream_view = self.view_stream(&stream_id).unwrap();
-        let token = self
-            .dao
-            .get_token_or_unlisted(&stream_view.token_account_id);
-
-        self.process_stop_stream(&env::signer_account_id(), stream_id)
+        self.process_stop_stream(&env::signer_account_id(), stream_id.into())
             .unwrap()
     }
 

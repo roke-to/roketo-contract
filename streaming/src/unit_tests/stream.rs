@@ -19,7 +19,6 @@ mod tests {
             status: StreamStatus::Active,
             tokens_total_withdrawn: 0,
             cliff: None,
-            amount_to_push: 0,
             is_expirable: true,
             is_locked: false,
         }
