@@ -473,19 +473,19 @@ impl Env {
     }
 
     pub fn get_account(&self, user: &UserAccount) -> AccountView {
-        let account: Result<AccountView, ContractError> = self
+        let account: AccountView = self
             .near
             .view_method_call(self.streaming.contract.get_account(user.account_id()))
             .unwrap_json();
-        account.unwrap()
+        account
     }
 
     pub fn get_stream(&self, stream_id: &Base58CryptoHash) -> Stream {
-        let stream: Result<Stream, ContractError> = self
+        let stream: Stream = self
             .near
             .view_method_call(self.streaming.contract.get_stream(*stream_id))
             .unwrap_json();
-        stream.unwrap()
+        stream
     }
 
     pub fn create_stream_ext_err(

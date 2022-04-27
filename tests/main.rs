@@ -480,11 +480,10 @@ fn test_stream_unlisted_sanity() {
         )
         .is_ok());
 
-    let account: Result<AccountView, ContractError> = e
+    assert!(e
         .near
         .view_method_call(e.streaming.contract.get_account(users.alice.account_id()))
-        .unwrap_json();
-    assert!(account.is_err());
+        .is_err());
 
     assert!(users
         .alice
@@ -495,6 +494,10 @@ fn test_stream_unlisted_sanity() {
         )
         .is_ok());
 
+    assert!(e
+        .near
+        .view_method_call(e.streaming.contract.get_account(users.alice.account_id()))
+        .is_ok());
     let account = e.get_account(&users.alice);
     assert_eq!(account.deposit, dao.commission_unlisted);
 

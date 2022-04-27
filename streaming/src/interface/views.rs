@@ -46,6 +46,7 @@ impl Contract {
         )
     }
 
+    #[handle_result]
     pub fn get_stream(&self, stream_id: Base58CryptoHash) -> Result<Stream, ContractError> {
         let stream_id = stream_id.into();
         self.streams
@@ -54,6 +55,7 @@ impl Contract {
             .unwrap_or(Err(ContractError::UnreachableStream { stream_id }))
     }
 
+    #[handle_result]
     pub fn get_account(&self, account_id: AccountId) -> Result<AccountView, ContractError> {
         self.accounts
             .get(&account_id)
@@ -93,6 +95,7 @@ impl Contract {
             .unwrap_or(Err(ContractError::UnreachableAccount { account_id }))
     }
 
+    #[handle_result]
     pub fn get_account_incoming_streams(
         &self,
         account_id: AccountId,
@@ -113,6 +116,7 @@ impl Contract {
             .unwrap_or(Err(ContractError::UnreachableAccount { account_id }))
     }
 
+    #[handle_result]
     pub fn get_account_outgoing_streams(
         &self,
         account_id: AccountId,
@@ -133,6 +137,7 @@ impl Contract {
             .unwrap_or(Err(ContractError::UnreachableAccount { account_id }))
     }
 
+    #[handle_result]
     pub fn get_account_ft(
         &self,
         account_id: AccountId,
