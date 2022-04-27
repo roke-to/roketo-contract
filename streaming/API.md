@@ -25,7 +25,6 @@
 - Calls
     - Through NEP-141 FT ([ft_on_transfer](#ft_on_transfer))
         - [Create](#create)
-        - [Push](#push)
         - [Deposit](#deposit)
         - [Stake](#stake)
     - Main calls
@@ -38,45 +37,41 @@
     - [Oracle calls](#oracle-calls)
 
 
-## How to use contract
-The roketo contract is a regular Near contract. To get some basic understanding of NEAR Protocol contracts read [nomicon](https://nomicon.io). You can doing call through several methods.  
+## How to use the contract
+Roketo’s smart contract is a regular NEAR contract. To find better understanding about principles of NEAR protocol, please read the [nomicon](https://nomicon.io). A several method’s of calls are described there, so you would be able to guide yourself with the docs mentioned.
 
 ### roketo-sdk
 > Todo
 
 ### near cli
-Install node and do `npm install -g near-cli` in console ([read more](https://github.com/near/near-cli)).
+At first, install node. Then type `npm install -g near-cli` in the console ([read more](https://github.com/near/near-cli)).
 ```bash
 near login
 ```
-In examples below just repleace `yourname.testnet` to your near testnet login. As example lets call view method [get_stats](#getstats):
+In examples below repleace `yourname.testnet` to your NEAR testnet login. As an example try the call view method [get_stats](#getstats):
 ```bash
 near view streaming-roketo.dcversus.testnet get_stats --accountId yourname.testnet
 ```
-After calling you will got something like [this in explorer as response](https://explorer.testnet.near.org/transactions/29nT6VWaSpXugWeAp2kBmoYy2J13WRa8SMA58gzcN7K8).
+After the call you might get the response like [this in explorer as response](https://explorer.testnet.near.org/transactions/29nT6VWaSpXugWeAp2kBmoYy2J13WRa8SMA58gzcN7K8).
 
 #### Stream creation
-Roketo streaming contract works with NEP-141 tokens. The easiest way to obtain NEP-141 tokens is to wrap NEAR tokens with contract `wrap.near/wrap.testnet` to receive wNEAR. Lets deposit: ([response](https://explorer.testnet.near.org/transactions/8XkzRbeMQJykiN9EwJykKvH9fmLASChYQXwWwaQvF5Ex))
+Roketo’s streaming contract works with NEP-141 tokens. The easiest way to obtain NEP-141 tokens is to wrap NEAR tokens with the contract `wrap.near/wrap.testnet` to receive wNEAR. Lets deposit: ([response](https://explorer.testnet.near.org/transactions/8XkzRbeMQJykiN9EwJykKvH9fmLASChYQXwWwaQvF5Ex))
 ```bash
 near call wrap.testnet near_deposit --deposit 1 --accountId yourname.testnet
 ```
-To create a stream, it's needed to send some initial amount of tokens and bring instructions of how the stream should be processed at the contract. Stream creation process is optimized to be executed with the only transaction, based on NEP-141 feature `ft_transfer_call`. The idea is to send tokens with proper message that will be interpreted by roketo streaming contract as instructions.
-To do that we need to call token contract to send tokens onto roketo streaming contract with msg filled with [CreateRequest](#create) structure packed to JSON. Example below: ([response](https://explorer.testnet.near.org/transactions/4nCQoP6i57obfgkzLgwaUDw97ZC18eZWyyVvRc7AiGF9))
+To create a stream, you should send the initial amount of tokens and bring the instructions of stream processing to the contract. The process of stream creation is optimized to be executed with the only transaction, based on NEP-141 feature `ft_transfer_call`. The idea is to send tokens with the proper message that will be interpreted by roketo streaming contract as instructions.
+To succeed, we need to call the token contract to send tokens into roketo’s streaming contract with msg with [CreateRequest](#create) structure packed to JSON. Example below: ([response](https://explorer.testnet.near.org/transactions/4nCQoP6i57obfgkzLgwaUDw97ZC18eZWyyVvRc7AiGF9))
 ```bash
 near call wrap.testnet ft_transfer_call '{"amount": "1000000000000000000000000","receiver_id": "streaming-roketo.dcversus.testnet", "memo": "test", "msg": "{\"Create\":{\"request\":{\"owner_id\":\"yourname.testnet\",\"receiver_id\":\"dcversus.testnet\",\"tokens_per_sec\":385802469135802500}}}"}' --depositYocto 1 --gas 200000000000000 --accountId yourname.testnet
 ```
-As roketo contains of several contracts, the tokens sent to roketo streaming contract must always be transferred to roketo finance contract. To do that there is an instruction called [Push](#push). It also must be executed with ft_transfer_call from token contract as it's expected to combine several transactions into a single batch signed and broadcasted once. Push call: ([response](https://explorer.testnet.near.org/transactions/Cckoemb4haAL43AGe699w3nREqANqKLsd6g1bHEbRA8D))
-```bash
-near call wrap.testnet ft_transfer_call '{"amount": "1", "receiver_id": "streaming-roketo.dcversus.testnet", "memo": "test", "msg": "\"Push\""}' --depositYocto 1 --gas 200000000000000 --accountId yourname.testnet
-```
-lets pause our stream ([response](https://explorer.testnet.near.org/transactions/GWoSGiCwioMbjwegNp9N5EESYHzsjRSgjg4TnVTzdL7w))
+Now let’s try to pause our stream ([response](https://explorer.testnet.near.org/transactions/GWoSGiCwioMbjwegNp9N5EESYHzsjRSgjg4TnVTzdL7w))
 ```bash
 near call streaming-roketo.dcversus.testnet pause_stream '{"stream_id": "CUr4BNXQgXqPWCJVvxu5v6jarGnV8y9s6iVWTK2g6fkt"}'  --depositYocto 1 --gas 200000000000000 --accountId yourname.testnet
 ```
 You are awesome <3
 
 ### near-api-js
-Lets start from install package and connecting to wallet ([see quick reference](https://github.com/near/near-api-js/blob/master/examples/quick-reference.md)). After login we can create stream ([see signature](#create)):
+Start from the installation of the package and connecting to the wallet ([see quick reference](https://github.com/near/near-api-js/blob/master/examples/quick-reference.md)). After login we are able to create stream  ([see signature](#create)):
 ```ts
 const ftContract = new Contract(account, 'wrap.testnet', {
     changeMethods: ['ft_transfer_call', 'near_deposit'],
@@ -98,13 +93,6 @@ await ftContract.ft_transfer_call({
             }
         }
     }),
-}, 200000000000000);
-
-await ftContract.ft_transfer_call({
-    receiver_id: 'streaming-roketo.dcversus.testnet'
-    amount: '1', // 1 yocto
-    memo: 'Roketo transfer',
-    msg: '"Push"',
 }, 200000000000000);
 ```
 
@@ -154,10 +142,10 @@ Examples
 }
 ```
 #### Stream status
-- **Initialized** - stream created with `is_auto_start_enabled` = false, tokens not sending before stream will be started
+- **Initialized** - stream is created with `is_auto_start_enabled` = false, tokens are not sending until the stream will be started
 - **Active** - tokens are in process of streaming
-- **Paused** - streamed tokens are withdrawn to reciever and sending paused
-- **Finished** - stream over, can not 
+- **Paused** - streamed tokens are withdrawn to receiver and sending paused
+- **Finished** - stream is over. Receiver is able to withdraw the balance.
 
 ### Account
 ```jsonc
@@ -180,7 +168,7 @@ Examples
     "last_created_stream": "StreamId", // last created stream id
 
     // boolean, if true anyone can call `withdraw` for income streams,
-    // otherwise only reciever can do it.
+    // otherwise only receiver can do it.
     // Property and call are needed for internal purposes. 
     "is_cron_allowed": "boolean"
 }
@@ -219,7 +207,7 @@ Examples
 ```
 
 ## Roketo views
-View methods of contract.
+Several view methods of the Roketo’s contract.
 
 ### Main views
 
@@ -245,7 +233,7 @@ Response are [account representation](#account)
 
 #### `get_account_incoming_streams` 
 #### `get_account_outgoing_streams`
-Return list of incoming (or outgoing) streams for account. Request:
+Return list of incoming (or outgoing) streams to account. Request:
 ```json
 {
     "account_id": "AccountId",
@@ -298,14 +286,15 @@ Return contract 'settings'
 }
 ```
 #### `get_token`
-return `[Token, TokenStats]` (see [Token](#token), [TokenStats](#tokenstats)) and request:
+Return `[Token, TokenStats]` (see [Token](#token), [TokenStats](#tokenstats)) and request:
 ```json
 {
     "token_account_id": "string"
 }
 ```
 #### `get_account_ft`
-response account token stats (numbers) `[total_incoming, total_outgoing, total_received]`, request: 
+Response
+account token stats (numbers) `[total_incoming, total_outgoing, total_received]`, request: 
 ```json
 {
     "account_id": "AccountId",
@@ -315,7 +304,7 @@ response account token stats (numbers) `[total_incoming, total_outgoing, total_r
 
 ## Roketo calls
 
-Modifying methods of contract, require a deposit. Some methods should be called through NEP-141 FT [(ft_on_transfer)](#ftontransfer)
+Modifying methods of contract requires a deposit. Some of methods should be called through NEP-141 FT [(ft_on_transfer)](#ftontransfer)
 
 ### `ft_on_transfer`
 **Don't make this call directly.** You should call `ft_transfer_call` at any compatible NEP-141 FT with deposit and payload:
@@ -330,7 +319,7 @@ Modifying methods of contract, require a deposit. Some methods should be called 
 Where `ROKETO_ACCOUNT_ID` is a `streaming-roketo.dcversus.testnet` in testnet and `streaming.r-v2.near` in mainnet. `TRANSFER_PAYLOAD` are different for actions. Details below.
 
 #### `Create`
-The action will create users and stream with the transferred payload. Attached deposit will be a transfering amount (commission will be deducted). **You should call `Push` through `ft_on_transfer` for work after create!**
+The action will create users and stream with the transferred payload. The deposit attached will be a transfering amount (commission will be deducted automatically).
 
 ```jsonc
 {
@@ -358,13 +347,6 @@ The action will create users and stream with the transferred payload. Attached d
 - `is_expirable` optional bool, if true, owner can add deposit before stream finished
 - `is_locked` optional bool, if true, any actions (stop, start etc will be forbidden)
 
-#### `Push`
-Send tokens from streaming contract to finance contract. Should be called after `Create` for internal purposes.
-
-```json
- "Push"
-```
-
 #### `Deposit`
 Add attached deposit to the stream.
 
@@ -387,7 +369,7 @@ Expect only `utility_token`! Stake attached deposit to account.
 
 #### `start_stream` 
 
-Starts initialized or paused stream. Can be executed only by the owner of the stream in case of initialization or the receiver too if stream was paused. Expects one yocto as deposit. Signature: 
+Starts initialized or paused stream. It might be executed only by the owner of the stream in case of initialization or the receiver too (if stream was paused). Expects one yocto as deposit. Signature:
 ```json
 {
     "stream_id": "StreamId"
@@ -395,7 +377,7 @@ Starts initialized or paused stream. Can be executed only by the owner of the st
 ```
 
 #### `pause_stream`
-Pauses the stream and transfer streamed tokens to the reciever. Stream can be paused only if it was in the active state. Can be executed only by the owner or the receiver of the stream. Expects one yocto as deposit. Signature: 
+Pauses the stream and transfer streamed tokens to the receiver. Stream can be paused only if it was in the active state. Might be executed only by the owner or the receiver of the stream. Expects one yocto as deposit. Signature:
 ```json
 {
     "stream_id": "StreamId"
@@ -403,7 +385,7 @@ Pauses the stream and transfer streamed tokens to the reciever. Stream can be pa
 ```
 
 #### `stop_stream`
-Finishing the stream. Finished streams cannot be restarted. All remaining deposit sends back to the owner, all streamed deposit will be send to reciever. Can be executed only by the owner of the stream. Expects one yocto as deposit. Signature: 
+Finishing the stream. Finished streams can’t be restarted. All remaining amount of deposit go’s back to the owner — all streamed deposit will be sent to receiver. Can be executed only by the owner of the stream. Expects one yocto as deposit. Signature:
 ```json
 {
     "stream_id": "StreamId"
@@ -411,7 +393,7 @@ Finishing the stream. Finished streams cannot be restarted. All remaining deposi
 ```
 
 #### `withdraw`
-Transfer streamed tokens to the reciever. If stream deposit was streamed, then the stream will finish. Can be executed only by the receiver of the stream. Expects one yocto as deposit Signature: 
+Transfer streamed tokens to the receiver. If stream deposit was streamed, then the stream will finish. Can be executed only by the receiver of the stream. Expects one yocto as deposit Signature: 
 ```json
 {
     "stream_ids": ["StreamId"]
@@ -422,7 +404,7 @@ Transfer streamed tokens to the reciever. If stream deposit was streamed, then t
 These methods are not essential for the functioning of the main task of the contract, but may be useful
 
 #### `change_receiver`
-sets a new reciever for the stream. Can be executed only by the receiver of the stream. Expects `storage_balance_needed` from token as deposit. Call signature:
+sets a new receiver for the stream. Can be executed only by the receiver of the stream. Expects `storage_balance_needed` from token as deposit. Call signature:
 ```jsonc
 {
     "stream_id": "StreamId",
