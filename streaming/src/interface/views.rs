@@ -47,7 +47,7 @@ impl Contract {
     }
 
     #[handle_result]
-    pub fn get_stream(&self, stream_id: Base58CryptoHash) -> Result<Stream, ContractError> {
+    pub fn get_stream(self, stream_id: Base58CryptoHash) -> Result<Stream, ContractError> {
         let stream_id = stream_id.into();
         self.streams
             .get(&stream_id)
@@ -56,7 +56,7 @@ impl Contract {
     }
 
     #[handle_result]
-    pub fn get_account(&self, account_id: AccountId) -> Result<AccountView, ContractError> {
+    pub fn get_account(self, account_id: AccountId) -> Result<AccountView, ContractError> {
         self.accounts
             .get(&account_id)
             .map(|v| v.into())
@@ -97,7 +97,7 @@ impl Contract {
 
     #[handle_result]
     pub fn get_account_incoming_streams(
-        &self,
+        self,
         account_id: AccountId,
         from: u32,
         limit: u32,
@@ -118,7 +118,7 @@ impl Contract {
 
     #[handle_result]
     pub fn get_account_outgoing_streams(
-        &self,
+        self,
         account_id: AccountId,
         from: u32,
         limit: u32,
@@ -139,7 +139,7 @@ impl Contract {
 
     #[handle_result]
     pub fn get_account_ft(
-        &self,
+        self,
         account_id: AccountId,
         token_account_id: AccountId,
     ) -> Result<(U128, U128, U128), ContractError> {
