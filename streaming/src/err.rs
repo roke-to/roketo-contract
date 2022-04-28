@@ -113,6 +113,8 @@ pub enum ContractError {
 
 impl FunctionError for ContractError {
     fn panic(&self) -> ! {
-        crate::env::panic_str(&format!("{:?}", self))
+        crate::env::panic_str(
+            &serde_json::to_string(self).unwrap_or(format!("serde failed: {:?}", self)),
+        )
     }
 }
