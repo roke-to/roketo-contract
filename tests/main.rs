@@ -186,9 +186,9 @@ fn test_stream_min_value() {
     assert_eq!(stream.tokens_total_withdrawn, 0);
     assert_eq!(stream.status, StreamStatus::Active);
     assert_eq!(e.get_balance(&tokens.nusdt, &users.charlie), 0);
-    let dao = e.get_dao();
-    let dao_token = dao.tokens.get(&tokens.nusdt.account_id()).unwrap();
-    assert_eq!(dao_token.collected_commission, d(1, 6));
+    let stats = e.get_stats();
+    let dao_token = stats.dao_tokens.get(&tokens.nusdt.account_id()).unwrap();
+    assert_eq!(dao_token.total_commission_collected, d(1, 6));
 
     e.skip_time(1);
     e.withdraw(&users.charlie, &stream_id);
@@ -198,9 +198,9 @@ fn test_stream_min_value() {
     assert_eq!(stream.tokens_total_withdrawn, 1);
     assert_eq!(stream.status, StreamStatus::Active);
     assert_eq!(e.get_balance(&tokens.nusdt, &users.charlie), 0);
-    let dao = e.get_dao();
-    let dao_token = dao.tokens.get(&tokens.nusdt.account_id()).unwrap();
-    assert_eq!(dao_token.collected_commission, d(1, 6) + 1);
+    let stats = e.get_stats();
+    let dao_token = stats.dao_tokens.get(&tokens.nusdt.account_id()).unwrap();
+    assert_eq!(dao_token.total_commission_collected, d(1, 6) + 1);
 
     e.skip_time(150);
     e.withdraw(&users.charlie, &stream_id);
@@ -210,9 +210,9 @@ fn test_stream_min_value() {
     assert_eq!(stream.tokens_total_withdrawn, 1 + 150);
     assert_eq!(stream.status, StreamStatus::Active);
     assert_eq!(e.get_balance(&tokens.nusdt, &users.charlie), 149);
-    let dao = e.get_dao();
-    let dao_token = dao.tokens.get(&tokens.nusdt.account_id()).unwrap();
-    assert_eq!(dao_token.collected_commission, d(1, 6) + 2);
+    let stats = e.get_stats();
+    let dao_token = stats.dao_tokens.get(&tokens.nusdt.account_id()).unwrap();
+    assert_eq!(dao_token.total_commission_collected, d(1, 6) + 2);
 
     e.skip_time(10000);
     e.withdraw(&users.charlie, &stream_id);
@@ -227,9 +227,9 @@ fn test_stream_min_value() {
         }
     );
     assert_eq!(e.get_balance(&tokens.nusdt, &users.charlie), 3700 - 6);
-    let dao = e.get_dao();
-    let dao_token = dao.tokens.get(&tokens.nusdt.account_id()).unwrap();
-    assert_eq!(dao_token.collected_commission, d(1, 6) + 6);
+    let stats = e.get_stats();
+    let dao_token = stats.dao_tokens.get(&tokens.nusdt.account_id()).unwrap();
+    assert_eq!(dao_token.total_commission_collected, d(1, 6) + 6);
 }
 
 #[test]
@@ -270,19 +270,21 @@ fn test_stream_max_value() {
 
     let dao = e.get_dao();
     let dao_token = dao.tokens.get(&tokens.wnear.account_id()).unwrap();
+    let stats = e.get_stats();
+    let stats_token = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
     assert_eq!(
-        dao_token.collected_commission,
+        stats_token.total_commission_collected,
         dao_token.commission_coef.mult_safe(MAX_AMOUNT - 1) + 1
     );
 
     assert_eq!(
         e.get_balance(&tokens.wnear, &users.charlie),
-        MAX_AMOUNT - dao_token.collected_commission
+        MAX_AMOUNT - stats_token.total_commission_collected
     );
 
     // prove that the test makes any sence
     assert_eq!(
-        (MAX_AMOUNT / 1_000_000_000 * (1_000_000_000 - 1) - dao_token.collected_commission)
+        (MAX_AMOUNT / 1_000_000_000 * (1_000_000_000 - 1) - stats_token.total_commission_collected)
             / d(1, 18),
         0
     );
@@ -322,14 +324,16 @@ fn test_stream_max_value_min_speed() {
 
     let dao = e.get_dao();
     let dao_token = dao.tokens.get(&tokens.wnear.account_id()).unwrap();
+    let stats = e.get_stats();
+    let stats_token = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
     assert_eq!(
-        dao_token.collected_commission,
+        stats_token.total_commission_collected,
         dao_token.commission_coef.mult_safe(hund_years - 1) + 1
     );
 
     assert_eq!(
         e.get_balance(&tokens.wnear, &users.charlie),
-        hund_years - dao_token.collected_commission
+        hund_years - stats_token.total_commission_collected
     );
 }
 
@@ -1040,9 +1044,9 @@ fn test_stats_sanity() {
 fn test_dao_collect_commission_sanity() {
     let (e, tokens, users) = basic_setup();
 
-    let dao = e.get_dao();
-    let t = dao.tokens.get(&tokens.wnear.account_id()).unwrap();
-    assert_eq!(t.collected_commission, 0);
+    let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
+    assert_eq!(t.total_commission_collected, 0);
 
     let amount = d(1, 24);
 
@@ -1054,23 +1058,23 @@ fn test_dao_collect_commission_sanity() {
         d(1, 20),
     );
 
-    let dao = e.get_dao();
-    let t = dao.tokens.get(&tokens.wnear.account_id()).unwrap();
-    assert_eq!(t.collected_commission, d(1, 23));
+    let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
+    assert_eq!(t.total_commission_collected, d(1, 23));
 
     e.skip_time(100);
     e.withdraw(&users.charlie, &stream_id);
 
-    let dao = e.get_dao();
-    let t = dao.tokens.get(&tokens.wnear.account_id()).unwrap();
-    assert_eq!(t.collected_commission, d(1, 23) + d(100, 20) / 250);
+    let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
+    assert_eq!(t.total_commission_collected, d(1, 23) + d(100, 20) / 250);
 
     e.skip_time(100);
     e.stop_stream(&users.alice, &stream_id);
 
-    let dao = e.get_dao();
-    let t = dao.tokens.get(&tokens.wnear.account_id()).unwrap();
-    assert_eq!(t.collected_commission, d(1, 23) + d(200, 20) / 250);
+    let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
+    assert_eq!(t.total_commission_collected, d(1, 23) + d(200, 20) / 250);
 }
 
 #[test]
@@ -1183,14 +1187,9 @@ fn test_stream_withdraw_after_cliff() {
     );
     assert_eq!(stream.balance, amount - d(1, 23) - d(200, 20));
 
-    let dao = e.get_dao();
-    assert_eq!(
-        dao.tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .collected_commission,
-        d(1, 23) + d(200, 20) / 250
-    );
+    let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
+    assert_eq!(t.total_commission_collected, d(1, 23) + d(200, 20) / 250);
 
     e.skip_time(200);
     e.withdraw(&users.charlie, &stream_id);
@@ -1203,14 +1202,9 @@ fn test_stream_withdraw_after_cliff() {
     );
     assert_eq!(stream.balance, amount - d(1, 23) - d(400, 20));
 
-    let dao = e.get_dao();
-    assert_eq!(
-        dao.tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .collected_commission,
-        d(1, 23) + d(400, 20) / 250
-    );
+    let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
+    assert_eq!(t.total_commission_collected, d(1, 23) + d(400, 20) / 250);
 }
 
 #[test]
@@ -1292,14 +1286,9 @@ fn test_stream_cliff_stop() {
             reason: StreamFinishReason::StoppedByOwner
         }
     );
-    let dao = e.get_dao();
-    assert_eq!(
-        dao.tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .collected_commission,
-        d(1, 23) + d(60, 20) / 250
-    );
+    let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
+    assert_eq!(t.total_commission_collected, d(1, 23) + d(60, 20) / 250);
     assert_eq!(e.get_balance(&tokens.wnear, &users.charlie), 0);
     assert_eq!(
         e.get_balance(&tokens.wnear, &users.alice),
@@ -1347,14 +1336,9 @@ fn test_stream_stop_after_cliff() {
             reason: StreamFinishReason::StoppedByOwner
         }
     );
-    let dao = e.get_dao();
-    assert_eq!(
-        dao.tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .collected_commission,
-        d(1, 23) + d(120, 20) / 250
-    );
+    let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
+    assert_eq!(t.total_commission_collected, d(1, 23) + d(120, 20) / 250);
     assert_eq!(
         e.get_balance(&tokens.wnear, &users.charlie),
         d(120, 20) / 250 * 249
@@ -1482,21 +1466,10 @@ fn test_stream_locked_sanity() {
     );
     assert_eq!(stream.balance, 0);
 
-    let dao = e.get_dao();
-    assert_eq!(
-        dao.tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .collected_commission,
-        d(1, 23) + (d(1, 24) - d(1, 23)) / 250
-    );
     let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
     assert_eq!(
-        stats
-            .dao_tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .total_commission_collected,
+        t.total_commission_collected,
         d(1, 23) + (d(1, 24) - d(1, 23)) / 250
     );
 }
@@ -1509,23 +1482,9 @@ fn test_stream_locked_commissions() {
 
     let initial_balance = e.get_balance(&tokens.wnear, &users.alice);
 
-    let dao = e.get_dao();
-    assert_eq!(
-        dao.tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .collected_commission,
-        0
-    );
     let stats = e.get_stats();
-    assert_eq!(
-        stats
-            .dao_tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .total_commission_collected,
-        0
-    );
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
+    assert_eq!(t.total_commission_collected, 0);
 
     let stream_id = e.create_stream_ext(
         &users.alice,
@@ -1540,21 +1499,10 @@ fn test_stream_locked_commissions() {
         Some(true),
     );
 
-    let dao = e.get_dao();
-    assert_eq!(
-        dao.tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .collected_commission,
-        d(1, 23) + (d(1, 24) - d(1, 23)) / 250
-    );
     let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
     assert_eq!(
-        stats
-            .dao_tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .total_commission_collected,
+        t.total_commission_collected,
         d(1, 23) + (d(1, 24) - d(1, 23)) / 250
     );
 
@@ -1582,21 +1530,10 @@ fn test_stream_locked_commissions() {
     );
     assert_eq!(stream.balance, d(1, 24) - d(1, 23) - d(100, 20));
 
-    let dao = e.get_dao();
-    assert_eq!(
-        dao.tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .collected_commission,
-        d(1, 23) + (d(1, 24) - d(1, 23)) / 250
-    );
     let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
     assert_eq!(
-        stats
-            .dao_tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .total_commission_collected,
+        t.total_commission_collected,
         d(1, 23) + (d(1, 24) - d(1, 23)) / 250
     );
 
@@ -1620,21 +1557,10 @@ fn test_stream_locked_commissions() {
     );
     assert_eq!(stream.balance, 0);
 
-    let dao = e.get_dao();
-    assert_eq!(
-        dao.tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .collected_commission,
-        d(1, 23) + (d(1, 24) - d(1, 23)) / 250
-    );
     let stats = e.get_stats();
+    let t = stats.dao_tokens.get(&tokens.wnear.account_id()).unwrap();
     assert_eq!(
-        stats
-            .dao_tokens
-            .get(&tokens.wnear.account_id())
-            .unwrap()
-            .total_commission_collected,
+        t.total_commission_collected,
         d(1, 23) + (d(1, 24) - d(1, 23)) / 250
     );
 }

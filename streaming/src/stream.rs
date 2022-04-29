@@ -265,10 +265,6 @@ impl Contract {
             .entry(stream.token_account_id.clone())
             .and_modify(|e| *e += payment)
             .or_insert(payment);
-        self.dao
-            .tokens
-            .entry(stream.token_account_id.clone())
-            .and_modify(|e| e.collected_commission += commission);
         self.stats_withdraw(&token, payment, commission);
         self.ft_transfer_from_finance(token.account_id, stream.receiver_id.clone(), payment)
     }

@@ -51,7 +51,7 @@ impl Contract {
         let mut creator = self.extract_account(&creator_id)?;
         let mut balance = initial_balance;
 
-        let mut token = self.dao.get_token_or_unlisted(&token_account_id);
+        let token = self.dao.get_token_or_unlisted(&token_account_id);
         let is_listed = token.is_listed;
         let mut commission = 0;
 
@@ -76,10 +76,6 @@ impl Contract {
                 let (_, calculated_commission) = token.apply_commission(balance);
                 commission += calculated_commission;
             }
-
-            token.collected_commission += commission;
-
-            self.dao.tokens.insert(token_account_id.clone(), token);
         } else {
             if creator.deposit < self.dao.commission_unlisted {
                 return Err(ContractError::InsufficientNearBalance {

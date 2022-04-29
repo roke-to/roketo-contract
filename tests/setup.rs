@@ -191,7 +191,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(10, 18),
                     commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
-                    collected_commission: 0,
+                    commission_on_transfer: d(10, 17),
                     storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
                     gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
@@ -208,7 +208,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(1, 18),
                     commission_coef: SafeFloat { val: 1, pow: -3 }, // 0.1%
-                    collected_commission: 0,
+                    commission_on_transfer: d(1, 17),
                     storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
                     gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
@@ -225,7 +225,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(1, 6),
                     commission_coef: SafeFloat { val: 1, pow: -3 }, // 0.1%
-                    collected_commission: 0,
+                    commission_on_transfer: d(1, 5),
                     storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
                     gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
@@ -242,7 +242,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(1, 23), // 0.1 token
                     commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
-                    collected_commission: 0,
+                    commission_on_transfer: d(1, 22),
                     storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
                     gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
@@ -259,7 +259,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(1, 15), // 0.001 token
                     commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
-                    collected_commission: 0,
+                    commission_on_transfer: d(1, 14),
                     storage_balance_needed: 0, // aurora doesn't need storage deposit
                     gas_for_ft_transfer: near_sdk::Gas(20 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(20 * ONE_TERA),

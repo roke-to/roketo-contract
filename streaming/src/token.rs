@@ -15,11 +15,9 @@ pub struct Token {
     // percentage of tokens taken for commission
     pub commission_coef: SafeFloat,
 
-    // TODO #11
-    // #[serde(with = "u128_dec_format")]
-    // pub commission_on_transfer: Balance,
+    // taken in current fts in case of listed token
     #[serde(with = "u128_dec_format")]
-    pub collected_commission: Balance,
+    pub commission_on_transfer: Balance,
 
     #[serde(with = "u128_dec_format")]
     pub storage_balance_needed: Balance,
@@ -35,7 +33,7 @@ impl Token {
             is_listed: false,
             commission_on_create: 0, // we don't accept unlisted tokens
             commission_coef: SafeFloat::ZERO,
-            collected_commission: 0,
+            commission_on_transfer: 0, // we don't accept unlisted tokens
             storage_balance_needed: DEFAULT_STORAGE_BALANCE,
             gas_for_ft_transfer: DEFAULT_GAS_FOR_FT_TRANSFER,
             gas_for_storage_deposit: DEFAULT_GAS_FOR_STORAGE_DEPOSIT,

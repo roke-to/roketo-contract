@@ -48,10 +48,7 @@ impl FungibleTokenReceiver for Contract {
                     AuroraOperationalRequest::AccountDeposit => {
                         let value = self.dao.eth_near_ratio.mult_safe(amount.into());
                         self.account_deposit(sender_id, value).unwrap();
-                        self.dao
-                            .tokens
-                            .entry(Contract::aurora_account_id())
-                            .and_modify(|e| e.collected_commission += value);
+                        // TODO process collected commission
                         self.stats_inc_account_deposit(value, true);
                         return PromiseOrValue::Value(U128::from(0));
                     }
