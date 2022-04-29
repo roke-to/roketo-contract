@@ -5,21 +5,23 @@ impl Contract {
     #[payable]
     pub fn start_stream(&mut self, stream_id: Base58CryptoHash) {
         assert_one_yocto();
-        self.process_start_stream(&env::signer_account_id(), stream_id.into())
+        // Stream calls may be delegated to 3rd parties.
+        // That's why it uses env::predecessor_account_id() here and below.
+        self.process_start_stream(&env::predecessor_account_id(), stream_id.into())
             .unwrap()
     }
 
     #[payable]
     pub fn pause_stream(&mut self, stream_id: Base58CryptoHash) -> Vec<Promise> {
         assert_one_yocto();
-        self.process_pause_stream(&env::signer_account_id(), stream_id.into())
+        self.process_pause_stream(&env::predecessor_account_id(), stream_id.into())
             .unwrap()
     }
 
     #[payable]
     pub fn stop_stream(&mut self, stream_id: Base58CryptoHash) -> Vec<Promise> {
         assert_one_yocto();
-        self.process_stop_stream(&env::signer_account_id(), stream_id.into())
+        self.process_stop_stream(&env::predecessor_account_id(), stream_id.into())
             .unwrap()
     }
 
@@ -30,7 +32,7 @@ impl Contract {
         stream_ids
             .iter()
             .map(|&stream_id| {
-                self.process_withdraw(&env::signer_account_id(), stream_id.into())
+                self.process_withdraw(&env::predecessor_account_id(), stream_id.into())
                     .unwrap()
             })
             .flatten()

@@ -72,11 +72,15 @@ mod tests {
 
         testing_env!(VMContextBuilder::new()
             .signer_account_id(carol())
+            .predecessor_account_id(carol())
             .attached_deposit(DEFAULT_COMMISSION_UNLISTED)
             .build());
         contract.account_deposit_near();
         let stream = new_stream();
-        testing_env!(VMContextBuilder::new().signer_account_id(carol()).build());
+        testing_env!(VMContextBuilder::new()
+            .signer_account_id(carol())
+            .predecessor_account_id(stream.token_account_id.clone())
+            .build());
         assert!(contract
             .process_create_stream(
                 stream.description,
@@ -99,13 +103,17 @@ mod tests {
         let mut contract = Contract::new(dao_id(), finance_id(), utility_token_id(), 18);
         testing_env!(VMContextBuilder::new()
             .signer_account_id(carol())
+            .predecessor_account_id(carol())
             .attached_deposit(DEFAULT_COMMISSION_UNLISTED)
             .build());
         contract.account_deposit_near();
         let mut stream = new_stream();
         stream.receiver_id =
             AccountId::new_unchecked("f5cfbc74057c610c8ef151a439252680ac68c6dc".to_string());
-        testing_env!(VMContextBuilder::new().signer_account_id(carol()).build());
+        testing_env!(VMContextBuilder::new()
+            .signer_account_id(carol())
+            .predecessor_account_id(stream.token_account_id.clone())
+            .build());
         assert!(contract
             .process_create_stream(
                 stream.description,

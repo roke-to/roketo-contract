@@ -39,12 +39,13 @@ impl Dao {
     }
 
     pub(crate) fn check_owner(&self) -> Result<(), ContractError> {
-        if env::signer_account_id() == self.dao_id {
+        // The call must be executed from dao account.
+        if env::predecessor_account_id() == self.dao_id {
             Ok(())
         } else {
             Err(ContractError::CallerIsNotDao {
                 expected: self.dao_id.clone(),
-                received: env::signer_account_id(),
+                received: env::predecessor_account_id(),
             })
         }
     }
