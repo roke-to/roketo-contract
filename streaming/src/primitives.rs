@@ -98,7 +98,7 @@ pub enum StreamStatus {
 pub enum StreamFinishReason {
     StoppedByOwner,
     StoppedByReceiver,
-    FinishedNatually,
+    FinishedNaturally,
     FinishedBecauseCannotBeExtended,
     FinishedWhileTransferred,
 }

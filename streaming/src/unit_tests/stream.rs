@@ -80,7 +80,7 @@ mod tests {
         assert_eq!(
             stream.status,
             StreamStatus::Finished {
-                reason: StreamFinishReason::FinishedNatually
+                reason: StreamFinishReason::FinishedNaturally
             }
         );
         // 1 more second
@@ -98,7 +98,7 @@ mod tests {
         assert_eq!(
             stream.status,
             StreamStatus::Finished {
-                reason: StreamFinishReason::FinishedNatually
+                reason: StreamFinishReason::FinishedNaturally
             }
         );
     }

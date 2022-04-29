@@ -106,7 +106,7 @@ impl Stream {
         } else {
             self.balance = 0;
             self.status = StreamStatus::Finished {
-                reason: StreamFinishReason::FinishedNatually,
+                reason: StreamFinishReason::FinishedNaturally,
             };
         }
         // This update of last_action is useless here
@@ -227,7 +227,7 @@ impl Contract {
                         assert_eq!(
                             stream.status,
                             StreamStatus::Finished {
-                                reason: StreamFinishReason::FinishedNatually
+                                reason: StreamFinishReason::FinishedNaturally
                             }
                         );
                         assert!(owner.active_outgoing_streams.remove(&stream.id));

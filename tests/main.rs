@@ -155,7 +155,7 @@ fn test_stream_sanity() {
     assert_eq!(
         stream.status,
         StreamStatus::Finished {
-            reason: StreamFinishReason::FinishedNatually
+            reason: StreamFinishReason::FinishedNaturally
         }
     );
 
@@ -223,7 +223,7 @@ fn test_stream_min_value() {
     assert_eq!(
         stream.status,
         StreamStatus::Finished {
-            reason: StreamFinishReason::FinishedNatually
+            reason: StreamFinishReason::FinishedNaturally
         }
     );
     assert_eq!(e.get_balance(&tokens.nusdt, &users.charlie), 3700 - 6);
@@ -264,7 +264,7 @@ fn test_stream_max_value() {
     assert_eq!(
         stream.status,
         StreamStatus::Finished {
-            reason: StreamFinishReason::FinishedNatually
+            reason: StreamFinishReason::FinishedNaturally
         }
     );
 
@@ -1468,7 +1468,7 @@ fn test_stream_locked_sanity() {
     assert_eq!(
         stream.status,
         StreamStatus::Finished {
-            reason: StreamFinishReason::FinishedNatually
+            reason: StreamFinishReason::FinishedNaturally
         }
     );
 
@@ -1606,7 +1606,7 @@ fn test_stream_locked_commissions() {
     assert_eq!(
         stream.status,
         StreamStatus::Finished {
-            reason: StreamFinishReason::FinishedNatually
+            reason: StreamFinishReason::FinishedNaturally
         }
     );
 
