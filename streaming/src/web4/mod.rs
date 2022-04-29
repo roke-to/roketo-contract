@@ -142,7 +142,7 @@ impl Contract {
             );
         }
 
-        if path == "/version" {
+        if path == "/VERSION.md" {
             return Web4Response::plain(include_str!("../../../VERSION.md").to_string());
         }
 
