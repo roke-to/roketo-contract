@@ -142,6 +142,10 @@ impl Contract {
             );
         }
 
+        if path == "/version" {
+            return Web4Response::plain(include_str!("../../../VERSION.md").to_string());
+        }
+
         Web4Response::plain("Not found".to_string())
     }
 }
