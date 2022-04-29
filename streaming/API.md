@@ -3,7 +3,7 @@
 - [x] Calls and views
 - [x] How to use section
 - [ ] Roketo-sdk examples
-- [ ] Rrrors details
+- [ ] Errors details
 
 ## Content
 - How to
@@ -23,11 +23,11 @@
         - [get_account_outgoing_streams](#get_account_outgoing_streams)
     - [Other views](#other-views)
 - Calls
-    - Through NEP-141 FT ([ft_on_transfer](#ft_on_transfer))
+    - [Token calls](#token-calls) (through NEP-141 FT)
         - [Create](#create)
         - [Deposit](#deposit)
         - [Stake](#stake)
-    - Main calls
+    - [Main calls](#main-calls)
         - [start_stream](#start_stream)
         - [pause_stream](#pause_stream)
         - [stop_stream](#stop_stream)
@@ -102,7 +102,8 @@ await ftContract.ft_transfer_call({
 - `AccountId` near account id eg 'test.near' from near_sdk in a JSON is a `string`
 - `StreamId` near sdk CryptoHash eg '4q7BJuzBBcuv72bbLYAVXiL21mic3Cn3WPpWxMtS6tyP' in a JSON is a `string`
 - `Timestamp` from near sdk, is a unix time in nanosec in a JSON is a `string`
-- `SafeFloat`
+- `SafeFloat` is a self-written integer-based type which is used to bring floats in very targeted cases when u128 overflow may happen.
+SafeFloat contains of two parts named `val` and `pow`, the exact value is calculated by formula: `val*10^pow`.
 ```json
 { "val": "number", "pow": "number" }
 ```
@@ -119,26 +120,34 @@ Examples
 {
     "id": "StreamId", // stream id, is a CryptoHash
     "description": "?string", // optional text description of the stream, max 255 symbols
-    "creator_id": "AccountId", // stream creator
-    "owner_id": "AccountId", // is an owner (or sender) of the stream
-    "receiver_id": "AccountId", // receiver
+    "creator_id": "AccountId", // stream creator (see below)
+    "owner_id": "AccountId", // stream owner (see below)
+    "receiver_id": "AccountId", // receiver (see below)
     "token_account_id": "AccountId", // NEP-141 token account id
 
     "timestamp_created": "Timestamp", // is a timestamp when the stream has been created
     "last_action": "Timestamp", // is a timestamp of the last update called
 
-    "balance": "string", // remaining tokens to stream in yocto
-    "tokens_per_sec": "string", // stream speed, values in yocto
+    "balance": "string", // remaining tokens to stream
+    "tokens_per_sec": "number", // stream speed, values
 
     "status": "string", // StreamStatus, see details below
     "tokens_total_withdrawn": "string", // amount of withdrawn tokens
 
     "cliff": "?Timestamp", // optional, when is will be available to withdraw
 
-    "is_expirable": "boolean", // if true, owner can add deposit before stream finished
     "is_locked": "boolean", //  if true, any actions (stop, start etc are forbidden)
+
+    // recommended value: true. If false, owner can deposit tokens after moment of time when stream is technically finished but strictly before actual stream processing happened. If unsure, set is_expirable=true
+    "is_expirable": "boolean",
 }
 ```
+#### Stream actors
+Each stream contains of several actors:
+1. Receiver. The account (or person) that receives tokens from the stream.
+2. Owner. The account which have all permissions to work with the stream - stopping it, pausing, starting, receiving refunds, etc. Usually - but not always - it is the person who creates a stream and sends tokens to the receiver.
+3. Creator. It may be different from owner in specific business cases. Creator creates the stream, then all permissions go to the owner.
+
 #### Stream status
 - **Initialized** - stream is created with `is_auto_start_enabled` = false, tokens are not sending until the stream will be started
 - **Active** - tokens are in process of streaming
@@ -304,8 +313,8 @@ account token stats (numbers) `[total_incoming, total_outgoing, total_received]`
 
 Modifying methods of contract requires a deposit. Some of methods should be called through NEP-141 FT [(ft_on_transfer)](#ftontransfer)
 
-### `ft_on_transfer`
-**Don't make this call directly.** You should call `ft_transfer_call` at any compatible NEP-141 FT with deposit and payload:
+### Token calls
+Roketo is accessible by standard `ft_transfer_call` method from NEP-141 fungible tokens. It executes `ft_on_transfer` which parses the data received from the token call and does the action provided. A common pattern for token calls is the following:
 ```jsonc
 {
     "receiver_id": "ROKETO_ACCOUNT_ID",
@@ -325,7 +334,7 @@ The action will create users and stream with the transferred payload. The deposi
         "request": {
             "owner_id": "AccountId",
             "receiver_id": "AccountId",
-            "tokens_per_sec": "number",  // Attention! it should be a BigInt and you need serialize by right way
+            "tokens_per_sec": "number",
             "description": "string?",
             "cliff_period_sec": "number?",
             "is_auto_start_enabled": "boolean?",
@@ -336,9 +345,9 @@ The action will create users and stream with the transferred payload. The deposi
 }
 ```
 
-- `owner_id` account id, is an owner (or sender) of the stream
+- `owner_id` account id, is an owner of the stream
 - `receiver_id` account id, is a receiver of the stream. Must not be the same as the owner
-- `tokens_per_sec` stream speed, values in yocto
+- `tokens_per_sec` stream speed (for near in yocto values)
 - `description` optional text description of the stream, max 255 symbols
 - `cliff_period_sec` optional, time in sec when is unavailable to withdraw
 - `is_auto_start_enabled` optional bool, if false, stream will be inactive before owner call start_stream
@@ -367,7 +376,7 @@ Expect only `utility_token`! Stake attached deposit to account.
 
 #### `start_stream` 
 
-Starts initialized or paused stream. It might be executed only by the owner of the stream in case of initialization or the receiver too (if stream was paused). Expects one yocto as deposit. Signature:
+Starts initialized or paused stream. It might be executed only by the owner. Expects one yocto as deposit. Signature:
 ```json
 {
     "stream_id": "StreamId"
@@ -383,7 +392,7 @@ Pauses the stream and transfer streamed tokens to the receiver. Stream can be pa
 ```
 
 #### `stop_stream`
-Finishing the stream. Finished streams can’t be restarted. All remaining amount of deposit go’s back to the owner — all streamed deposit will be sent to receiver. Can be executed only by the owner of the stream. Expects one yocto as deposit. Signature:
+Finishing the stream. Finished streams can’t be restarted. All remaining amount of deposit go’s back to the owner — all streamed deposit will be sent to receiver. Can be executed only by the owner or the receiver of the stream. Expects one yocto as deposit. Signature:
 ```json
 {
     "stream_id": "StreamId"
@@ -391,7 +400,7 @@ Finishing the stream. Finished streams can’t be restarted. All remaining amoun
 ```
 
 #### `withdraw`
-Transfer streamed tokens to the receiver. If stream deposit was streamed, then the stream will finish. Can be executed only by the receiver of the stream. Expects one yocto as deposit Signature: 
+Transfer streamed tokens to the receiver. If stream deposit was streamed, then the stream will finish. Can be executed only by the receiver of the stream (or anyone if `is_cron_allowed` is true in receiver, used for 3rd parties like croncat). Expects one yocto as deposit Signature: 
 ```json
 {
     "stream_ids": ["StreamId"]
@@ -402,7 +411,7 @@ Transfer streamed tokens to the receiver. If stream deposit was streamed, then t
 These methods are not essential for the functioning of the main task of the contract, but may be useful
 
 #### `change_receiver`
-sets a new receiver for the stream. Can be executed only by the receiver of the stream. Expects `storage_balance_needed` from token as deposit. Call signature:
+Sets a new receiver for the stream. Can be executed only by the receiver of the stream. Expects `storage_balance_needed` from token as deposit. This method is designed specifically for NEP-171 case. It should be used anywhere else. In future we will add some strict verifications to disallow users to call change_receiver manually. Call signature:
 ```jsonc
 {
     "stream_id": "StreamId",
@@ -410,21 +419,21 @@ sets a new receiver for the stream. Can be executed only by the receiver of the 
 }
 ```
 #### `account_update_cron_flag`
-update user property `is_cron_allowed`. [See more](#get_account) Expects one yocto as deposit. Signature:
+Update user property `is_cron_allowed`. [See more](#get_account) Expects one yocto as deposit. Signature:
 ```json
 {
     "is_cron_allowed": "boolean"
 }
 ```
 #### `account_unstake`
-send staked `utility_token` to your account. Expects one yocto as deposit.
+Send staked `utility_token` to your account. Expects one yocto as deposit.
 ```json
 {
     "amount": "string"
 }
 ```
 #### `account_deposit_near`
-add a near deposit to your account. No props, need only attached deposit.
+Add a near deposit to your account. No props, need only attached deposit. The purpose of the method is to start streams of unlisted tokens, otherwise there is no way to take commission for payment.
 
 ### Dao calls
 Methods can be executed only by dao account. 
@@ -452,7 +461,7 @@ sets a new dao account
 }
 ```
 #### `dao_update_commission_unlisted`
-sets a commission for unlisted tokens
+sets a commission taken in NEAR for unlisted tokens
 ```json
 {
     "commission_unlisted": "number"
