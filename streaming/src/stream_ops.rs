@@ -416,12 +416,12 @@ impl Contract {
 
     pub fn process_change_receiver(
         &mut self,
-        sender_id: &AccountId,
+        prev_receiver_id: &AccountId,
         stream_id: CryptoHash,
-        receiver_id: AccountId,
-        storage_balance_needed: Balance,
+        new_receiver_id: AccountId,
+        deposit_needed: Balance,
     ) -> Result<Vec<Promise>, ContractError> {
-        let promises = self.process_withdraw(sender_id, stream_id)?;
+        let promises = self.process_withdraw(prev_receiver_id, stream_id)?;
 
         let mut stream = self.extract_stream(&stream_id)?;
 
@@ -437,12 +437,13 @@ impl Contract {
             });
         }
 
-        let mut receiver = if let Ok(account) = self.extract_account(&receiver_id) {
+        let mut new_receiver = if let Ok(account) = self.extract_account(&new_receiver_id) {
             account
         } else {
             // Charge for account creation
             let token = self.dao.get_token_or_unlisted(&stream.token_account_id);
             if token.is_listed {
+                // TODO use commission_on_transfer instead
                 if stream.balance < token.commission_on_create {
                     let balance = stream.balance;
                     stream.balance = 0;
@@ -462,25 +463,23 @@ impl Contract {
                 self.stats_withdraw(&token, 0, token.commission_on_create);
             } else {
                 // Charge in NEAR
-                assert!(
-                    env::attached_deposit()
-                        >= self.dao.commission_unlisted + storage_balance_needed
-                );
+                // TODO use commission_on_transfer instead
+                assert!(env::attached_deposit() >= self.dao.commission_unlisted + deposit_needed);
                 self.stats_inc_account_deposit(self.dao.commission_unlisted, false);
             }
-            self.create_account_if_not_exist(&receiver_id)?;
-            self.extract_account(&receiver_id)?
+            self.create_account_if_not_exist(&new_receiver_id)?;
+            self.extract_account(&new_receiver_id)?
         };
 
-        let mut sender = self.extract_account(sender_id)?;
+        let mut prev_receiver = self.extract_account(prev_receiver_id)?;
 
-        assert!(sender.active_incoming_streams.remove(&stream_id));
-        assert!(receiver.active_incoming_streams.insert(&stream_id));
+        assert!(prev_receiver.active_incoming_streams.remove(&stream_id));
+        assert!(new_receiver.active_incoming_streams.insert(&stream_id));
 
-        self.save_account(sender)?;
-        self.save_account(receiver)?;
+        self.save_account(prev_receiver)?;
+        self.save_account(new_receiver)?;
 
-        stream.receiver_id = receiver_id;
+        stream.receiver_id = new_receiver_id;
         self.save_stream(stream)?;
         Ok(promises)
     }

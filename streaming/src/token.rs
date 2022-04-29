@@ -15,6 +15,9 @@ pub struct Token {
     // percentage of tokens taken for commission
     pub commission_coef: SafeFloat,
 
+    // TODO #11
+    // #[serde(with = "u128_dec_format")]
+    // pub commission_on_transfer: Balance,
     #[serde(with = "u128_dec_format")]
     pub collected_commission: Balance,
 

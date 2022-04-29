@@ -17,6 +17,8 @@ pub struct Dao {
     pub eth_near_ratio: SafeFloat,
 
     pub oracles: HashSet<AccountId>,
+    // TODO #11
+    // pub approved_nfts: HashSet<AccountId>,
 }
 
 impl Dao {
