@@ -2,51 +2,63 @@ use crate::*;
 
 #[near_bindgen]
 impl Contract {
+    #[handle_result]
     #[payable]
-    pub fn start_stream(&mut self, stream_id: Base58CryptoHash) {
-        assert_one_yocto();
+    pub fn start_stream(&mut self, stream_id: Base58CryptoHash) -> Result<(), ContractError> {
+        check_deposit(ONE_YOCTO)?;
         // Stream calls may be delegated to 3rd parties.
         // That's why it uses env::predecessor_account_id() here and below.
         self.process_start_stream(&env::predecessor_account_id(), stream_id.into())
-            .unwrap()
     }
 
+    #[handle_result]
     #[payable]
-    pub fn pause_stream(&mut self, stream_id: Base58CryptoHash) -> Vec<Promise> {
-        assert_one_yocto();
+    pub fn pause_stream(
+        &mut self,
+        stream_id: Base58CryptoHash,
+    ) -> Result<Vec<Promise>, ContractError> {
+        check_deposit(ONE_YOCTO)?;
         self.process_pause_stream(&env::predecessor_account_id(), stream_id.into())
-            .unwrap()
     }
 
+    #[handle_result]
     #[payable]
-    pub fn stop_stream(&mut self, stream_id: Base58CryptoHash) -> Vec<Promise> {
-        assert_one_yocto();
+    pub fn stop_stream(
+        &mut self,
+        stream_id: Base58CryptoHash,
+    ) -> Result<Vec<Promise>, ContractError> {
+        check_deposit(ONE_YOCTO)?;
         self.process_stop_stream(&env::predecessor_account_id(), stream_id.into())
-            .unwrap()
     }
 
+    #[handle_result]
     #[payable]
-    pub fn withdraw(&mut self, stream_ids: Vec<Base58CryptoHash>) -> Vec<Promise> {
-        assert_one_yocto();
+    pub fn withdraw(
+        &mut self,
+        stream_ids: Vec<Base58CryptoHash>,
+    ) -> Result<Vec<Promise>, ContractError> {
+        check_deposit(ONE_YOCTO)?;
 
-        stream_ids
-            .iter()
-            .map(|&stream_id| {
+        Ok(stream_ids
+            .into_iter()
+            .map(|stream_id| {
                 self.process_withdraw(&env::predecessor_account_id(), stream_id.into())
-                    .unwrap()
             })
+            .collect::<Result<Vec<Vec<Promise>>, ContractError>>()?
+            .into_iter()
             .flatten()
-            .collect()
+            .collect())
     }
 
+    #[handle_result]
     #[payable]
     pub fn change_receiver(
         &mut self,
         stream_id: Base58CryptoHash,
         receiver_id: AccountId,
-    ) -> Vec<Promise> {
+    ) -> Result<Vec<Promise>, ContractError> {
         let stream_id = stream_id.into();
-        let stream_view = self.view_stream(&stream_id).unwrap();
+        let stream_view = self.view_stream(&stream_id)?;
 
         // In this case we expect that predecessor must be a NFT contract
         // which is called by holder of the NFT that streams tokens.
@@ -56,9 +68,7 @@ impl Contract {
         // TODO #11 and enable
         assert!(false);
 
-        let token = self
-            .dao
-            .get_token_or_unlisted(&stream_view.token_account_id);
+        let token = self.dao.get_token(&stream_view.token_account_id);
 
         // TODO explain why attached deposit is needed at the point
         let deposit_needed = if Contract::is_aurora_address(&stream_view.receiver_id) {
@@ -67,7 +77,7 @@ impl Contract {
         } else {
             token.storage_balance_needed
         };
-        assert!(env::attached_deposit() >= deposit_needed);
+        check_deposit(deposit_needed)?;
 
         self.process_change_receiver(
             &stream_view.receiver_id,
@@ -75,6 +85,5 @@ impl Contract {
             receiver_id,
             deposit_needed,
         )
-        .unwrap()
     }
 }

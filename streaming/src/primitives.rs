@@ -82,6 +82,17 @@ impl SafeFloat {
     }
 }
 
+pub fn check_deposit(deposit_needed: Balance) -> Result<(), ContractError> {
+    if env::attached_deposit() >= deposit_needed {
+        Ok(())
+    } else {
+        Err(ContractError::InsufficientNearDeposit {
+            expected: deposit_needed,
+            received: env::attached_deposit(),
+        })
+    }
+}
+
 pub type StreamId = CryptoHash;
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, PartialEq, Debug)]

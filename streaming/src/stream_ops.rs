@@ -51,7 +51,7 @@ impl Contract {
         let mut creator = self.extract_account(&creator_id)?;
         let mut balance = initial_balance;
 
-        let token = self.dao.get_token_or_unlisted(&token_account_id);
+        let token = self.dao.get_token(&token_account_id);
         let is_listed = token.is_listed;
         let mut commission = 0;
 
@@ -437,7 +437,7 @@ impl Contract {
             account
         } else {
             // Charge for account creation
-            let token = self.dao.get_token_or_unlisted(&stream.token_account_id);
+            let token = self.dao.get_token(&stream.token_account_id);
             if token.is_listed {
                 // TODO use commission_on_transfer instead
                 if stream.balance < token.commission_on_create {
@@ -460,7 +460,7 @@ impl Contract {
             } else {
                 // Charge in NEAR
                 // TODO use commission_on_transfer instead
-                assert!(env::attached_deposit() >= self.dao.commission_unlisted + deposit_needed);
+                check_deposit(self.dao.commission_unlisted + deposit_needed)?;
                 self.stats_inc_account_deposit(self.dao.commission_unlisted, false);
             }
             self.create_account_if_not_exist(&new_receiver_id)?;

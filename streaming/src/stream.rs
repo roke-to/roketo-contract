@@ -258,7 +258,7 @@ impl Contract {
         stream: &mut Stream,
         account: &mut Account,
     ) -> Result<Promise, ContractError> {
-        let token = self.dao.get_token_or_unlisted(&stream.token_account_id);
+        let token = self.dao.get_token(&stream.token_account_id);
         let (payment, commission) = stream.process_withdraw(&token);
         account
             .total_received
@@ -270,7 +270,7 @@ impl Contract {
     }
 
     fn process_refund(&mut self, stream: &mut Stream) -> Result<Promise, ContractError> {
-        let token = self.dao.get_token_or_unlisted(&stream.token_account_id);
+        let token = self.dao.get_token(&stream.token_account_id);
         let refund = stream.balance;
         stream.balance = 0;
         self.stats_refund(&token, refund);

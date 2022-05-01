@@ -50,17 +50,10 @@ impl Dao {
         }
     }
 
-    pub(crate) fn get_token_or_unlisted(&self, token_account_id: &AccountId) -> Token {
-        self.get_token(token_account_id)
-            .unwrap_or(Token::new_unlisted(token_account_id))
-    }
-
-    pub(crate) fn get_token(&self, token_account_id: &AccountId) -> Result<Token, ContractError> {
+    pub(crate) fn get_token(&self, token_account_id: &AccountId) -> Token {
         match self.tokens.get(token_account_id) {
-            Some(token) => Ok(token.clone()),
-            None => Err(ContractError::UnknownToken {
-                received: token_account_id.clone(),
-            }),
+            Some(token) => token.clone(),
+            None => Token::new_unlisted(token_account_id),
         }
     }
 

@@ -39,7 +39,7 @@ impl Contract {
 
     pub fn get_token(self, token_account_id: AccountId) -> (Token, Option<TokenStats>) {
         (
-            self.dao.get_token_or_unlisted(&token_account_id),
+            self.dao.get_token(&token_account_id),
             (Stats::from(self.stats.get().clone().unwrap()))
                 .dao_tokens
                 .remove(&token_account_id),
