@@ -247,13 +247,6 @@ impl Contract {
             return Err(ContractError::ZeroBalanceStreamStart);
         }
 
-        if env::prepaid_gas() - env::used_gas() < MIN_GAS_FOR_PROCESS_ACTION {
-            return Err(ContractError::InsufficientGas {
-                expected: MIN_GAS_FOR_PROCESS_ACTION,
-                left: env::prepaid_gas() - env::used_gas(),
-            });
-        }
-
         // Validations passed
 
         assert!(self
@@ -296,13 +289,6 @@ impl Contract {
         if stream.cliff.is_some() {
             return Err(ContractError::CliffNotPassed {
                 timestamp: stream.cliff.unwrap(),
-            });
-        }
-
-        if env::prepaid_gas() - env::used_gas() < MIN_GAS_FOR_PROCESS_ACTION {
-            return Err(ContractError::InsufficientGas {
-                expected: MIN_GAS_FOR_PROCESS_ACTION,
-                left: env::prepaid_gas() - env::used_gas(),
             });
         }
 
@@ -349,13 +335,6 @@ impl Contract {
 
         stream.update_cliff();
 
-        if env::prepaid_gas() - env::used_gas() < MIN_GAS_FOR_PROCESS_ACTION {
-            return Err(ContractError::InsufficientGas {
-                expected: MIN_GAS_FOR_PROCESS_ACTION,
-                left: env::prepaid_gas() - env::used_gas(),
-            });
-        }
-
         // Validations passed
 
         let promises = self.process_action(&mut stream, ActionType::Stop { reason })?;
@@ -391,13 +370,6 @@ impl Contract {
         if stream.cliff.is_some() {
             return Err(ContractError::CliffNotPassed {
                 timestamp: stream.cliff.unwrap(),
-            });
-        }
-
-        if env::prepaid_gas() - env::used_gas() < MIN_GAS_FOR_PROCESS_ACTION {
-            return Err(ContractError::InsufficientGas {
-                expected: MIN_GAS_FOR_PROCESS_ACTION,
-                left: env::prepaid_gas() - env::used_gas(),
             });
         }
 

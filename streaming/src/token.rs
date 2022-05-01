@@ -21,7 +21,6 @@ pub struct Token {
 
     #[serde(with = "u128_dec_format")]
     pub storage_balance_needed: Balance,
-
     pub gas_for_ft_transfer: Gas,
     pub gas_for_storage_deposit: Gas,
 }
@@ -100,12 +99,7 @@ impl Contract {
         }
 
         if Contract::is_aurora_address(&receiver_id) {
-            if env::prepaid_gas() - env::used_gas() < MIN_GAS_FOR_AURORA_TRANFSER {
-                return Err(ContractError::InsufficientGas {
-                    expected: MIN_GAS_FOR_AURORA_TRANFSER,
-                    left: env::prepaid_gas() - env::used_gas(),
-                });
-            }
+            check_gas(MIN_GAS_FOR_AURORA_TRANFSER)?;
             if token_account_id == Contract::aurora_account_id() {
                 return Ok(ext_fungible_token::ft_transfer_call(
                     Contract::aurora_account_id(),
@@ -128,12 +122,7 @@ impl Contract {
                 ));
             }
         } else {
-            if env::prepaid_gas() - env::used_gas() < MIN_GAS_FOR_FT_TRANFSER {
-                return Err(ContractError::InsufficientGas {
-                    expected: MIN_GAS_FOR_FT_TRANFSER,
-                    left: env::prepaid_gas() - env::used_gas(),
-                });
-            }
+            check_gas(MIN_GAS_FOR_FT_TRANFSER)?;
             Ok(ext_fungible_token::ft_transfer(
                 receiver_id,
                 U128(amount),

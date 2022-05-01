@@ -31,8 +31,6 @@ impl Contract {
         account.stake -= amount;
         self.save_account(account)?;
 
-        assert!(env::prepaid_gas() - env::used_gas() >= MIN_GAS_FOR_PROCESS_ACTION);
-
         self.ft_transfer_from_self(
             self.dao.get_token(&self.dao.utility_token_id).account_id,
             env::predecessor_account_id(),

@@ -1,5 +1,6 @@
 // TODO need more tests
 //
+// promise then failure
 // multiple streams same token
 // multiple streams multiple token
 // multiple withdraw
