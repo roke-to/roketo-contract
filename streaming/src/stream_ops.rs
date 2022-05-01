@@ -411,8 +411,7 @@ impl Contract {
             // Charge for account creation
             let token = self.dao.get_token(&stream.token_account_id);
             if token.is_listed {
-                // TODO use commission_on_transfer instead
-                if stream.balance < token.commission_on_create {
+                if stream.balance < token.commission_on_transfer {
                     let balance = stream.balance;
                     stream.balance = 0;
                     let action = self.process_action(
@@ -421,6 +420,8 @@ impl Contract {
                             reason: StreamFinishReason::FinishedWhileTransferred,
                         },
                     )?;
+                    // No tranfer tokens actions should appear at the point.
+                    // All tokens have been charged to previous holder + commission.
                     assert!(action.is_empty());
                     self.save_stream(stream)?;
 

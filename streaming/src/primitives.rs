@@ -103,6 +103,14 @@ pub fn check_gas(gas_needed: Gas) -> Result<(), ContractError> {
     }
 }
 
+pub fn check_integrity(action_result: bool) -> Result<(), ContractError> {
+    if action_result {
+        Ok(())
+    } else {
+        Err(ContractError::DataCorruption)
+    }
+}
+
 pub type StreamId = CryptoHash;
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, PartialEq, Debug)]

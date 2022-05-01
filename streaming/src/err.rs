@@ -68,6 +68,12 @@ pub enum ContractError {
         #[serde(with = "u128_dec_format")]
         left: Balance,
     },
+    InvalidTokenWithdrawAmount {
+        #[serde(with = "u128_dec_format")]
+        requested: Balance,
+        #[serde(with = "u128_dec_format")]
+        left: Balance,
+    },
     UnreachableAccount {
         account_id: AccountId,
     },
@@ -90,11 +96,6 @@ pub enum ContractError {
     DescriptionTooLong {
         max_description_len: usize,
         received: usize,
-    },
-    UnpushedBalanceFound {
-        account_id: AccountId,
-        #[serde(with = "u128_dec_format")]
-        amount: Balance,
     },
     InvalidStreamingSpeed {
         #[serde(with = "u128_dec_format")]

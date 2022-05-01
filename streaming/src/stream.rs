@@ -148,16 +148,17 @@ impl Contract {
         let mut promises = vec![];
 
         if action_type == ActionType::Init {
-            assert!(owner.inactive_outgoing_streams.insert(&stream.id));
-            assert!(receiver.inactive_incoming_streams.insert(&stream.id));
+            check_integrity(owner.inactive_outgoing_streams.insert(&stream.id))?;
+            check_integrity(receiver.inactive_incoming_streams.insert(&stream.id))?;
         } else {
-            assert!(!stream.status.is_terminated());
+            // No action is applicable for terminated stream.
+            check_integrity(!stream.status.is_terminated())?;
             match action_type {
                 ActionType::Start => {
-                    assert!(owner.inactive_outgoing_streams.remove(&stream.id));
-                    assert!(receiver.inactive_incoming_streams.remove(&stream.id));
-                    assert!(owner.active_outgoing_streams.insert(&stream.id));
-                    assert!(receiver.active_incoming_streams.insert(&stream.id));
+                    check_integrity(owner.inactive_outgoing_streams.remove(&stream.id))?;
+                    check_integrity(receiver.inactive_incoming_streams.remove(&stream.id))?;
+                    check_integrity(owner.active_outgoing_streams.insert(&stream.id))?;
+                    check_integrity(receiver.active_incoming_streams.insert(&stream.id))?;
                     owner
                         .total_outgoing
                         .entry(stream.token_account_id.clone())
@@ -172,12 +173,12 @@ impl Contract {
                     self.stats_inc_active_streams(&stream.token_account_id);
                 }
                 ActionType::Pause => {
-                    assert_eq!(stream.status, StreamStatus::Active);
+                    check_integrity(stream.status == StreamStatus::Active)?;
                     promises.push(self.process_payment(stream, &mut receiver)?);
-                    assert!(owner.active_outgoing_streams.remove(&stream.id));
-                    assert!(receiver.active_incoming_streams.remove(&stream.id));
-                    assert!(owner.inactive_outgoing_streams.insert(&stream.id));
-                    assert!(receiver.inactive_incoming_streams.insert(&stream.id));
+                    check_integrity(owner.active_outgoing_streams.remove(&stream.id))?;
+                    check_integrity(receiver.active_incoming_streams.remove(&stream.id))?;
+                    check_integrity(owner.inactive_outgoing_streams.insert(&stream.id))?;
+                    check_integrity(receiver.inactive_incoming_streams.insert(&stream.id))?;
                     owner
                         .total_outgoing
                         .entry(stream.token_account_id.clone())
@@ -195,8 +196,8 @@ impl Contract {
                 ActionType::Stop { reason } => {
                     if stream.status == StreamStatus::Active {
                         promises.push(self.process_payment(stream, &mut receiver)?);
-                        assert!(owner.active_outgoing_streams.remove(&stream.id));
-                        assert!(receiver.active_incoming_streams.remove(&stream.id));
+                        check_integrity(owner.active_outgoing_streams.remove(&stream.id))?;
+                        check_integrity(receiver.active_incoming_streams.remove(&stream.id))?;
                         owner
                             .total_outgoing
                             .entry(stream.token_account_id.clone())
@@ -207,8 +208,8 @@ impl Contract {
                             .and_modify(|e| *e -= stream.tokens_per_sec);
                         self.stats_dec_active_streams(&stream.token_account_id);
                     } else {
-                        assert!(owner.inactive_outgoing_streams.remove(&stream.id));
-                        assert!(receiver.inactive_incoming_streams.remove(&stream.id));
+                        check_integrity(owner.inactive_outgoing_streams.remove(&stream.id))?;
+                        check_integrity(receiver.inactive_incoming_streams.remove(&stream.id))?;
                     }
                     if !stream.status.is_terminated() {
                         // Refund can be requested only if stream is not terminated naturally yet
@@ -221,17 +222,17 @@ impl Contract {
                     unreachable!();
                 }
                 ActionType::Withdraw => {
-                    assert_eq!(stream.status, StreamStatus::Active);
+                    check_integrity(stream.status == StreamStatus::Active)?;
                     promises.push(self.process_payment(stream, &mut receiver)?);
                     if stream.status.is_terminated() {
-                        assert_eq!(
-                            stream.status,
-                            StreamStatus::Finished {
-                                reason: StreamFinishReason::FinishedNaturally
-                            }
-                        );
-                        assert!(owner.active_outgoing_streams.remove(&stream.id));
-                        assert!(receiver.active_incoming_streams.remove(&stream.id));
+                        check_integrity(
+                            stream.status
+                                == StreamStatus::Finished {
+                                    reason: StreamFinishReason::FinishedNaturally,
+                                },
+                        )?;
+                        check_integrity(owner.active_outgoing_streams.remove(&stream.id))?;
+                        check_integrity(receiver.active_incoming_streams.remove(&stream.id))?;
                         owner
                             .total_outgoing
                             .entry(stream.token_account_id.clone())
