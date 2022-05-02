@@ -66,23 +66,23 @@ impl Contract {
         token_account_id: AccountId,
         receiver: AccountId,
         amount: Balance,
-    ) -> Result<Promise, ContractError> {
+    ) -> Result<Option<Promise>, ContractError> {
         if amount == 0 {
             // NEP-141 forbids zero token transfers
-            //
-            // Return empty promise
-            return Ok(Promise::new(receiver));
+            return Ok(None);
         }
 
-        // TODO check gas
-        Ok(ext_finance_contract::streaming_ft_transfer(
+        // TODO #16
+        let gas_needed = Gas::ONE_TERA * 30;
+        check_gas(gas_needed)?;
+        Ok(Some(ext_finance_contract::streaming_ft_transfer(
             token_account_id,
             receiver,
             amount.into(),
             self.finance_id.clone(),
             ONE_YOCTO,
-            Gas::ONE_TERA * 50,
-        ))
+            gas_needed,
+        )))
     }
 
     pub(crate) fn ft_transfer_from_self(
@@ -90,18 +90,16 @@ impl Contract {
         token_account_id: AccountId,
         receiver_id: AccountId,
         amount: Balance,
-    ) -> Result<Promise, ContractError> {
+    ) -> Result<Option<Promise>, ContractError> {
         if amount == 0 {
             // NEP-141 forbids zero token transfers
-            //
-            // Return empty promise
-            return Ok(Promise::new(receiver_id));
+            return Ok(None);
         }
 
         if Contract::is_aurora_address(&receiver_id) {
             check_gas(MIN_GAS_FOR_AURORA_TRANFSER)?;
             if token_account_id == Contract::aurora_account_id() {
-                return Ok(ext_fungible_token::ft_transfer_call(
+                Ok(Some(ext_fungible_token::ft_transfer_call(
                     Contract::aurora_account_id(),
                     U128(amount),
                     None,
@@ -109,9 +107,9 @@ impl Contract {
                     Contract::aurora_account_id(),
                     ONE_YOCTO,
                     MIN_GAS_FOR_AURORA_TRANFSER,
-                ));
+                )))
             } else {
-                return Ok(ext_fungible_token::ft_transfer_call(
+                Ok(Some(ext_fungible_token::ft_transfer_call(
                     Contract::aurora_account_id(),
                     U128(amount),
                     None,
@@ -119,11 +117,11 @@ impl Contract {
                     token_account_id,
                     ONE_YOCTO,
                     MIN_GAS_FOR_AURORA_TRANFSER,
-                ));
+                )))
             }
         } else {
             check_gas(MIN_GAS_FOR_FT_TRANFSER)?;
-            Ok(ext_fungible_token::ft_transfer(
+            Ok(Some(ext_fungible_token::ft_transfer(
                 receiver_id,
                 U128(amount),
                 // TODO write full explanation
@@ -131,7 +129,7 @@ impl Contract {
                 token_account_id,
                 ONE_YOCTO,
                 MIN_GAS_FOR_FT_TRANFSER,
-            ))
+            )))
         }
     }
 }

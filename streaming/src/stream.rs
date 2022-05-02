@@ -174,7 +174,9 @@ impl Contract {
                 }
                 ActionType::Pause => {
                     check_integrity(stream.status == StreamStatus::Active)?;
-                    promises.push(self.process_payment(stream, &mut receiver)?);
+                    if let Some(promise) = self.process_payment(stream, &mut receiver)? {
+                        promises.push(promise);
+                    }
                     check_integrity(owner.active_outgoing_streams.remove(&stream.id))?;
                     check_integrity(receiver.active_incoming_streams.remove(&stream.id))?;
                     check_integrity(owner.inactive_outgoing_streams.insert(&stream.id))?;
@@ -195,7 +197,9 @@ impl Contract {
                 }
                 ActionType::Stop { reason } => {
                     if stream.status == StreamStatus::Active {
-                        promises.push(self.process_payment(stream, &mut receiver)?);
+                        if let Some(promise) = self.process_payment(stream, &mut receiver)? {
+                            promises.push(promise);
+                        }
                         check_integrity(owner.active_outgoing_streams.remove(&stream.id))?;
                         check_integrity(receiver.active_incoming_streams.remove(&stream.id))?;
                         owner
@@ -213,7 +217,9 @@ impl Contract {
                     }
                     if !stream.status.is_terminated() {
                         // Refund can be requested only if stream is not terminated naturally yet
-                        promises.push(self.process_refund(stream)?);
+                        if let Some(promise) = self.process_refund(stream)? {
+                            promises.push(promise);
+                        }
                         stream.status = StreamStatus::Finished { reason };
                     }
                 }
@@ -223,7 +229,9 @@ impl Contract {
                 }
                 ActionType::Withdraw => {
                     check_integrity(stream.status == StreamStatus::Active)?;
-                    promises.push(self.process_payment(stream, &mut receiver)?);
+                    if let Some(promise) = self.process_payment(stream, &mut receiver)? {
+                        promises.push(promise);
+                    }
                     if stream.status.is_terminated() {
                         check_integrity(
                             stream.status
@@ -258,7 +266,7 @@ impl Contract {
         &mut self,
         stream: &mut Stream,
         account: &mut Account,
-    ) -> Result<Promise, ContractError> {
+    ) -> Result<Option<Promise>, ContractError> {
         let token = self.dao.get_token(&stream.token_account_id);
         let (payment, commission) = stream.process_withdraw(&token);
         account
@@ -270,7 +278,7 @@ impl Contract {
         self.ft_transfer_from_finance(token.account_id, stream.receiver_id.clone(), payment)
     }
 
-    fn process_refund(&mut self, stream: &mut Stream) -> Result<Promise, ContractError> {
+    fn process_refund(&mut self, stream: &mut Stream) -> Result<Option<Promise>, ContractError> {
         let token = self.dao.get_token(&stream.token_account_id);
         let refund = stream.balance;
         stream.balance = 0;

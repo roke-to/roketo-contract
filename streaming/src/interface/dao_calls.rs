@@ -47,7 +47,7 @@ impl Contract {
         token_account_id: AccountId,
         receiver_id: AccountId,
         amount: U128,
-    ) -> Result<Promise, ContractError> {
+    ) -> Result<Option<Promise>, ContractError> {
         check_deposit(ONE_YOCTO)?;
         self.dao.check_owner()?;
 

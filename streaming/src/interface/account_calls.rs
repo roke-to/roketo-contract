@@ -23,10 +23,10 @@ impl Contract {
 
     #[handle_result]
     #[payable]
-    pub fn account_unstake(&mut self, amount: Balance) -> Result<Promise, ContractError> {
+    pub fn account_unstake(&mut self, amount: Balance) -> Result<Option<Promise>, ContractError> {
         check_deposit(ONE_YOCTO)?;
         let mut account = self.extract_account(&env::predecessor_account_id())?;
-        if amount == 0 || amount > account.stake {
+        if amount > account.stake {
             return Err(ContractError::InvalidTokenWithdrawAmount {
                 requested: amount,
                 left: account.stake,
