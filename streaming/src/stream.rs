@@ -177,10 +177,6 @@ impl Contract {
                     if let Some(promise) = self.process_payment(stream, &mut receiver)? {
                         promises.push(promise);
                     }
-                    check_integrity(owner.active_outgoing_streams.remove(&stream.id))?;
-                    check_integrity(receiver.active_incoming_streams.remove(&stream.id))?;
-                    check_integrity(owner.inactive_outgoing_streams.insert(&stream.id))?;
-                    check_integrity(receiver.inactive_incoming_streams.insert(&stream.id))?;
                     owner
                         .total_outgoing
                         .entry(stream.token_account_id.clone())
@@ -189,6 +185,12 @@ impl Contract {
                         .total_incoming
                         .entry(stream.token_account_id.clone())
                         .and_modify(|e| *e -= stream.tokens_per_sec);
+                    check_integrity(owner.active_outgoing_streams.remove(&stream.id))?;
+                    check_integrity(receiver.active_incoming_streams.remove(&stream.id))?;
+                    if !stream.status.is_terminated() {
+                        check_integrity(owner.inactive_outgoing_streams.insert(&stream.id))?;
+                        check_integrity(receiver.inactive_incoming_streams.insert(&stream.id))?;
+                    }
                     if stream.status == StreamStatus::Active {
                         // The stream may be stopped while payment processing
                         stream.status = StreamStatus::Paused;
