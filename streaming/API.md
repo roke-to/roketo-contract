@@ -150,12 +150,13 @@ Each stream contains of several actors:
 
 #### Stream status
 Stream is a state machine that can be in the following four states:
-- Initialized
-- Active
-- Paused
-- Finished
+- `Initialized`
+- `Active`
+- `Paused`
+- `Finished`
 
 There is a picture describing the state machine.
+<img width="954" alt="image" src="https://user-images.githubusercontent.com/8696354/166308029-04e71dff-cdae-4fb3-9e73-625003c2a7a4.png">
 
 
 ### Account
