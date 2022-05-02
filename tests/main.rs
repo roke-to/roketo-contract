@@ -338,6 +338,55 @@ fn test_stream_max_value_min_speed() {
     );
 }
 
+
+#[test]
+fn test_stream_start_sanity() {
+    let (e, tokens, users) = basic_setup();
+
+    let stream_id = e.create_stream(
+        &users.alice,
+        &users.charlie,
+        &tokens.wnear,
+        d(1, 26), // 100 tokesn
+        d(1, 25), //10 tokens per sec
+    );
+
+    let stream = e.get_stream(&stream_id);
+    assert!(e.get_account_incoming_streams(&users.alice).len() == 0);
+    assert!(e.get_account_incoming_streams(&users.charlie).len() == 1);
+    assert!(e.get_account_outgoing_streams(&users.alice).len() == 1);
+    assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
+    
+    assert!(e.get_account_incoming_streams(&users.charlie)[0].id == stream.id);
+    assert!(e.get_account_outgoing_streams(&users.alice)[0].id == stream.id);
+}
+
+#[test]
+fn test_stream_start_pause_finished() {
+    let (e, tokens, users) = basic_setup();
+
+    let stream_id = e.create_stream(
+        &users.alice,
+        &users.charlie,
+        &tokens.wnear,
+        d(1, 26), // 100 tokesn
+        d(1, 25), //10 tokens per sec
+    );
+
+    e.skip_time(20); // waiting 20 sec
+
+    assert!(e.get_account_incoming_streams(&users.alice).len() == 0);
+    assert!(e.get_account_incoming_streams(&users.charlie).len() == 1);
+    assert!(e.get_account_outgoing_streams(&users.alice).len() == 1);
+    assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
+    e.pause_stream(&users.charlie, &stream_id); // pause
+    assert!(e.get_account_incoming_streams(&users.alice).len() == 0);
+    assert!(e.get_account_incoming_streams(&users.charlie).len() == 0);
+    assert!(e.get_account_outgoing_streams(&users.alice).len() == 0);
+    assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
+}
+
+
 #[test]
 fn test_stream_start_pause_stop() {
     let (e, tokens, users) = basic_setup();
