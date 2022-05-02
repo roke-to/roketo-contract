@@ -149,10 +149,14 @@ Each stream contains of several actors:
 3. Creator. It may be different from owner in specific business cases. Creator creates the stream, then all permissions go to the owner.
 
 #### Stream status
-- **Initialized** - stream is created with `is_auto_start_enabled` = false, tokens are not sending until the stream will be started
-- **Active** - tokens are in process of streaming
-- **Paused** - streamed tokens are withdrawn to receiver and sending paused
-- **Finished** - stream is over. Receiver is able to withdraw the balance.
+Stream is a state machine that can be in the following four states:
+- Initialized
+- Active
+- Paused
+- Finished
+
+There is a picture describing the state machine.
+
 
 ### Account
 ```jsonc
@@ -447,8 +451,8 @@ Methods can be executed only by dao account.
         "commission_on_create": "number", // taken in current fts in case of listed token
         "commission_coef": SafeFloat, //  percentage of tokens taken for commission
         "storage_balance_needed": "string", 
-        "gas_for_ft_transfer": "string", // gas settings for UI purposes
-        "gas_for_storage_deposit": "string", // gas settings for UI purposes
+        "gas_for_ft_transfer": "string", // gas settings, not used now
+        "gas_for_storage_deposit": "string", // gas settings, not used now
     }
 }
 ```
