@@ -5,7 +5,6 @@ use crate::*;
 pub enum TransferCallRequest {
     Stake,
     Create { request: CreateRequest },
-    Push,
     Deposit { stream_id: Base58CryptoHash },
 }
 
@@ -49,10 +48,7 @@ impl FungibleTokenReceiver for Contract {
                     AuroraOperationalRequest::AccountDeposit => {
                         let value = self.dao.eth_near_ratio.mult_safe(amount.into());
                         self.account_deposit(sender_id, value).unwrap();
-                        self.dao
-                            .tokens
-                            .entry(Contract::aurora_account_id())
-                            .and_modify(|e| e.collected_commission += value);
+                        // TODO process collected commission
                         self.stats_inc_account_deposit(value, true);
                         return PromiseOrValue::Value(U128::from(0));
                     }
@@ -110,23 +106,6 @@ impl FungibleTokenReceiver for Contract {
                 let mut sender = self.extract_account(&sender_id).unwrap();
                 sender.stake += u128::from(amount);
                 self.save_account(sender).unwrap();
-                PromiseOrValue::Value(U128::from(0))
-            }
-            TransferCallRequest::Push => {
-                let sender = self.view_account(&sender_id).unwrap();
-                let stream_id = sender.last_created_stream.unwrap();
-                let mut stream = self.extract_stream(&stream_id).unwrap();
-                let amount = stream.amount_to_push;
-                // For unknown reasons this promise cannot be used
-                // to return PromiseOrValue::Promise().
-                self.ft_transfer_from_self(
-                    stream.token_account_id.clone(),
-                    self.finance_id.clone(),
-                    amount,
-                )
-                .unwrap();
-                stream.amount_to_push = 0;
-                self.save_stream(stream).unwrap();
                 PromiseOrValue::Value(U128::from(0))
             }
             TransferCallRequest::Create { request } => {

@@ -32,7 +32,6 @@ pub const DEFAULT_GAS_FOR_STORAGE_DEPOSIT: Gas = Gas(25 * ONE_TERA);
 // or if the defaults are not enough for you token,
 // ask DAO to whitelist the token with proper values.
 
-pub const MIN_GAS_FOR_PROCESS_ACTION: Gas = Gas(100 * ONE_TERA);
 pub const MIN_GAS_FOR_AURORA_TRANFSER: Gas = Gas(70 * ONE_TERA);
 pub const MIN_GAS_FOR_FT_TRANFSER: Gas = Gas(20 * ONE_TERA);
 
@@ -82,6 +81,36 @@ impl SafeFloat {
     }
 }
 
+pub fn check_deposit(deposit_needed: Balance) -> Result<(), ContractError> {
+    if env::attached_deposit() >= deposit_needed {
+        Ok(())
+    } else {
+        Err(ContractError::InsufficientNearDeposit {
+            expected: deposit_needed,
+            received: env::attached_deposit(),
+        })
+    }
+}
+
+pub fn check_gas(gas_needed: Gas) -> Result<(), ContractError> {
+    if env::prepaid_gas() - env::used_gas() >= gas_needed {
+        Ok(())
+    } else {
+        Err(ContractError::InsufficientGas {
+            expected: gas_needed,
+            left: env::prepaid_gas() - env::used_gas(),
+        })
+    }
+}
+
+pub fn check_integrity(action_result: bool) -> Result<(), ContractError> {
+    if action_result {
+        Ok(())
+    } else {
+        Err(ContractError::DataCorruption)
+    }
+}
+
 pub type StreamId = CryptoHash;
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, PartialEq, Debug)]
@@ -98,7 +127,7 @@ pub enum StreamStatus {
 pub enum StreamFinishReason {
     StoppedByOwner,
     StoppedByReceiver,
-    FinishedNatually,
+    FinishedNaturally,
     FinishedBecauseCannotBeExtended,
     FinishedWhileTransferred,
 }

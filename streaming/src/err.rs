@@ -1,5 +1,7 @@
 use crate::*;
 
+use near_sdk::FunctionError;
+
 #[derive(BorshDeserialize, BorshSerialize, Serialize, PartialEq, Debug)]
 #[cfg_attr(not(target_arch = "wasm32"), derive(Deserialize))]
 #[serde(crate = "near_sdk::serde")]
@@ -66,6 +68,12 @@ pub enum ContractError {
         #[serde(with = "u128_dec_format")]
         left: Balance,
     },
+    InvalidTokenWithdrawAmount {
+        #[serde(with = "u128_dec_format")]
+        requested: Balance,
+        #[serde(with = "u128_dec_format")]
+        left: Balance,
+    },
     UnreachableAccount {
         account_id: AccountId,
     },
@@ -89,11 +97,6 @@ pub enum ContractError {
         max_description_len: usize,
         received: usize,
     },
-    UnpushedBalanceFound {
-        account_id: AccountId,
-        #[serde(with = "u128_dec_format")]
-        amount: Balance,
-    },
     InvalidStreamingSpeed {
         #[serde(with = "u128_dec_format")]
         min_streaming_speed: u128,
@@ -107,4 +110,12 @@ pub enum ContractError {
         max_amount: Balance,
     },
     DataCorruption,
+}
+
+impl FunctionError for ContractError {
+    fn panic(&self) -> ! {
+        crate::env::panic_str(
+            &serde_json::to_string(self).unwrap_or(format!("serde failed: {:?}", self)),
+        )
+    }
 }

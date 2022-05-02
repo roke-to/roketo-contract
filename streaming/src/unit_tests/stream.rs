@@ -19,7 +19,6 @@ mod tests {
             status: StreamStatus::Active,
             tokens_total_withdrawn: 0,
             cliff: None,
-            amount_to_push: 0,
             is_expirable: true,
             is_locked: false,
         }
@@ -81,7 +80,7 @@ mod tests {
         assert_eq!(
             stream.status,
             StreamStatus::Finished {
-                reason: StreamFinishReason::FinishedNatually
+                reason: StreamFinishReason::FinishedNaturally
             }
         );
         // 1 more second
@@ -99,7 +98,7 @@ mod tests {
         assert_eq!(
             stream.status,
             StreamStatus::Finished {
-                reason: StreamFinishReason::FinishedNatually
+                reason: StreamFinishReason::FinishedNaturally
             }
         );
     }

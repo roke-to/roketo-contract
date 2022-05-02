@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::cmp::min;
 use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 
@@ -35,8 +35,8 @@ use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::serde_json;
 use near_sdk::store::LazyOption;
 use near_sdk::{
-    assert_one_yocto, env, ext_contract, log, near_bindgen, AccountId, Balance, BorshStorageKey,
-    CryptoHash, Gas, PanicOnDefault, Promise, PromiseOrValue, Timestamp, ONE_NEAR, ONE_YOCTO,
+    env, ext_contract, log, near_bindgen, AccountId, Balance, BorshStorageKey, CryptoHash, Gas,
+    PanicOnDefault, Promise, PromiseOrValue, Timestamp, ONE_NEAR, ONE_YOCTO,
 };
 
 #[derive(BorshSerialize, BorshStorageKey)]

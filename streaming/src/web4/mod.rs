@@ -66,7 +66,7 @@ impl Web4Response {
 
 #[near_bindgen]
 impl Contract {
-    pub fn web4_get(&self, request: Web4Request) -> Web4Response {
+    pub fn web4_get(self, request: Web4Request) -> Web4Response {
         let path = request.path.expect("Path expected");
         if path.starts_with("/static/") || path == "/favicon.png" || path == "/manifest.json" {
             return Web4Response::body_url(
@@ -130,6 +130,20 @@ impl Contract {
             return Web4Response::plain(include_str!("../../API.md").to_string());
         } else if path == "/Cargo.toml" {
             return Web4Response::plain(include_str!("../../Cargo.toml").to_string());
+        }
+
+        if path == "/get_stats" {
+            return Web4Response::html(serde_json::to_string(&self.get_stats()).unwrap());
+        } else if path == "/get_dao" {
+            return Web4Response::html(serde_json::to_string(&self.get_dao()).unwrap());
+        } else if path == "/get_token" {
+            return Web4Response::html(
+                serde_json::to_string(&self.get_token("wrap.near".parse().unwrap())).unwrap(),
+            );
+        }
+
+        if path == "/VERSION.md" {
+            return Web4Response::plain(include_str!("../../../VERSION.md").to_string());
         }
 
         Web4Response::plain("Not found".to_string())

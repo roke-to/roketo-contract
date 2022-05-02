@@ -17,6 +17,8 @@ pub struct Dao {
     pub eth_near_ratio: SafeFloat,
 
     pub oracles: HashSet<AccountId>,
+    // TODO #11
+    // pub approved_nfts: HashSet<AccountId>,
 }
 
 impl Dao {
@@ -37,27 +39,21 @@ impl Dao {
     }
 
     pub(crate) fn check_owner(&self) -> Result<(), ContractError> {
-        if env::signer_account_id() == self.dao_id {
+        // The call must be executed from dao account.
+        if env::predecessor_account_id() == self.dao_id {
             Ok(())
         } else {
             Err(ContractError::CallerIsNotDao {
                 expected: self.dao_id.clone(),
-                received: env::signer_account_id(),
+                received: env::predecessor_account_id(),
             })
         }
     }
 
-    pub(crate) fn get_token_or_unlisted(&self, token_account_id: &AccountId) -> Token {
-        self.get_token(token_account_id)
-            .unwrap_or(Token::new_unlisted(token_account_id))
-    }
-
-    pub(crate) fn get_token(&self, token_account_id: &AccountId) -> Result<Token, ContractError> {
+    pub(crate) fn get_token(&self, token_account_id: &AccountId) -> Token {
         match self.tokens.get(token_account_id) {
-            Some(token) => Ok(token.clone()),
-            None => Err(ContractError::UnknownToken {
-                received: token_account_id.clone(),
-            }),
+            Some(token) => token.clone(),
+            None => Token::new_unlisted(token_account_id),
         }
     }
 

@@ -2,40 +2,45 @@ use crate::*;
 
 #[near_bindgen]
 impl Contract {
+    #[handle_result]
     #[payable]
-    pub fn account_update_cron_flag(&mut self, is_cron_allowed: bool) {
-        assert_one_yocto();
-        let mut account = self.extract_account(&env::signer_account_id()).unwrap();
+    pub fn account_update_cron_flag(&mut self, is_cron_allowed: bool) -> Result<(), ContractError> {
+        check_deposit(ONE_YOCTO)?;
+        // Account actions may be delegated to 3rd parties.
+        // That's why it uses env::predecessor_account_id() here and below.
+        let mut account = self.extract_account(&env::predecessor_account_id())?;
         account.is_cron_allowed = is_cron_allowed;
-        self.save_account(account).unwrap()
+        self.save_account(account)
     }
 
+    #[handle_result]
     #[payable]
-    pub fn account_deposit_near(&mut self) {
-        self.account_deposit(env::signer_account_id(), env::attached_deposit())
-            .unwrap();
+    pub fn account_deposit_near(&mut self) -> Result<(), ContractError> {
+        self.account_deposit(env::predecessor_account_id(), env::attached_deposit())?;
         self.stats_inc_account_deposit(env::attached_deposit(), false);
+        Ok(())
     }
 
+    #[handle_result]
     #[payable]
-    pub fn account_unstake(&mut self, amount: Balance) -> Promise {
-        assert_one_yocto();
-        let mut account = self.extract_account(&env::signer_account_id()).unwrap();
-        assert!(amount > 0);
-        assert!(account.stake >= amount);
-        account.stake -= amount;
-        self.save_account(account).unwrap();
+    pub fn account_unstake(&mut self, amount: Balance) -> Result<Option<Promise>, ContractError> {
+        check_deposit(ONE_YOCTO)?;
+        let mut account = self.extract_account(&env::predecessor_account_id())?;
+        if amount > account.stake {
+            return Err(ContractError::InvalidTokenWithdrawAmount {
+                requested: amount,
+                left: account.stake,
+            });
+        }
 
-        assert!(env::prepaid_gas() - env::used_gas() >= MIN_GAS_FOR_PROCESS_ACTION);
+        account.stake -= amount;
+        self.save_account(account)?;
 
         self.ft_transfer_from_self(
-            self.dao
-                .get_token_or_unlisted(&self.dao.utility_token_id)
-                .account_id,
-            env::signer_account_id(),
+            self.dao.get_token(&self.dao.utility_token_id).account_id,
+            env::predecessor_account_id(),
             amount,
         )
-        .unwrap()
     }
 }
 

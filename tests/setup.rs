@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
 use near_contract_standards::non_fungible_token::metadata::{
     NFTContractMetadata, NFT_METADATA_SPEC,
@@ -193,7 +191,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(10, 18),
                     commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
-                    collected_commission: 0,
+                    commission_on_transfer: d(10, 17),
                     storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
                     gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
@@ -210,7 +208,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(1, 18),
                     commission_coef: SafeFloat { val: 1, pow: -3 }, // 0.1%
-                    collected_commission: 0,
+                    commission_on_transfer: d(1, 17),
                     storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
                     gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
@@ -227,7 +225,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(1, 6),
                     commission_coef: SafeFloat { val: 1, pow: -3 }, // 0.1%
-                    collected_commission: 0,
+                    commission_on_transfer: d(1, 5),
                     storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
                     gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
@@ -244,7 +242,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(1, 23), // 0.1 token
                     commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
-                    collected_commission: 0,
+                    commission_on_transfer: d(1, 22),
                     storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
                     gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
@@ -261,7 +259,7 @@ impl Env {
                     is_listed: true,
                     commission_on_create: d(1, 15), // 0.001 token
                     commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
-                    collected_commission: 0,
+                    commission_on_transfer: d(1, 14),
                     storage_balance_needed: 0, // aurora doesn't need storage deposit
                     gas_for_ft_transfer: near_sdk::Gas(20 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(20 * ONE_TERA),
@@ -475,19 +473,19 @@ impl Env {
     }
 
     pub fn get_account(&self, user: &UserAccount) -> AccountView {
-        let account: Result<AccountView, ContractError> = self
+        let account: AccountView = self
             .near
             .view_method_call(self.streaming.contract.get_account(user.account_id()))
             .unwrap_json();
-        account.unwrap()
+        account
     }
 
     pub fn get_stream(&self, stream_id: &Base58CryptoHash) -> Stream {
-        let stream: Result<Stream, ContractError> = self
+        let stream: Stream = self
             .near
             .view_method_call(self.streaming.contract.get_stream(*stream_id))
             .unwrap_json();
-        stream.unwrap()
+        stream
     }
 
     pub fn create_stream_ext_err(
@@ -550,16 +548,6 @@ impl Env {
             is_locked,
         );
         assert_eq!(amount_accepted, U128(amount));
-
-        let res = self.contract_ft_transfer_call(
-            &token,
-            &owner,
-            1,
-            &serde_json::to_string(&TransferCallRequest::Push).unwrap(),
-        );
-        res.assert_success();
-        let amount_accepted: U128 = res.unwrap_json();
-        assert_eq!(amount_accepted, U128(1));
         self.get_account(&owner).last_created_stream.unwrap()
     }
 
