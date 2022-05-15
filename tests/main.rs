@@ -340,7 +340,7 @@ fn test_stream_max_value_min_speed() {
 
 
 #[test]
-fn test_stream_start_sanity() {
+fn test_incoming_outgoing_sanity() {
     let (e, tokens, users) = basic_setup();
 
     let stream_id = e.create_stream(
