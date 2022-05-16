@@ -8,11 +8,7 @@ perl -i -pe 's/\["cdylib", "rlib"\]/\["cdylib"\]/' streaming/Cargo.toml
 perl -i -pe 's/\["cdylib", "rlib"\]/\["cdylib"\]/' finance/Cargo.toml
 perl -i -pe 's/\["cdylib", "rlib"\]/\["cdylib"\]/' examples/nft/Cargo.toml
 
-cat .git/HEAD > VERSION.md
-echo $'\ncommits count:' >> VERSION.md
-git rev-list --count HEAD >> VERSION.md
-echo $'\nprev commit hash:' >> VERSION.md
-git rev-parse --verify HEAD~ >> VERSION.md
+cargo fmt
 
 RUSTFLAGS='-C link-arg=-s' cargo build --all --target wasm32-unknown-unknown --release
 cp $TARGET/wasm32-unknown-unknown/release/streaming.wasm ./res/streaming.wasm

@@ -338,7 +338,6 @@ fn test_stream_max_value_min_speed() {
     );
 }
 
-
 #[test]
 fn test_incoming_outgoing_sanity() {
     let (e, tokens, users) = basic_setup();
@@ -356,7 +355,7 @@ fn test_incoming_outgoing_sanity() {
     assert!(e.get_account_incoming_streams(&users.charlie).len() == 1);
     assert!(e.get_account_outgoing_streams(&users.alice).len() == 1);
     assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
-    
+
     assert!(e.get_account_incoming_streams(&users.charlie)[0].id == stream.id);
     assert!(e.get_account_outgoing_streams(&users.alice)[0].id == stream.id);
 }
@@ -385,7 +384,6 @@ fn test_stream_start_pause_finished() {
     assert!(e.get_account_outgoing_streams(&users.alice).len() == 0);
     assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
 }
-
 
 #[test]
 fn test_stream_start_pause_stop() {

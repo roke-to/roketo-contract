@@ -483,7 +483,11 @@ impl Env {
     pub fn get_account_outgoing_streams(&self, user: &UserAccount) -> Vec<Stream> {
         let streams: Vec<Stream> = self
             .near
-            .view_method_call(self.streaming.contract.get_account_outgoing_streams(user.account_id(), 0, 100))
+            .view_method_call(self.streaming.contract.get_account_outgoing_streams(
+                user.account_id(),
+                0,
+                100,
+            ))
             .unwrap_json();
         streams
     }
@@ -491,11 +495,14 @@ impl Env {
     pub fn get_account_incoming_streams(&self, user: &UserAccount) -> Vec<Stream> {
         let streams: Vec<Stream> = self
             .near
-            .view_method_call(self.streaming.contract.get_account_incoming_streams(user.account_id(), 0, 100))
+            .view_method_call(self.streaming.contract.get_account_incoming_streams(
+                user.account_id(),
+                0,
+                100,
+            ))
             .unwrap_json();
         streams
     }
-
 
     pub fn get_stream(&self, stream_id: &Base58CryptoHash) -> Stream {
         let stream: Stream = self
