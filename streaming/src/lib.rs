@@ -62,6 +62,26 @@ pub struct Contract {
 
 #[near_bindgen]
 impl Contract {
+    pub fn process(&mut self, streams: &UnorderedSet<StreamId>) {
+        let bad_ids: Vec<StreamId> = Vec::new();
+        for stream_id in streams.into() {
+            match self.extract_stream(&stream_id).unwrap().status {
+                StreamStatus::Finished {
+                    reason: StreamFinishReason::FinishedNaturally,
+                } => bad_ids.push(stream_id),
+            }
+        }
+        for id in bad_ids {
+            streams.remove(&id);
+        }
+    }
+    pub fn update_incoming_outgoing(&mut self) {
+        for account in self.accounts.into() {
+            process(account.inactive_outgoing_streams);
+            process(account.inactive_incoming_streams);
+        }
+    }
+
     #[init]
     pub fn new(
         dao_id: AccountId,
