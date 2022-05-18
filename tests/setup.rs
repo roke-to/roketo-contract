@@ -480,11 +480,11 @@ impl Env {
         account
     }
 
-    pub fn fixing_streams(&self) -> u32 {
-        u32::from(
+    pub fn fixing_streams(&self) -> u128 {
+        u128::from(
             self.near
-            .function_call(self.streaming.contract.process(), DEFAULT_GAS, ONE_YOCTO)
-            .unwrap_json::<U128>()
+                .function_call(self.streaming.contract.process(), MAX_GAS, ONE_YOCTO)
+                .unwrap_json::<U128>(),
         )
     }
 
