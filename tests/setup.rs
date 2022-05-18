@@ -480,6 +480,11 @@ impl Env {
         account
     }
 
+    pub fn fixing_streams(&self) {
+        self.near
+            .view_method_call(self.streaming.contract.process());
+    }
+
     pub fn get_account_outgoing_streams(&self, user: &UserAccount) -> Vec<Stream> {
         let streams: Vec<Stream> = self
             .near

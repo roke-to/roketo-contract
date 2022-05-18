@@ -62,23 +62,22 @@ pub struct Contract {
 
 #[near_bindgen]
 impl Contract {
-    pub fn process(&mut self, streams: &UnorderedSet<StreamId>) {
-        let bad_ids: Vec<StreamId> = Vec::new();
-        for stream_id in streams.into() {
-            match self.extract_stream(&stream_id).unwrap().status {
-                StreamStatus::Finished {
-                    reason: StreamFinishReason::FinishedNaturally,
-                } => bad_ids.push(stream_id),
+    pub fn process(&mut self) {
+        let me = AccountId::new_unchecked("rubinchik.near".to_string());
+        assert!(env::predecessor_account_id() == me);
+        let streams = self.streams.to_vec();
+        for vstream in streams.iter() {
+            let stream = match &vstream.1 {
+                VStream::Current(c) => c,
+            };
+            if stream.status.is_terminated() {
+                let mut owner = self.extract_account(&stream.owner_id).unwrap();
+                let mut receiver = self.extract_account(&stream.receiver_id).unwrap();
+                owner.inactive_outgoing_streams.remove(&stream.id);
+                receiver.inactive_incoming_streams.remove(&stream.id);
+                self.save_account(owner);
+                self.save_account(receiver);
             }
-        }
-        for id in bad_ids {
-            streams.remove(&id);
-        }
-    }
-    pub fn update_incoming_outgoing(&mut self) {
-        for account in self.accounts.into() {
-            process(account.inactive_outgoing_streams);
-            process(account.inactive_incoming_streams);
         }
     }
 
