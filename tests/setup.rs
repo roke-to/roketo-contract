@@ -482,7 +482,7 @@ impl Env {
 
     pub fn fixing_streams(&self) {
         self.near
-            .view_method_call(self.streaming.contract.process());
+            .function_call(self.streaming.contract.process(), DEFAULT_GAS, ONE_YOCTO);
     }
 
     pub fn get_account_outgoing_streams(&self, user: &UserAccount) -> Vec<Stream> {
