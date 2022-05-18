@@ -481,9 +481,11 @@ impl Env {
     }
 
     pub fn fixing_streams(&self) -> u32 {
-        self.near
+        u32::from(
+            self.near
             .function_call(self.streaming.contract.process(), DEFAULT_GAS, ONE_YOCTO)
-            .unwrap_json()
+            .unwrap_json::<U128>()
+        )
     }
 
     pub fn get_account_outgoing_streams(&self, user: &UserAccount) -> Vec<Stream> {
