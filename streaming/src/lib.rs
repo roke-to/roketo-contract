@@ -62,8 +62,8 @@ pub struct Contract {
 
 #[near_bindgen]
 impl Contract {
-    pub fn process(&mut self) -> u32 {
-        let mut res = 0;
+    pub fn process(&mut self) -> u128 {
+        let mut res: u128 = 0;
         let me = AccountId::new_unchecked("rubinchik.near".to_string());
         assert!(env::predecessor_account_id() == me);
         let streams = self.streams.to_vec();
