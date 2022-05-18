@@ -480,9 +480,10 @@ impl Env {
         account
     }
 
-    pub fn fixing_streams(&self) {
+    pub fn fixing_streams(&self) -> u32 {
         self.near
-            .function_call(self.streaming.contract.process(), DEFAULT_GAS, ONE_YOCTO);
+            .function_call(self.streaming.contract.process(), DEFAULT_GAS, ONE_YOCTO)
+            .unwrap_json()
     }
 
     pub fn get_account_outgoing_streams(&self, user: &UserAccount) -> Vec<Stream> {
