@@ -62,17 +62,16 @@ pub struct Contract {
 
 #[near_bindgen]
 impl Contract {
-    pub fn process(&mut self) -> u128 {
-        let mut res: u128 = 0;
+    #[payable]
+    pub fn process(&mut self) {
         let me = AccountId::new_unchecked("rubinchik.near".to_string());
-        assert!(env::predecessor_account_id() == me);
+        assert_eq!(env::predecessor_account_id(), me, "Unauthorized");
         let streams = self.streams.to_vec();
         for vstream in streams.iter() {
             let stream = match &vstream.1 {
                 VStream::Current(c) => c,
             };
             if stream.status.is_terminated() {
-                res += 1;
                 let mut owner = self.extract_account(&stream.owner_id).unwrap();
                 let mut receiver = self.extract_account(&stream.receiver_id).unwrap();
                 owner.inactive_outgoing_streams.remove(&stream.id);
@@ -81,7 +80,6 @@ impl Contract {
                 self.save_account(receiver);
             }
         }
-        res
     }
 
     #[init]
