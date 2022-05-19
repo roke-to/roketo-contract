@@ -481,10 +481,7 @@ impl Env {
     }
 
     pub fn fixing_streams(&self, user: UserAccount) {
-        //u128::from(
         user.function_call(self.streaming.contract.process(), MAX_GAS, ONE_YOCTO);
-        //      .unwrap_json::<U128>(),
-        //)
     }
 
     pub fn get_account_outgoing_streams(&self, user: &UserAccount) -> Vec<Stream> {

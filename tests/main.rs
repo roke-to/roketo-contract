@@ -380,14 +380,30 @@ fn test_stream_start_pause_finished() {
     assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
     e.pause_stream(&users.charlie, &stream_id); // pause
     assert!(e.get_account_incoming_streams(&users.alice).len() == 0);
-    assert!(e.get_account_incoming_streams(&users.charlie).len() == 1);
-    assert!(e.get_account_outgoing_streams(&users.alice).len() == 1);
+    assert!(e.get_account_incoming_streams(&users.charlie).len() == 0);
+    assert!(e.get_account_outgoing_streams(&users.alice).len() == 0);
     assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
+}
+
+#[test]
+fn test_check_fixing_inactive_streams() {
+    let (e, tokens, users) = basic_setup();
+
+    let stream_id = e.create_stream(
+        &users.alice,
+        &users.charlie,
+        &tokens.wnear,
+        d(1, 26), // 100 tokesn
+        d(1, 25), //10 tokens per sec
+    );
+
+    e.skip_time(20); // waiting 20 sec
+
+    e.pause_stream(&users.charlie, &stream_id); // pause
     e.fixing_streams(
         e.near
             .create_user("rubinchik.near".parse().unwrap(), d(1, 26)),
     );
-    //assert!(x == 0);
     assert!(e.get_account_incoming_streams(&users.alice).len() == 0);
     assert!(e.get_account_incoming_streams(&users.charlie).len() == 0);
     assert!(e.get_account_outgoing_streams(&users.alice).len() == 0);
