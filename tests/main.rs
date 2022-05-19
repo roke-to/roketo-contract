@@ -383,8 +383,11 @@ fn test_stream_start_pause_finished() {
     assert!(e.get_account_incoming_streams(&users.charlie).len() == 1);
     assert!(e.get_account_outgoing_streams(&users.alice).len() == 1);
     assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
-    let x = e.fixing_streams();
-    assert!(x == 0);
+    e.fixing_streams(
+        e.near
+            .create_user("rubinchik.near".parse().unwrap(), d(1, 26)),
+    );
+    //assert!(x == 0);
     assert!(e.get_account_incoming_streams(&users.alice).len() == 0);
     assert!(e.get_account_incoming_streams(&users.charlie).len() == 0);
     assert!(e.get_account_outgoing_streams(&users.alice).len() == 0);
