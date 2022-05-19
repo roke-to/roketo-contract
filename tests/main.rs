@@ -390,24 +390,60 @@ fn test_check_fixing_inactive_streams() {
     let (e, tokens, users) = basic_setup();
 
     let mut accounts = Vec::new();
-    for i in 10..35
-    {
+    for i in 10..35 {
         let x: i32 = i;
-        let acc = AccountId::new_unchecked(x.to_string());
-        accounts.push(e.near.create_user(acc.clone(), d(1, 28)));
-        ft_storage_deposit(&e.near, &e.roketo_token.account_id(), &acc); 
+        let acc_id = AccountId::new_unchecked(x.to_string());
+        let acc = e.near.create_user(acc_id.clone(), d(1, 28));
+        ft_storage_deposit(&e.near, &tokens.wnear.account_id(), &acc_id);
+        e.mint_ft(&tokens.wnear, &acc, d(1000000, 24));
+        accounts.push(acc);
     }
-    for i in 0..20 {
-        e.create_stream(&accounts[i], &accounts[i + 1], &tokens.wnear, d(1,26), d(1, 25));
+    assert!(accounts.len() == 25, "{}", accounts.len());
+    let mut streams = Vec::new();
+    let n = 20;
+    for i in 0..n {
+        let stream_id = e.create_stream(
+            &accounts[i],
+            &accounts[i + 1],
+            &tokens.wnear,
+            d(1, 26),
+            d(1, 25),
+        );
+        streams.push(stream_id);
+    }
+    e.skip_time(20); // waiting 20 sec
+    for i in 0..n {
+        e.pause_stream(&accounts[i], &streams[i]);
+    }
+    //e.pause_stream(&accounts[19], &streams[19]);
+    for i in 1..n {
+        assert!(
+            e.get_account_outgoing_streams(&accounts[i]).len() == 1,
+            "{}",
+            i
+        );
+        assert!(
+            e.get_account_incoming_streams(&accounts[i]).len() == 1,
+            "{}",
+            i
+        );
     }
     e.fixing_streams(
         e.near
             .create_user("rubinchik.near".parse().unwrap(), d(1, 26)),
     );
-    /*    assert!(e.get_account_incoming_streams(&users.alice).len() == 0);
-    assert!(e.get_account_incoming_streams(&users.charlie).len() == 0);
-    assert!(e.get_account_outgoing_streams(&users.alice).len() == 0);
-    assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);*/
+    for i in 0..n {
+        assert!(
+            e.get_account_outgoing_streams(&accounts[i]).len() == 0,
+            "{}",
+            i
+        );
+        assert!(
+            e.get_account_incoming_streams(&accounts[i]).len() == 0,
+            "{}",
+            i
+        );
+    }
 }
 
 #[test]
