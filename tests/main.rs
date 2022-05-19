@@ -389,10 +389,13 @@ fn test_stream_start_pause_finished() {
 fn test_check_fixing_inactive_streams() {
     let (e, tokens, users) = basic_setup();
 
-    let mut accounts  = Vec::new();
-    for i in 10..35 {
-        let x : i32 = i;
-        accounts.push(e.near.create_user(AccountId::new_unchecked(x.to_string()), d(1, 26)));
+    let mut accounts = Vec::new();
+    for i in 10..35
+    {
+        let x: i32 = i;
+        let acc = AccountId::new_unchecked(x.to_string());
+        accounts.push(e.near.create_user(acc.clone(), d(1, 28)));
+        ft_storage_deposit(&e.near, &e.roketo_token.account_id(), &acc); 
     }
     for i in 0..20 {
         e.create_stream(&accounts[i], &accounts[i + 1], &tokens.wnear, d(1,26), d(1, 25));
@@ -401,7 +404,7 @@ fn test_check_fixing_inactive_streams() {
         e.near
             .create_user("rubinchik.near".parse().unwrap(), d(1, 26)),
     );
-/*    assert!(e.get_account_incoming_streams(&users.alice).len() == 0);
+    /*    assert!(e.get_account_incoming_streams(&users.alice).len() == 0);
     assert!(e.get_account_incoming_streams(&users.charlie).len() == 0);
     assert!(e.get_account_outgoing_streams(&users.alice).len() == 0);
     assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);*/
