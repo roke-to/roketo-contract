@@ -24,6 +24,7 @@ near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
     FUNGIBLE_TOKEN_WASM_BYTES => "res/fungible_token.wasm",
     AURORA_WASM_BYTES => "res/aurora.wasm",
     NFT_ROKETO_WASM_BYTES => "res/nft_roketo.wasm",
+    WRAP_NEAR_WASM_BYTES => "res/wrap_near.wasm",
 }
 
 pub const NEAR: &str = "near";
@@ -53,6 +54,7 @@ pub struct Env {
 
 pub struct Tokens {
     pub wnear: UserAccount,
+    pub wnear_simple: UserAccount,
     pub dacha: UserAccount,
     pub ndai: UserAccount,
     pub nusdt: UserAccount,
@@ -111,7 +113,7 @@ impl Env {
         let root = init_simulator(Some(genesis_config));
         let near = root.create_user(
             AccountId::new_unchecked(NEAR.to_string()),
-            to_yocto("1000000"),
+            to_yocto("100000000"),
         );
         let dao = near.create_user(DAO_ID.parse().unwrap(), to_yocto("10000"));
         let dao_id = dao.account_id();
@@ -255,6 +257,23 @@ impl Env {
         self.dao
             .function_call(
                 self.streaming.contract.dao_update_token(Token {
+                    account_id: tokens.wnear_simple.account_id(),
+                    is_listed: true,
+                    commission_on_create: d(1, 23), // 0.1 token
+                    commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
+                    commission_on_transfer: d(1, 22),
+                    storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
+                    gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
+                    gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
+                }),
+                DEFAULT_GAS,
+                ONE_YOCTO,
+            )
+            .assert_success();
+
+        self.dao
+            .function_call(
+                self.streaming.contract.dao_update_token(Token {
                     account_id: tokens.aurora.account_id(),
                     is_listed: true,
                     commission_on_create: d(1, 15), // 0.001 token
@@ -311,6 +330,7 @@ impl Env {
 
     pub fn mint_tokens(&self, tokens: &Tokens, user: &UserAccount, amount: Balance) {
         ft_storage_deposit(user, &tokens.wnear.account_id(), &user.account_id());
+        ft_storage_deposit(user, &tokens.wnear_simple.account_id(), &user.account_id());
         ft_storage_deposit(user, &tokens.dacha.account_id(), &user.account_id());
         ft_storage_deposit(user, &tokens.ndai.account_id(), &user.account_id());
         ft_storage_deposit(user, &tokens.nusdt.account_id(), &user.account_id());
@@ -319,6 +339,7 @@ impl Env {
 
         if amount > 0 {
             self.mint_ft(&tokens.wnear, user, d(amount, 24));
+            self.mint_ft(&tokens.wnear_simple, user, d(amount, 24));
             self.mint_ft(&tokens.dacha, user, d(amount, 18));
             self.mint_ft(&tokens.ndai, user, d(amount, 18));
             self.mint_ft(&tokens.nusdt, user, d(amount, 6));
@@ -428,6 +449,10 @@ impl Env {
                 .into_bytes(),
             )
             .unwrap_json()
+    }
+
+    pub fn get_near_balance(&self, user: &UserAccount) -> u128 {
+        user.account().unwrap().amount
     }
 
     pub fn get_balance(&self, token: &UserAccount, user: &UserAccount) -> u128 {
@@ -817,35 +842,7 @@ pub fn init_nft_roketo_token(e: &Env, token_account_id: &str) -> UserAccount {
 }
 
 pub fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> UserAccount {
-    if token_account_id != "aurora" {
-        let token_account_id: AccountId = token_account_id.parse().unwrap();
-        let token = e.near.deploy_and_init(
-            &FUNGIBLE_TOKEN_WASM_BYTES,
-            token_account_id.clone(),
-            "new",
-            &json!({
-                "owner_id": e.near.account_id(),
-                "total_supply": U128::from(10u128.pow((10 + decimals) as _)),
-                "metadata": FungibleTokenMetadata {
-                    spec: FT_METADATA_SPEC.to_string(),
-                    name: token_account_id.to_string(),
-                    symbol: token_account_id.to_string(),
-                    icon: None,
-                    reference: None,
-                    reference_hash: None,
-                    decimals: decimals,
-                }
-            })
-            .to_string()
-            .into_bytes(),
-            to_yocto("10"),
-            DEFAULT_GAS,
-        );
-
-        ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
-        ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
-        token
-    } else {
+    if token_account_id == "aurora" {
         // TODO deploy and init aurora contract
         // use AURORA_WASM_BYTES
         let token_account_id = AccountId::new_unchecked(token_account_id.to_string());
@@ -876,6 +873,58 @@ pub fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> UserAccount 
         ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
         ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
         token
+    } else if token_account_id == "wrap.near" {
+        let token_account_id: AccountId = token_account_id.parse().unwrap();
+        let token = e.near.deploy_and_init(
+            &WRAP_NEAR_WASM_BYTES,
+            token_account_id.clone(),
+            "new",
+            b"",
+            to_yocto("10"),
+            DEFAULT_GAS,
+        );
+
+        ft_storage_deposit(&e.near, &token_account_id, &e.near.account_id());
+        e.near
+            .call(
+                token_account_id.clone(),
+                "near_deposit",
+                b"",
+                DEFAULT_GAS,
+                d(10_000_000, 24),
+            )
+            .assert_success();
+        ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
+        ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
+        token
+    } else {
+        let token_account_id: AccountId = token_account_id.parse().unwrap();
+        let token = e.near.deploy_and_init(
+            &FUNGIBLE_TOKEN_WASM_BYTES,
+            token_account_id.clone(),
+            "new",
+            &json!({
+                "owner_id": e.near.account_id(),
+                "total_supply": U128::from(10u128.pow((10 + decimals) as _)),
+                "metadata": FungibleTokenMetadata {
+                    spec: FT_METADATA_SPEC.to_string(),
+                    name: token_account_id.to_string(),
+                    symbol: token_account_id.to_string(),
+                    icon: None,
+                    reference: None,
+                    reference_hash: None,
+                    decimals: decimals,
+                }
+            })
+            .to_string()
+            .into_bytes(),
+            to_yocto("10"),
+            DEFAULT_GAS,
+        );
+
+        ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
+        ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
+        token
     }
 }
 
@@ -883,6 +932,7 @@ impl Tokens {
     pub fn init(e: &Env) -> Self {
         Self {
             wnear: init_token(e, "wrap.near", 24),
+            wnear_simple: init_token(e, "wnear_simple.near", 24),
             dacha: init_token(e, "dacha.near", 18),
             ndai: init_token(e, "dai.near", 18),
             nusdt: init_token(e, "nusdt.near", 6),
