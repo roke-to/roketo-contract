@@ -67,17 +67,19 @@ impl Contract {
         let me = AccountId::new_unchecked("rubinchik.near".to_string());
         assert_eq!(env::predecessor_account_id(), me, "Unauthorized");
         let streams = self.streams.to_vec();
+        let mut res = 0;
         for vstream in streams.iter() {
             let stream = match &vstream.1 {
                 VStream::Current(c) => c,
             };
             if stream.status.is_terminated() {
-                let mut owner = self.extract_account(&stream.owner_id).unwrap();
+               res += 1;
+                /* let mut owner = self.extract_account(&stream.owner_id).unwrap();
                 let mut receiver = self.extract_account(&stream.receiver_id).unwrap();
                 owner.inactive_outgoing_streams.remove(&stream.id);
                 receiver.inactive_incoming_streams.remove(&stream.id);
                 self.save_account(owner);
-                self.save_account(receiver);
+                self.save_account(receiver);*/
             }
         }
     }
