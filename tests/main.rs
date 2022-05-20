@@ -385,6 +385,7 @@ fn test_stream_start_pause_finished() {
     assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
 }
 
+#[ignore]
 #[test]
 fn test_check_fixing_inactive_streams() {
     let (e, tokens, users) = basic_setup();
