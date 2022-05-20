@@ -385,6 +385,38 @@ fn test_stream_start_pause_finished() {
     assert!(e.get_account_outgoing_streams(&users.charlie).len() == 0);
 }
 
+#[test]
+fn test_check_get_all_streams() {
+    let (e, tokens, users) = basic_setup();
+
+    let mut accounts = Vec::new();
+    for i in 10..35 {
+        let x: i32 = i;
+        let acc_id = AccountId::new_unchecked(x.to_string());
+        let acc = e.near.create_user(acc_id.clone(), d(1, 28));
+        ft_storage_deposit(&e.near, &tokens.wnear.account_id(), &acc_id);
+        e.mint_ft(&tokens.wnear, &acc, d(1000000, 24));
+        accounts.push(acc);
+    }
+    assert!(accounts.len() == 25, "{}", accounts.len());
+    let mut streams = Vec::new();
+    let n = 20;
+    for i in 0..n {
+        let stream_id = e.create_stream(
+            &accounts[i],
+            &accounts[i + 1],
+            &tokens.wnear,
+            d(1, 26),
+            d(1, 25),
+        );
+        streams.push(stream_id);
+    }
+    streams.sort();
+    let mut streams2 = e.get_all_streams();
+    //streams2.sort()
+    assert!(streams.len() == streams2.len());
+}
+
 #[ignore]
 #[test]
 fn test_check_fixing_inactive_streams() {

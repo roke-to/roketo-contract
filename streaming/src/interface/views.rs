@@ -138,11 +138,17 @@ impl Contract {
     }
 
     #[handle_result]
-    fn get_all_streams(&self, from: usize, limit: usize) -> Vec<Stream> {
-        (from..min(self.streams.len() as _, from + limit))
+    fn get_all_streams(
+        &self,
+        from: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<Vec<Stream>, ContractError> {
+        let fr: u64 = from.unwrap() as u64;
+        let lim: u64 = limit.unwrap() as u64;
+        Ok((fr..min(self.streams.len(), (fr + lim) as u64))
             .map(|i| self.streams.values_as_vector().get(i as _).unwrap())
             .map(|vs| Stream::from(vs))
-            .collect()
+            .collect())
     }
 
     #[handle_result]

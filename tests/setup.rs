@@ -480,6 +480,12 @@ impl Env {
         account
     }
 
+    pub fn get_all_streams(&self) -> Vec<Stream> {
+        self.near
+            .view_method_call(self.streaming.contract.get_all_streams())
+            .unwrap_json()
+    }
+
     pub fn fixing_streams(&self, user: UserAccount) {
         user.function_call(self.streaming.contract.process(), MAX_GAS, ONE_YOCTO);
     }
