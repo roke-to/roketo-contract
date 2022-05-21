@@ -387,7 +387,7 @@ fn test_stream_start_pause_finished() {
 
 #[test]
 fn test_check_get_all_streams() {
-    let (e, tokens, users) = basic_setup();
+    let (e, tokens, _users) = basic_setup();
 
     let mut accounts = Vec::new();
     let n: usize = 70;
@@ -410,8 +410,8 @@ fn test_check_get_all_streams() {
         );
         streams.push(stream_id);
     }
-    streams.sort();
-    let mut streams2 = e.get_all_streams();
+    //streams.sort();
+    let streams2 = e.get_all_streams();
     //streams2.sort()
     assert!(streams.len() == streams2.len());
 }
@@ -419,7 +419,7 @@ fn test_check_get_all_streams() {
 #[ignore]
 #[test]
 fn test_check_fixing_inactive_streams() {
-    let (e, tokens, users) = basic_setup();
+    let (e, tokens, _users) = basic_setup();
 
     let mut accounts = Vec::new();
     for i in 10..35 {
