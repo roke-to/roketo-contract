@@ -482,7 +482,7 @@ impl Env {
 
     pub fn get_all_streams(&self) -> Vec<Stream> {
         self.near
-            .view_method_call(self.streaming.contract.get_all_streams())
+            .view_method_call(self.streaming.contract.get_all_streams(Some(0), Some(1000)))
             .unwrap_json()
     }
 
