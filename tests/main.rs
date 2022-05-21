@@ -390,17 +390,16 @@ fn test_check_get_all_streams() {
     let (e, tokens, users) = basic_setup();
 
     let mut accounts = Vec::new();
-    for i in 10..35 {
-        let x: i32 = i;
-        let acc_id = AccountId::new_unchecked(x.to_string());
-        let acc = e.near.create_user(acc_id.clone(), d(1, 28));
-        ft_storage_deposit(&e.near, &tokens.wnear.account_id(), &acc_id);
-        e.mint_ft(&tokens.wnear, &acc, d(1000000, 24));
-        accounts.push(acc);
+    let n: usize = 70;
+    for i in 10..10 + n + 5 {
+        let account_id = AccountId::new_unchecked(i.to_string());
+        let account = e.near.create_user(account_id.clone(), d(1, 28));
+        ft_storage_deposit(&e.near, &tokens.wnear.account_id(), &account_id);
+        e.mint_ft(&tokens.wnear, &account, d(1000000, 24));
+        accounts.push(account);
     }
-    assert!(accounts.len() == 25, "{}", accounts.len());
+    assert!(accounts.len() == n + 5, "{}", accounts.len());
     let mut streams = Vec::new();
-    let n = 20;
     for i in 0..n {
         let stream_id = e.create_stream(
             &accounts[i],

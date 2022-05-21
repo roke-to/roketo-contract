@@ -14,8 +14,8 @@ use streaming::ContractContract as StreamingContract;
 pub use streaming::{
     AccountView, ContractError, CreateRequest, Dao, SafeFloat, Stats, Stream, StreamFinishReason,
     StreamStatus, Token, TokenStats, TransferCallRequest, DEFAULT_GAS_FOR_FT_TRANSFER,
-    DEFAULT_GAS_FOR_STORAGE_DEPOSIT, DEFAULT_STORAGE_BALANCE, MAX_AMOUNT, MAX_STREAMING_SPEED,
-    MIN_STREAMING_SPEED, ONE_TERA,
+    DEFAULT_GAS_FOR_STORAGE_DEPOSIT, DEFAULT_STORAGE_BALANCE, DEFAULT_VIEW_STREAMS_LIMIT,
+    MAX_AMOUNT, MAX_STREAMING_SPEED, MIN_STREAMING_SPEED, ONE_TERA,
 };
 
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
@@ -482,7 +482,11 @@ impl Env {
 
     pub fn get_all_streams(&self) -> Vec<Stream> {
         self.near
-            .view_method_call(self.streaming.contract.get_all_streams(Some(0), Some(1000)))
+            .view_method_call(
+                self.streaming
+                    .contract
+                    .get_all_streams(Some(0), Some(DEFAULT_VIEW_STREAMS_LIMIT)),
+            )
             .unwrap_json()
     }
 

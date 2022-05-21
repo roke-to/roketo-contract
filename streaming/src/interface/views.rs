@@ -143,9 +143,9 @@ impl Contract {
         from: Option<u32>,
         limit: Option<u32>,
     ) -> Result<Vec<Stream>, ContractError> {
-        let fr = from.unwrap_or(0);
-        let lim = limit.unwrap_or(1000);
-        Ok((fr..min(self.streams.len() as _, fr + lim))
+        let from = from.unwrap_or(0);
+        let limit = limit.unwrap_or(DEFAULT_VIEW_STREAMS_LIMIT);
+        Ok((from..min(self.streams.len() as _, from + limit))
             .map(|i| self.streams.values_as_vector().get(i as _).unwrap())
             .map(|vs| Stream::from(vs))
             .collect())
