@@ -490,10 +490,6 @@ impl Env {
             .unwrap_json()
     }
 
-    pub fn fixing_streams(&self, user: UserAccount) {
-        user.function_call(self.streaming.contract.process(), MAX_GAS, ONE_YOCTO);
-    }
-
     pub fn get_account_outgoing_streams(&self, user: &UserAccount) -> Vec<Stream> {
         let streams: Vec<Stream> = self
             .near
