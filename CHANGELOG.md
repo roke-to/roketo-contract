@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [2.0.1] - 2022-05-22
+### Added
+- View-method get_all_streams and test for it
+
 ## [2.0.0] - 2022-05-16
 ### Added
 - Changelog
