@@ -407,8 +407,8 @@ fn test_check_get_all_streams() {
             &accounts[i],
             &accounts[i + 1],
             &tokens.wnear,
-            d(1, 20),
-            d(1, 19),
+            d(1, 24),
+            d(1, 23),
         );
         streams.push(stream_id);
     }
