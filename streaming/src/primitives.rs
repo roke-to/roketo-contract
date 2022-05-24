@@ -85,7 +85,7 @@ pub fn check_deposit(deposit_needed: Balance) -> Result<(), ContractError> {
     if env::attached_deposit() >= deposit_needed {
         Ok(())
     } else {
-        Err(ContractError::InsufficientNearDeposit {
+        Err(ContractError::InsufficientDeposit {
             expected: deposit_needed,
             received: env::attached_deposit(),
         })

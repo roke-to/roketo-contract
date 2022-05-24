@@ -58,7 +58,7 @@ impl Contract {
         if is_listed {
             // Take commission as DAO proposed
             if balance < token.commission_on_create {
-                return Err(ContractError::InsufficientNearDeposit {
+                return Err(ContractError::InsufficientDeposit {
                     expected: token.commission_on_create,
                     received: balance,
                 });
