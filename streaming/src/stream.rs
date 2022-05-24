@@ -51,6 +51,7 @@ impl From<Stream> for VStream {
 
 impl Stream {
     pub(crate) fn new(
+        salt: u64,
         description: Option<String>,
         creator_id: AccountId,
         owner_id: AccountId,
@@ -62,10 +63,9 @@ impl Stream {
         is_expirable: bool,
         is_locked: bool,
     ) -> Stream {
-        let id = env::sha256(&env::random_seed())
-            .as_slice()
-            .try_into()
-            .unwrap();
+        let mut buf = env::random_seed();
+        buf.append(&mut salt.to_le_bytes().to_vec());
+        let id = env::sha256(&buf).as_slice().try_into().unwrap();
         Self {
             id,
             description,
@@ -87,7 +87,6 @@ impl Stream {
 
     pub(crate) fn process_withdraw(&mut self, token: &Token) -> (Balance, Balance) {
         let mut gross_payment = self.available_to_withdraw();
-        self.tokens_total_withdrawn += gross_payment;
         let (mut payment, mut commission) = if token.is_listed {
             token.apply_commission(min(gross_payment, self.balance))
         } else {
@@ -97,6 +96,7 @@ impl Stream {
             payment = 0;
             gross_payment = commission;
         }
+        self.tokens_total_withdrawn += gross_payment;
         if self.is_locked {
             // We already taken the commission while created
             commission = 0;

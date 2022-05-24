@@ -46,6 +46,9 @@
 // nft stream finished while transfer
 // nft stream finished while transfer unlisted
 // nft stream finished while withdrawed
+// locked initialized streams - all operations
+// change_receiver_op values of total_incoming, etc.
+// cliff valid tokens_total_withdrawn calculation
 
 mod setup;
 

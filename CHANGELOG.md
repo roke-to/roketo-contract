@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.3] - 2022-05-24
+### Added
+- locked streams may be updated while not started yet
+### Changed
+- `tokens_total_withdrawn` logic for cliffs
+- `total_incoming` handling in `process_change_receiver`
+- stream id generation uniqueness guarantee
+- renamed stream methods
+
 ## [2.0.2] - 2022-05-24
 ### Changed
 - InsufficientNearDeposit -> InsufficientDeposit
