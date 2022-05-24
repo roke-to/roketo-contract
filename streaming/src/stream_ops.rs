@@ -58,7 +58,7 @@ impl Contract {
         if is_listed {
             // Take commission as DAO proposed
             if balance < token.commission_on_create {
-                return Err(ContractError::InsufficientNearDeposit {
+                return Err(ContractError::InsufficientDeposit {
                     expected: token.commission_on_create,
                     received: balance,
                 });
@@ -442,8 +442,8 @@ impl Contract {
 
         let mut prev_receiver = self.extract_account(prev_receiver_id)?;
 
-        assert!(prev_receiver.active_incoming_streams.remove(&stream_id));
-        assert!(new_receiver.active_incoming_streams.insert(&stream_id));
+        check_integrity(prev_receiver.active_incoming_streams.remove(&stream_id))?;
+        check_integrity(new_receiver.active_incoming_streams.insert(&stream_id))?;
 
         self.save_account(prev_receiver)?;
         self.save_account(new_receiver)?;

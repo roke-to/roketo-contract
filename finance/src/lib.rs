@@ -2,10 +2,12 @@ mod aurora;
 mod err;
 mod interface;
 mod token;
+mod wrap;
 
 pub use crate::aurora::*;
 pub use crate::err::*;
 pub use crate::token::*;
+pub use crate::wrap::*;
 
 use near_contract_standards::fungible_token::core_impl::ext_fungible_token;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -15,7 +17,8 @@ use near_sdk::json_types::U128;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::serde_json;
 use near_sdk::{
-    env, near_bindgen, AccountId, Balance, BorshStorageKey, Gas, PanicOnDefault, Promise, ONE_YOCTO,
+    env, ext_contract, near_bindgen, AccountId, Balance, BorshStorageKey, Gas, PanicOnDefault,
+    Promise, ONE_YOCTO,
 };
 
 #[derive(BorshSerialize, BorshStorageKey)]

@@ -73,7 +73,7 @@ impl Contract {
         }
 
         // TODO #16
-        let gas_needed = Gas::ONE_TERA * 30;
+        let gas_needed = Gas::ONE_TERA * 50;
         check_gas(gas_needed)?;
         Ok(Some(ext_finance_contract::streaming_ft_transfer(
             token_account_id,
