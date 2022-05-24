@@ -288,7 +288,7 @@ impl Contract {
         self.ft_transfer_from_finance(token.account_id, stream.owner_id.clone(), refund)
     }
 
-    pub(crate) fn view_stream(&mut self, stream_id: &StreamId) -> Result<Stream, ContractError> {
+    pub(crate) fn view_stream(&self, stream_id: &StreamId) -> Result<Stream, ContractError> {
         match self.streams.get(stream_id) {
             Some(vstream) => Ok(vstream.into()),
             None => Err(ContractError::UnreachableStream {

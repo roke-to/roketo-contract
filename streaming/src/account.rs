@@ -45,10 +45,7 @@ impl From<Account> for VAccount {
 }
 
 impl Contract {
-    pub(crate) fn view_account(
-        &mut self,
-        account_id: &AccountId,
-    ) -> Result<Account, ContractError> {
+    pub(crate) fn view_account(&self, account_id: &AccountId) -> Result<Account, ContractError> {
         match self.accounts.get(account_id) {
             Some(vaccount) => Ok(vaccount.into()),
             None => Err(ContractError::UnreachableAccount {
