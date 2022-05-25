@@ -291,7 +291,7 @@ impl Contract {
     pub(crate) fn view_stream(&self, stream_id: &StreamId) -> Result<Stream, ContractError> {
         match self.streams.get(stream_id) {
             Some(vstream) => Ok(vstream.into()),
-            None => Err(ContractError::UnreachableStream {
+            None => Err(ContractError::StreamNotExist {
                 stream_id: *stream_id,
             }),
         }
@@ -300,7 +300,7 @@ impl Contract {
     pub(crate) fn extract_stream(&mut self, stream_id: &StreamId) -> Result<Stream, ContractError> {
         match self.streams.remove(stream_id) {
             Some(vstream) => Ok(vstream.into()),
-            None => Err(ContractError::UnreachableStream {
+            None => Err(ContractError::StreamNotExist {
                 stream_id: *stream_id,
             }),
         }

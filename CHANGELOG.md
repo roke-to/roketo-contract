@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.4] - 2022-05-26
+### Changed
+- UnreachableAccount and UnreachableStream errors replaced with AccountNotExist and StreamNotExists
+
 ## [2.0.3] - 2022-05-24
 ### Added
 - locked streams may be updated while not started yet
