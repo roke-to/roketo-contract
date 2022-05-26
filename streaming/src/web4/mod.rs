@@ -136,9 +136,10 @@ impl Contract {
             return Web4Response::html(serde_json::to_string(&self.get_stats()).unwrap());
         } else if path == "/get_dao" {
             return Web4Response::html(serde_json::to_string(&self.get_dao()).unwrap());
-        } else if path == "/get_token" {
+        } else if path.starts_with("/get_token") {
+            let token = &path[11..];
             return Web4Response::html(
-                serde_json::to_string(&self.get_token("wrap.near".parse().unwrap())).unwrap(),
+                serde_json::to_string(&self.get_token(token.parse().unwrap())).unwrap(),
             );
         }
 
