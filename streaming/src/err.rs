@@ -74,6 +74,9 @@ pub enum ContractError {
         #[serde(with = "u128_dec_format")]
         left: Balance,
     },
+    NFTNotApproved {
+        account_id: AccountId,
+    },
     AccountNotExist {
         account_id: AccountId,
     },

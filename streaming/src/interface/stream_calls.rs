@@ -50,7 +50,7 @@ impl Contract {
 
     #[handle_result]
     #[payable]
-    pub fn change_receiver(
+    pub fn nft_change_receiver(
         &mut self,
         stream_id: Base58CryptoHash,
         receiver_id: AccountId,
@@ -62,9 +62,15 @@ impl Contract {
         // which is called by holder of the NFT that streams tokens.
         assert_eq!(env::signer_account_id(), stream_view.receiver_id);
 
-        // TODO assert that env::predecessor_account_id() is in DAO list of approved NFTs
-        // TODO #11 and enable
-        assert!(false);
+        if !self
+            .dao
+            .approved_nfts
+            .contains(&env::predecessor_account_id())
+        {
+            return Err(ContractError::NFTNotApproved {
+                account_id: env::predecessor_account_id(),
+            });
+        }
 
         let token = self.dao.get_token(&stream_view.token_account_id);
 
