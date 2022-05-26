@@ -52,7 +52,7 @@ impl Contract {
         self.streams
             .get(&stream_id)
             .map(|v| Ok(v.into()))
-            .unwrap_or(Err(ContractError::UnreachableStream { stream_id }))
+            .unwrap_or(Err(ContractError::StreamNotExist { stream_id }))
     }
 
     #[handle_result]
@@ -92,7 +92,7 @@ impl Contract {
                     is_cron_allowed: v.is_cron_allowed,
                 })
             })
-            .unwrap_or(Err(ContractError::UnreachableAccount { account_id }))
+            .unwrap_or(Err(ContractError::AccountNotExist { account_id }))
     }
 
     #[handle_result]
@@ -113,7 +113,7 @@ impl Contract {
                     limit,
                 ))
             })
-            .unwrap_or(Err(ContractError::UnreachableAccount { account_id }))
+            .unwrap_or(Err(ContractError::AccountNotExist { account_id }))
     }
 
     #[handle_result]
@@ -134,7 +134,7 @@ impl Contract {
                     limit,
                 ))
             })
-            .unwrap_or(Err(ContractError::UnreachableAccount { account_id }))
+            .unwrap_or(Err(ContractError::AccountNotExist { account_id }))
     }
 
     #[handle_result]
@@ -167,7 +167,7 @@ impl Contract {
                     (*v.total_received.get(&token_account_id).unwrap_or(&0)).into(),
                 ))
             })
-            .unwrap_or(Err(ContractError::UnreachableAccount { account_id }))
+            .unwrap_or(Err(ContractError::AccountNotExist { account_id }))
     }
 }
 

@@ -5,6 +5,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- `nft_change_receiver` is enabled
+
+## [2.1.0] - 2022-05-26
+### Added
+- `approved_nfts` list to Dao
+
+## [2.0.6] - 2022-05-26
+### Added
+- web4 `get_account` and `get_stream` responses
+
+## [2.0.5] - 2022-05-26
+### Changed
+- web4 `get_token` response updated
+
+## [2.0.4] - 2022-05-26
+### Changed
+- UnreachableAccount and UnreachableStream errors replaced with AccountNotExist and StreamNotExists
+
+## [2.0.3] - 2022-05-24
+### Added
+- locked streams may be updated while not started yet
+### Changed
+- `tokens_total_withdrawn` logic for cliffs
+- `total_incoming` handling in `process_change_receiver`
+- stream id generation uniqueness guarantee
+- renamed stream methods
 
 ## [2.0.2] - 2022-05-24
 ### Changed

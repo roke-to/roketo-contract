@@ -46,6 +46,9 @@
 // nft stream finished while transfer
 // nft stream finished while transfer unlisted
 // nft stream finished while withdrawed
+// locked initialized streams - all operations
+// change_receiver_op values of total_incoming, etc.
+// cliff valid tokens_total_withdrawn calculation
 
 mod setup;
 
@@ -1880,6 +1883,8 @@ fn test_nft_sanity() {
 
     e.skip_time(10);
 
+    e.dao_add_approved_nft(&nfts.paras);
+
     e.nft_transfer(&users.charlie, &nfts.paras, &users.dude, &nft_id);
     let nft = e.get_nft_token(&nfts.paras, &nft_id).unwrap();
     assert_eq!(
@@ -1887,8 +1892,7 @@ fn test_nft_sanity() {
         String::from(&stream_id)
     );
 
-    // TODO enable #11
-    /*let stream = e.get_stream(&stream_id);
+    let stream = e.get_stream(&stream_id);
     assert_eq!(
         e.get_balance(&tokens.wnear_simple, &users.charlie),
         d(10, 23) / 250 * 249
@@ -1909,7 +1913,7 @@ fn test_nft_sanity() {
         e.get_balance(&tokens.wnear_simple, &users.dude),
         d(20, 23) / 250 * 249
     );
-    assert_eq!(stream.balance, d(70, 23) - d(1, 23));*/
+    assert_eq!(stream.balance, d(70, 23) - d(1, 23));
 
     e.nft_detach_stream(&nfts.paras, &nft_id, &stream_id);
 

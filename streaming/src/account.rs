@@ -48,7 +48,7 @@ impl Contract {
     pub(crate) fn view_account(&self, account_id: &AccountId) -> Result<Account, ContractError> {
         match self.accounts.get(account_id) {
             Some(vaccount) => Ok(vaccount.into()),
-            None => Err(ContractError::UnreachableAccount {
+            None => Err(ContractError::AccountNotExist {
                 account_id: (*account_id).clone(),
             }),
         }
@@ -60,7 +60,7 @@ impl Contract {
     ) -> Result<Account, ContractError> {
         match self.accounts.remove(account_id) {
             Some(vaccount) => Ok(vaccount.into()),
-            None => Err(ContractError::UnreachableAccount {
+            None => Err(ContractError::AccountNotExist {
                 account_id: (*account_id).clone(),
             }),
         }

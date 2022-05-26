@@ -8,7 +8,7 @@ impl Contract {
         check_deposit(ONE_YOCTO)?;
         // Stream calls may be delegated to 3rd parties.
         // That's why it uses env::predecessor_account_id() here and below.
-        self.process_start_stream(&env::predecessor_account_id(), stream_id.into())
+        self.start_stream_op(&env::predecessor_account_id(), stream_id.into())
     }
 
     #[handle_result]
@@ -18,7 +18,7 @@ impl Contract {
         stream_id: Base58CryptoHash,
     ) -> Result<Vec<Promise>, ContractError> {
         check_deposit(ONE_YOCTO)?;
-        self.process_pause_stream(&env::predecessor_account_id(), stream_id.into())
+        self.pause_stream_op(&env::predecessor_account_id(), stream_id.into())
     }
 
     #[handle_result]
@@ -28,7 +28,7 @@ impl Contract {
         stream_id: Base58CryptoHash,
     ) -> Result<Vec<Promise>, ContractError> {
         check_deposit(ONE_YOCTO)?;
-        self.process_stop_stream(&env::predecessor_account_id(), stream_id.into())
+        self.stop_stream_op(&env::predecessor_account_id(), stream_id.into())
     }
 
     #[handle_result]
@@ -41,9 +41,7 @@ impl Contract {
 
         Ok(stream_ids
             .into_iter()
-            .map(|stream_id| {
-                self.process_withdraw(&env::predecessor_account_id(), stream_id.into())
-            })
+            .map(|stream_id| self.withdraw_op(&env::predecessor_account_id(), stream_id.into()))
             .collect::<Result<Vec<Vec<Promise>>, ContractError>>()?
             .into_iter()
             .flatten()
@@ -52,7 +50,7 @@ impl Contract {
 
     #[handle_result]
     #[payable]
-    pub fn change_receiver(
+    pub fn nft_change_receiver(
         &mut self,
         stream_id: Base58CryptoHash,
         receiver_id: AccountId,
@@ -64,9 +62,15 @@ impl Contract {
         // which is called by holder of the NFT that streams tokens.
         assert_eq!(env::signer_account_id(), stream_view.receiver_id);
 
-        // TODO assert that env::predecessor_account_id() is in DAO list of approved NFTs
-        // TODO #11 and enable
-        assert!(false);
+        if !self
+            .dao
+            .approved_nfts
+            .contains(&env::predecessor_account_id())
+        {
+            return Err(ContractError::NFTNotApproved {
+                account_id: env::predecessor_account_id(),
+            });
+        }
 
         let token = self.dao.get_token(&stream_view.token_account_id);
 
@@ -79,7 +83,7 @@ impl Contract {
         };
         check_deposit(deposit_needed)?;
 
-        self.process_change_receiver(
+        self.change_receiver_op(
             &stream_view.receiver_id,
             stream_id.into(),
             receiver_id,

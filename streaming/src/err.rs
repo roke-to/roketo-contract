@@ -74,10 +74,13 @@ pub enum ContractError {
         #[serde(with = "u128_dec_format")]
         left: Balance,
     },
-    UnreachableAccount {
+    NFTNotApproved {
         account_id: AccountId,
     },
-    UnreachableStream {
+    AccountNotExist {
+        account_id: AccountId,
+    },
+    StreamNotExist {
         #[serde(with = "b58_dec_format")]
         stream_id: CryptoHash,
     },

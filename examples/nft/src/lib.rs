@@ -158,7 +158,7 @@ pub const DEFAULT_STORAGE_BALANCE: Balance = ONE_NEAR / 10;
 
 #[ext_contract]
 pub trait ExtRoketoContract {
-    fn change_receiver(&mut self, stream_id: Base58CryptoHash, receiver_id: AccountId);
+    fn nft_change_receiver(&mut self, stream_id: Base58CryptoHash, receiver_id: AccountId);
 }
 
 impl Contract {
@@ -170,7 +170,7 @@ impl Contract {
         // As update of the state might not be applicable for many
         // deployed contacts or may be difficult,
         // the simplest way of passing the constant is introduced here.
-        "roketodapp.near".parse().unwrap()
+        "streaming.r-v2.near".parse().unwrap()
     }
 
     fn roketo_change_receiver(
@@ -187,7 +187,7 @@ impl Contract {
             .get(token_id)
             .expect("Token must exist");
         if let Some(extra) = token.extra {
-            Some(ext_roketo_contract::change_receiver(
+            Some(ext_roketo_contract::nft_change_receiver(
                 Base58CryptoHash::try_from(extra).unwrap(),
                 receiver_id.clone(),
                 Contract::roketo_account_id(),

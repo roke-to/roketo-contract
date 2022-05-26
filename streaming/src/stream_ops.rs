@@ -1,7 +1,7 @@
 use crate::*;
 
 impl Contract {
-    pub(crate) fn process_create_stream(
+    pub(crate) fn create_stream_op(
         &mut self,
         description: Option<String>,
         creator_id: AccountId,
@@ -104,6 +104,7 @@ impl Contract {
         // Validations passed
 
         let mut stream = Stream::new(
+            self.streams.len(),
             description,
             creator_id,
             owner_id,
@@ -145,7 +146,7 @@ impl Contract {
         Ok(())
     }
 
-    pub(crate) fn process_deposit(
+    pub(crate) fn deposit_op(
         &mut self,
         token_account_id: AccountId,
         stream_id: CryptoHash,
@@ -160,7 +161,7 @@ impl Contract {
             return Err(ContractError::StreamTerminated { stream_id });
         }
 
-        if stream.is_locked {
+        if stream.is_locked && stream.status != StreamStatus::Initialized {
             return Err(ContractError::StreamLocked {
                 stream_id: stream.id,
             });
@@ -219,14 +220,14 @@ impl Contract {
         Ok(())
     }
 
-    pub fn process_start_stream(
+    pub fn start_stream_op(
         &mut self,
         sender_id: &AccountId,
         stream_id: CryptoHash,
     ) -> Result<(), ContractError> {
         let mut stream = self.extract_stream(&stream_id)?;
 
-        if stream.is_locked {
+        if stream.is_locked && stream.status != StreamStatus::Initialized {
             return Err(ContractError::StreamLocked {
                 stream_id: stream.id,
             });
@@ -258,7 +259,7 @@ impl Contract {
         Ok(())
     }
 
-    pub fn process_pause_stream(
+    pub fn pause_stream_op(
         &mut self,
         sender_id: &AccountId,
         stream_id: CryptoHash,
@@ -301,14 +302,14 @@ impl Contract {
         Ok(promises)
     }
 
-    pub fn process_stop_stream(
+    pub fn stop_stream_op(
         &mut self,
         sender_id: &AccountId,
         stream_id: CryptoHash,
     ) -> Result<Vec<Promise>, ContractError> {
         let mut stream = self.extract_stream(&stream_id)?;
 
-        if stream.is_locked {
+        if stream.is_locked && stream.status != StreamStatus::Initialized {
             return Err(ContractError::StreamLocked {
                 stream_id: stream.id,
             });
@@ -344,7 +345,7 @@ impl Contract {
         Ok(promises)
     }
 
-    pub fn process_withdraw(
+    pub fn withdraw_op(
         &mut self,
         sender_id: &AccountId,
         stream_id: CryptoHash,
@@ -382,14 +383,14 @@ impl Contract {
         Ok(promises)
     }
 
-    pub fn process_change_receiver(
+    pub fn change_receiver_op(
         &mut self,
         prev_receiver_id: &AccountId,
         stream_id: CryptoHash,
         new_receiver_id: AccountId,
         deposit_needed: Balance,
     ) -> Result<Vec<Promise>, ContractError> {
-        let promises = self.process_withdraw(prev_receiver_id, stream_id)?;
+        let promises = self.withdraw_op(prev_receiver_id, stream_id)?;
 
         let mut stream = self.extract_stream(&stream_id)?;
 
@@ -444,6 +445,15 @@ impl Contract {
 
         check_integrity(prev_receiver.active_incoming_streams.remove(&stream_id))?;
         check_integrity(new_receiver.active_incoming_streams.insert(&stream_id))?;
+
+        prev_receiver
+            .total_incoming
+            .entry(stream.token_account_id.clone())
+            .and_modify(|e| *e -= stream.tokens_per_sec);
+        new_receiver
+            .total_incoming
+            .entry(stream.token_account_id.clone())
+            .and_modify(|e| *e += stream.tokens_per_sec);
 
         self.save_account(prev_receiver)?;
         self.save_account(new_receiver)?;

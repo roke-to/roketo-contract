@@ -77,4 +77,33 @@ impl Contract {
             stats: LazyOption::new(StorageKey::Stats, Some(Stats::default().into())),
         }
     }
+
+    #[private]
+    #[init(ignore_state)]
+    pub fn upgrade() -> Self {
+        #[derive(BorshDeserialize)]
+        pub struct OldContract {
+            pub dao: Dao,
+            pub finance_id: AccountId,
+            pub accounts: UnorderedMap<AccountId, VAccount>,
+            pub streams: UnorderedMap<StreamId, VStream>,
+            pub stats: LazyOption<VStats>,
+        }
+
+        let OldContract {
+            dao,
+            finance_id,
+            accounts,
+            streams,
+            stats,
+        } = env::state_read().unwrap();
+
+        Self {
+            dao,
+            finance_id,
+            accounts,
+            streams,
+            stats,
+        }
+    }
 }

@@ -51,7 +51,7 @@ mod tests {
         testing_env!(VMContextBuilder::new().signer_account_id(carol()).build());
         let stream = new_stream();
         assert_eq!(
-            contract.process_create_stream(
+            contract.create_stream_op(
                 stream.description,
                 carol(),
                 stream.owner_id,
@@ -82,7 +82,7 @@ mod tests {
             .predecessor_account_id(stream.token_account_id.clone())
             .build());
         assert!(contract
-            .process_create_stream(
+            .create_stream_op(
                 stream.description,
                 carol(),
                 stream.owner_id,
@@ -115,7 +115,7 @@ mod tests {
             .predecessor_account_id(stream.token_account_id.clone())
             .build());
         assert!(contract
-            .process_create_stream(
+            .create_stream_op(
                 stream.description,
                 carol(),
                 stream.owner_id,

@@ -32,10 +32,11 @@ near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
 }
 
 pub const NEAR: &str = "near";
-pub const ROKETO_ID: &str = "roketodapp.near";
-pub const FINANCE_ID: &str = "finance.roketodapp.near";
-pub const ROKETO_TOKEN_ID: &str = "token.roketodapp.near";
-pub const DAO_ID: &str = "dao.near";
+pub const ROKETO_ID: &str = "r-v2.near";
+pub const STREAMING_ID: &str = "streaming.r-v2.near";
+pub const FINANCE_ID: &str = "finance.r-v2.near";
+pub const ROKETO_TOKEN_ID: &str = "token.r-v2.near";
+pub const DAO_ID: &str = "dao.r-v2.near";
 
 pub type Gas = u64; // Gas is useless in sdk 4.0.0
 
@@ -119,7 +120,8 @@ impl Env {
             AccountId::new_unchecked(NEAR.to_string()),
             to_yocto("100000000"),
         );
-        let dao = near.create_user(DAO_ID.parse().unwrap(), to_yocto("10000"));
+        let roketo = near.create_user(ROKETO_ID.parse().unwrap(), to_yocto("20000"));
+        let dao = roketo.create_user(DAO_ID.parse().unwrap(), to_yocto("10000"));
         let dao_id = dao.account_id();
         let finance_id = FINANCE_ID.parse().unwrap();
         let utility_token_id = ROKETO_TOKEN_ID.parse().unwrap();
@@ -127,9 +129,9 @@ impl Env {
 
         let streaming = deploy!(
             contract: StreamingContract,
-            contract_id: ROKETO_ID.to_string(),
+            contract_id: STREAMING_ID.to_string(),
             bytes: &STREAMING_WASM_BYTES,
-            signer_account: near,
+            signer_account: roketo,
             deposit: to_yocto("30"),
             gas: DEFAULT_GAS,
             init_method: new(
@@ -140,7 +142,7 @@ impl Env {
             )
         );
 
-        let roketo_token = streaming.user_account.deploy_and_init(
+        let roketo_token = roketo.deploy_and_init(
             &FUNGIBLE_TOKEN_WASM_BYTES,
             ROKETO_TOKEN_ID.parse().unwrap(),
             "new",
@@ -163,7 +165,7 @@ impl Env {
             DEFAULT_GAS,
         );
 
-        let finance = streaming.user_account.deploy_and_init(
+        let finance = roketo.deploy_and_init(
             &FINANCE_WASM_BYTES,
             FINANCE_ID.parse().unwrap(),
             "new",
@@ -714,7 +716,7 @@ impl Env {
     }
 
     #[allow(dead_code)]
-    pub fn change_receiver(
+    pub fn nft_change_receiver(
         &self,
         prev_receiver: &UserAccount,
         stream_id: &Base58CryptoHash,
@@ -724,7 +726,7 @@ impl Env {
             .function_call(
                 self.streaming
                     .contract
-                    .change_receiver(*stream_id, receiver.account_id()),
+                    .nft_change_receiver(*stream_id, receiver.account_id()),
                 MAX_GAS,
                 ONE_NEAR, // TODO set reasonable
             )
@@ -783,6 +785,18 @@ impl Env {
         self.dao
             .function_call(
                 self.streaming.contract.dao_update_token(token),
+                MAX_GAS,
+                ONE_YOCTO,
+            )
+            .assert_success();
+    }
+
+    pub fn dao_add_approved_nft(&self, nft: &UserAccount) {
+        self.dao
+            .function_call(
+                self.streaming
+                    .contract
+                    .dao_add_approved_nft(nft.account_id()),
                 MAX_GAS,
                 ONE_YOCTO,
             )

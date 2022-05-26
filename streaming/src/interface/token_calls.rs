@@ -54,25 +54,25 @@ impl FungibleTokenReceiver for Contract {
                     }
                     AuroraOperationalRequest::StartStream { stream_id } => {
                         // TODO check owner
-                        self.process_start_stream(&sender_id, (*stream_id).into())
+                        self.start_stream_op(&sender_id, (*stream_id).into())
                             .map(|_| vec![])
                     }
                     AuroraOperationalRequest::PauseStream { stream_id } => {
                         // TODO check owner
                         // TODO cover storage deposit
                         // in Aurora->NEAR calls with attached eth
-                        self.process_pause_stream(&sender_id, (*stream_id).into())
+                        self.pause_stream_op(&sender_id, (*stream_id).into())
                     }
                     AuroraOperationalRequest::StopStream { stream_id } => {
                         // TODO check owner
                         // TODO cover storage deposit
                         // in Aurora->NEAR calls with attached eth
-                        self.process_stop_stream(&sender_id, (*stream_id).into())
+                        self.stop_stream_op(&sender_id, (*stream_id).into())
                     }
                     AuroraOperationalRequest::Withdraw { stream_id } => {
                         // TODO cover storage deposit
                         // in Aurora->NEAR calls with attached eth
-                        self.process_withdraw(&sender_id, (*stream_id).into())
+                        self.withdraw_op(&sender_id, (*stream_id).into())
                     }
                 };
                 return match res {
@@ -109,7 +109,7 @@ impl FungibleTokenReceiver for Contract {
                 PromiseOrValue::Value(U128::from(0))
             }
             TransferCallRequest::Create { request } => {
-                match self.process_create_stream(
+                match self.create_stream_op(
                     request.description,
                     sender_id,
                     request.owner_id,
@@ -127,7 +127,7 @@ impl FungibleTokenReceiver for Contract {
                 }
             }
             TransferCallRequest::Deposit { stream_id } => {
-                match self.process_deposit(token_account_id, stream_id.into(), amount.into()) {
+                match self.deposit_op(token_account_id, stream_id.into(), amount.into()) {
                     Ok(()) => PromiseOrValue::Value(U128::from(0)),
                     Err(ContractError::StreamExpired { stream_id }) => {
                         log!("stream expired, {:?}", stream_id);
