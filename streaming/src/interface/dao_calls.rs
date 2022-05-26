@@ -86,4 +86,24 @@ impl Contract {
         self.dao.oracles.remove(&oracle_id);
         Ok(())
     }
+
+    #[handle_result]
+    #[payable]
+    pub fn dao_add_approved_nft(&mut self, new_nft_id: AccountId) -> Result<(), ContractError> {
+        check_deposit(ONE_YOCTO)?;
+        self.dao.check_owner()?;
+
+        self.dao.approved_nfts.insert(new_nft_id);
+        Ok(())
+    }
+
+    #[handle_result]
+    #[payable]
+    pub fn dao_remove_approved_nft(&mut self, nft_id: AccountId) -> Result<(), ContractError> {
+        check_deposit(ONE_YOCTO)?;
+        self.dao.check_owner()?;
+
+        self.dao.approved_nfts.remove(&nft_id);
+        Ok(())
+    }
 }
