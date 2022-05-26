@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - `nft_change_receiver` is enabled
+- sdk updated to 4.0.0-pre.9
 
 ## [2.1.0] - 2022-05-26
 ### Added
