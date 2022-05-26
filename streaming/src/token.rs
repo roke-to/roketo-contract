@@ -96,21 +96,21 @@ impl Contract {
             return Ok(None);
         }
 
-        if Contract::is_aurora_address(&receiver_id) {
+        if is_aurora_address(&receiver_id) {
             check_gas(MIN_GAS_FOR_AURORA_TRANFSER)?;
-            if token_account_id == Contract::aurora_account_id() {
+            if token_account_id == aurora_account_id() {
                 Ok(Some(ext_fungible_token::ft_transfer_call(
-                    Contract::aurora_account_id(),
+                    aurora_account_id(),
                     U128(amount),
                     None,
-                    Contract::aurora_transfer_call_msg(&receiver_id),
-                    Contract::aurora_account_id(),
+                    aurora_transfer_call_msg(&receiver_id),
+                    aurora_account_id(),
                     ONE_YOCTO,
                     MIN_GAS_FOR_AURORA_TRANFSER,
                 )))
             } else {
                 Ok(Some(ext_fungible_token::ft_transfer_call(
-                    Contract::aurora_account_id(),
+                    aurora_account_id(),
                     U128(amount),
                     None,
                     receiver_id.to_string(),

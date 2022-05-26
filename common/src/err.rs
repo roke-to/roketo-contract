@@ -112,6 +112,10 @@ pub enum ContractError {
         #[serde(with = "u128_dec_format")]
         max_amount: Balance,
     },
+    PredecessorIsNotOwner {
+        expected: AccountId,
+        received: AccountId,
+    },
     DataCorruption,
 }
 

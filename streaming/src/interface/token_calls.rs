@@ -40,7 +40,7 @@ impl FungibleTokenReceiver for Contract {
         amount: U128,
         msg: String,
     ) -> PromiseOrValue<U128> {
-        if env::predecessor_account_id() == Contract::aurora_account_id() {
+        if env::predecessor_account_id() == aurora_account_id() {
             // Try to parse as an Aurora operational request
             let key: Result<AuroraOperationalRequest, _> = serde_json::from_str(&msg);
             if key.is_ok() {

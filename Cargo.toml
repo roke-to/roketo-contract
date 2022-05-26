@@ -9,8 +9,9 @@ near-contract-standards = "=4.0.0-pre.9"
 near-sdk = { version = "=4.0.0-pre.9", features = ["unstable"] }
 near-sdk-sim = "=4.0.0-pre.9"
 
-streaming = { path = "./streaming" }
+common = { path = "./common" }
 finance = { path = "./finance" }
+streaming = { path = "./streaming" }
 non-fungible-token-w-roketo = { path = "./examples/nft" }
 
 [profile.release]
@@ -24,6 +25,7 @@ overflow-checks = true
 
 [workspace]
 members = [
+    "common",
     "finance",
     "streaming",
 ]

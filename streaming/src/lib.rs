@@ -3,11 +3,8 @@ use std::collections::{HashMap, HashSet};
 use std::convert::TryInto;
 
 mod account;
-mod aurora;
 mod dao;
-mod err;
 mod interface;
-mod primitives;
 mod stats;
 mod stream;
 mod stream_ops;
@@ -16,15 +13,14 @@ mod unit_tests;
 mod web4;
 
 pub use crate::account::*;
-pub use crate::aurora::*;
 pub use crate::dao::*;
-pub use crate::err::*;
 pub use crate::interface::token_calls::*;
 pub use crate::interface::views::*;
-pub use crate::primitives::*;
 pub use crate::stats::*;
 pub use crate::stream::*;
 pub use crate::token::*;
+
+pub use common::*;
 
 use near_contract_standards::fungible_token::core_impl::ext_fungible_token;
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
@@ -36,7 +32,7 @@ use near_sdk::serde_json;
 use near_sdk::store::LazyOption;
 use near_sdk::{
     env, ext_contract, log, near_bindgen, AccountId, Balance, BorshStorageKey, CryptoHash, Gas,
-    PanicOnDefault, Promise, PromiseOrValue, Timestamp, ONE_NEAR, ONE_YOCTO,
+    PanicOnDefault, Promise, PromiseOrValue, Timestamp, ONE_YOCTO,
 };
 
 #[derive(BorshSerialize, BorshStorageKey)]

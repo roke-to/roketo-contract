@@ -15,6 +15,8 @@ pub const ONE_TERA: u64 = Gas::ONE_TERA.0; // near-sdk Gas is totally useless
 
 pub const DEFAULT_COMMISSION_UNLISTED: Balance = ONE_NEAR / 10; // 0.1 NEAR
 
+pub const STORAGE_NEEDS_PER_STREAM: Balance = ONE_NEAR / 20; // 0.05 NEAR
+
 // Explanation on default storage balance and gas needs.
 //
 // Normally it's enough to take 0.00125 NEAR for storage deposit
@@ -35,6 +37,11 @@ pub const DEFAULT_GAS_FOR_STORAGE_DEPOSIT: Gas = Gas(25 * ONE_TERA);
 pub const MIN_GAS_FOR_AURORA_TRANFSER: Gas = Gas(70 * ONE_TERA);
 pub const MIN_GAS_FOR_FT_TRANFSER: Gas = Gas(20 * ONE_TERA);
 
+#[ext_contract(ext_finance)]
+pub trait ExtFinance {
+    fn streaming_storage_needs_transfer(&mut self) -> Promise;
+}
+
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, PartialEq, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
 pub struct SafeFloat {
@@ -43,7 +50,7 @@ pub struct SafeFloat {
 }
 
 impl SafeFloat {
-    pub(crate) const MAX_SAFE: u128 = 10u128.pow(27 as _); // 1e27
+    pub const MAX_SAFE: u128 = 10u128.pow(27 as _); // 1e27
 
     pub const ZERO: SafeFloat = SafeFloat { val: 0, pow: 0 };
 
@@ -133,7 +140,7 @@ pub enum StreamFinishReason {
 }
 
 impl StreamStatus {
-    pub(crate) fn is_terminated(&self) -> bool {
+    pub fn is_terminated(&self) -> bool {
         match self {
             StreamStatus::Initialized => false,
             StreamStatus::Active => false,

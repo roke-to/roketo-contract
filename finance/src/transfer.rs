@@ -1,5 +1,18 @@
 use crate::*;
 
+#[ext_contract(ext_self)]
+pub trait ExtTransferUnwrapped {
+    fn on_near_unwrapped(&mut self, account_id: AccountId, amount: U128) -> Promise;
+}
+
+#[near_bindgen]
+impl Contract {
+    #[private]
+    pub fn on_near_unwrapped(&mut self, account_id: AccountId, amount: U128) -> Promise {
+        Promise::new(account_id).transfer(amount.into())
+    }
+}
+
 impl Contract {
     pub(crate) fn ft_transfer(
         &self,
@@ -14,20 +27,20 @@ impl Contract {
             return Promise::new(receiver);
         }
 
-        if Contract::is_aurora_address(&receiver) {
-            if token_account_id == Contract::aurora_account_id() {
+        if is_aurora_address(&receiver) {
+            if token_account_id == aurora_account_id() {
                 return ext_fungible_token::ft_transfer_call(
-                    Contract::aurora_account_id(),
+                    aurora_account_id(),
                     U128(amount),
                     None,
-                    Contract::aurora_transfer_call_msg(receiver),
-                    Contract::aurora_account_id(),
+                    aurora_transfer_call_msg(&receiver),
+                    aurora_account_id(),
                     ONE_YOCTO,
                     env::prepaid_gas() - env::used_gas() - Gas::ONE_TERA * 10,
                 );
             } else {
                 return ext_fungible_token::ft_transfer_call(
-                    Contract::aurora_account_id(),
+                    aurora_account_id(),
                     U128(amount),
                     None,
                     receiver.to_string(),
@@ -36,10 +49,10 @@ impl Contract {
                     env::prepaid_gas() - env::used_gas() - Gas::ONE_TERA * 10,
                 );
             }
-        } else if token_account_id == Contract::wrap_near_account_id() {
+        } else if token_account_id == wrap_near_account_id() {
             ext_wrap_near::near_withdraw(
                 U128(amount),
-                Contract::wrap_near_account_id(),
+                wrap_near_account_id(),
                 ONE_YOCTO,
                 Gas::ONE_TERA * 10,
             )
