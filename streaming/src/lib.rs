@@ -82,19 +82,8 @@ impl Contract {
     #[init(ignore_state)]
     pub fn upgrade() -> Self {
         #[derive(BorshDeserialize)]
-        pub struct OldDao {
-            pub dao_id: AccountId,
-            pub tokens: HashMap<AccountId, Token>,
-            pub commission_unlisted: Balance,
-            pub utility_token_id: AccountId,
-            pub utility_token_decimals: u8,
-            pub eth_near_ratio: SafeFloat,
-            pub oracles: HashSet<AccountId>,
-        }
-
-        #[derive(BorshDeserialize)]
         pub struct OldContract {
-            pub old_dao: OldDao,
+            pub dao: Dao,
             pub finance_id: AccountId,
             pub accounts: UnorderedMap<AccountId, VAccount>,
             pub streams: UnorderedMap<StreamId, VStream>,
@@ -102,33 +91,12 @@ impl Contract {
         }
 
         let OldContract {
-            old_dao,
+            dao,
             finance_id,
             accounts,
             streams,
             stats,
         } = env::state_read().unwrap();
-
-        let OldDao {
-            dao_id,
-            tokens,
-            commission_unlisted,
-            utility_token_id,
-            utility_token_decimals,
-            eth_near_ratio,
-            oracles,
-        } = old_dao;
-
-        let dao = Dao {
-            dao_id,
-            tokens,
-            commission_unlisted,
-            utility_token_id,
-            utility_token_decimals,
-            eth_near_ratio,
-            oracles,
-            approved_nfts: HashSet::new(),
-        };
 
         Self {
             dao,
