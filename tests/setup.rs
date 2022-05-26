@@ -18,6 +18,10 @@ pub use streaming::{
     MAX_AMOUNT, MAX_STREAMING_SPEED, MIN_STREAMING_SPEED, ONE_TERA,
 };
 
+// use near_sdk::CryptoHash;
+// use std::collections::{HashMap, HashSet};
+// pub use streaming::DEFAULT_VIEW_STREAMS_LIMIT;
+
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
     STREAMING_WASM_BYTES => "res/streaming.wasm",
     FINANCE_WASM_BYTES => "res/finance.wasm",
@@ -505,13 +509,9 @@ impl Env {
         account
     }
 
-    pub fn get_all_streams(&self) -> Vec<Stream> {
+    pub fn get_all_streams(&self, from: Option<u32>, limit: Option<u32>) -> Vec<Stream> {
         self.near
-            .view_method_call(
-                self.streaming
-                    .contract
-                    .get_all_streams(Some(0), Some(DEFAULT_VIEW_STREAMS_LIMIT)),
-            )
+            .view_method_call(self.streaming.contract.get_all_streams(from, limit))
             .unwrap_json()
     }
 

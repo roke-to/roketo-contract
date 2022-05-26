@@ -51,6 +51,8 @@ mod setup;
 
 use crate::setup::*;
 
+use near_sdk::CryptoHash;
+use std::collections::HashSet;
 pub use streaming::DEFAULT_VIEW_STREAMS_LIMIT;
 
 #[test]
@@ -518,12 +520,13 @@ fn test_check_get_all_streams() {
         let account_id = AccountId::new_unchecked(i.to_string());
         let account = e.near.create_user(account_id.clone(), d(1, 28));
         ft_storage_deposit(&e.near, &tokens.wnear.account_id(), &account_id);
-        e.mint_ft(&tokens.wnear, &account, d(1, 30));
+        e.mint_ft(&tokens.wnear, &account, d(1, 28));
         accounts.push(account);
     }
     assert_eq!(accounts.len(), n + 5, "{}", accounts.len());
     let mut streams = Vec::new();
     for i in 0..n {
+        assert_eq!(e.get_all_streams(None, None).len(), i);
         let stream_id = e.create_stream(
             &accounts[i],
             &accounts[i + 1],
@@ -533,10 +536,42 @@ fn test_check_get_all_streams() {
         );
         streams.push(stream_id);
     }
-    //streams.sort();
-    let streams2 = e.get_all_streams();
-    //streams2.sort()
-    assert!(streams.len() == streams2.len());
+    let streams2 = e.get_all_streams(None, None);
+    assert_eq!(streams.len(), streams2.len());
+    let mut stream_ids = HashSet::new();
+    for stream in streams2 {
+        stream_ids.insert(stream.id);
+    }
+    assert_eq!(streams.len(), stream_ids.len());
+    for stream in streams.clone() {
+        assert!(stream_ids.contains(&CryptoHash::from(stream)));
+    }
+    //below pagination's checking
+    let mut stream_ids = HashSet::new();
+    let block_size = 3 as u32;
+    let block_amount = (n as u32 / block_size) as u32;
+    for i in 0..block_amount {
+        let next_block = e.get_all_streams(Some(i * block_size), Some(block_size));
+        assert_eq!(next_block.len() as u32, block_size);
+        for stream in next_block {
+            stream_ids.insert(stream.id.clone());
+        }
+        assert_eq!(stream_ids.len() as u32, (i + 1) * block_size);
+    }
+    if n as u32 % block_size != 0 {
+        let next_block = e.get_all_streams(Some(block_amount * block_size), Some(block_size));
+        assert_eq!(
+            next_block.len() as u32,
+            n as u32 - block_amount * block_size
+        );
+        for stream in next_block {
+            stream_ids.insert(stream.id.clone());
+        }
+        assert_eq!(stream_ids.len(), n);
+    }
+    for stream in streams {
+        assert!(stream_ids.contains(&CryptoHash::from(stream)));
+    }
 }
 
 #[test]
