@@ -141,6 +141,16 @@ impl Contract {
             return Web4Response::html(
                 serde_json::to_string(&self.get_token(token.parse().unwrap())).unwrap(),
             );
+        } else if path.starts_with("/get_account") {
+            let account = &path[13..];
+            return Web4Response::html(
+                serde_json::to_string(&self.get_account(account.parse().unwrap())).unwrap(),
+            );
+        } else if path.starts_with("/get_stream") {
+            let stream = &path[12..];
+            return Web4Response::html(
+                serde_json::to_string(&self.get_stream(stream.parse().unwrap())).unwrap(),
+            );
         }
 
         if path == "/CHANGELOG.md" {

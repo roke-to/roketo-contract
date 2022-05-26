@@ -27,6 +27,7 @@ pub struct TokenStats {
 pub struct Stats {
     pub dao_tokens: HashMap<AccountId, TokenStats>,
 
+    // these fields filled automatically when view-method is called
     #[borsh_skip]
     pub total_accounts: u32,
     #[borsh_skip]
