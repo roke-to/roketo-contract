@@ -49,6 +49,7 @@
 // locked initialized streams - all operations
 // change_receiver_op values of total_incoming, etc.
 // cliff valid tokens_total_withdrawn calculation
+// add tokens with is_payment = false
 
 mod setup;
 
@@ -728,13 +729,17 @@ fn test_stream_unlisted_sanity() {
         .function_call(
             e.streaming.contract.account_deposit_near(),
             MAX_GAS,
-            dao.commission_unlisted - 1,
+            dao.commission_non_payment_ft - 1,
         )
         .is_ok());
 
     assert!(e
         .near
-        .view_method_call(e.streaming.contract.get_account(users.alice.account_id()))
+        .view_method_call(
+            e.streaming
+                .contract
+                .get_account(users.alice.account_id(), Some(true))
+        )
         .is_err());
 
     assert!(users
@@ -742,16 +747,20 @@ fn test_stream_unlisted_sanity() {
         .function_call(
             e.streaming.contract.account_deposit_near(),
             MAX_GAS,
-            dao.commission_unlisted,
+            dao.commission_non_payment_ft,
         )
         .is_ok());
 
     assert!(e
         .near
-        .view_method_call(e.streaming.contract.get_account(users.alice.account_id()))
+        .view_method_call(
+            e.streaming
+                .contract
+                .get_account(users.alice.account_id(), Some(true))
+        )
         .is_ok());
     let account = e.get_account(&users.alice);
-    assert_eq!(account.deposit, dao.commission_unlisted);
+    assert_eq!(account.deposit, dao.commission_non_payment_ft);
 
     let stream_id = e.create_stream(&users.alice, &users.charlie, &token, amount, d(1, 16));
 
@@ -775,7 +784,7 @@ fn test_stream_unlisted_start_pause_stop() {
     let token = tokens.dacha;
 
     let dao = e.get_dao();
-    e.account_deposit_near(&users.alice, dao.commission_unlisted);
+    e.account_deposit_near(&users.alice, dao.commission_non_payment_ft);
 
     let stream_id = e.create_stream_ext(
         &users.alice,
@@ -1131,7 +1140,7 @@ fn test_withdraw_multiple_allow_cron() {
 }
 
 #[test]
-fn test_dao_unlist_list() {
+fn test_dao_non_payment_then_payment() {
     let (e, tokens, users) = basic_setup();
     let token = tokens.wnear_simple;
     let amount = d(1, 26);
@@ -1154,7 +1163,7 @@ fn test_dao_unlist_list() {
 
     let dao = e.get_dao();
     let mut dao_token = dao.tokens.get(&token.account_id()).unwrap().clone();
-    dao_token.is_listed = false;
+    dao_token.is_payment = false;
     e.dao_update_token(dao_token);
 
     e.skip_time(100);
@@ -1173,7 +1182,7 @@ fn test_dao_unlist_list() {
 
     let dao = e.get_dao();
     let mut dao_token = dao.tokens.get(&token.account_id()).unwrap().clone();
-    dao_token.is_listed = true;
+    dao_token.is_payment = true;
     e.dao_update_token(dao_token);
 
     e.skip_time(100);
@@ -1906,7 +1915,7 @@ fn test_nft_sanity() {
         d(10, 23) / 250 * 249
     );
     assert_eq!(e.get_balance(&tokens.wnear_simple, &users.dude), 0);
-    assert_eq!(stream.balance, d(90, 23) - d(1, 23));
+    assert_eq!(stream.balance, d(90, 23) - d(1, 22));
 
     e.skip_time(20);
 
@@ -1921,7 +1930,75 @@ fn test_nft_sanity() {
         e.get_balance(&tokens.wnear_simple, &users.dude),
         d(20, 23) / 250 * 249
     );
-    assert_eq!(stream.balance, d(70, 23) - d(1, 23));
+    assert_eq!(stream.balance, d(70, 23) - d(1, 22));
+
+    e.nft_detach_stream(&nfts.paras, &nft_id, &stream_id);
+
+    let nft = e.get_nft_token(&nfts.paras, &nft_id).unwrap();
+    assert!(nft.metadata.unwrap().extra.is_none());
+}
+
+#[test]
+fn test_nft_storage_deposit() {
+    let (e, tokens, users, nfts) = basic_nft_setup();
+
+    let amount = d(101, 23);
+    let stream_id = e.create_stream(
+        &users.alice,
+        &users.charlie,
+        &tokens.wnear_simple,
+        amount,
+        d(1, 23),
+    );
+
+    let nft_id = "123".to_string();
+
+    e.nft_mint(&nfts.paras, &users.charlie, &nft_id);
+    e.nft_attach_stream(&nfts.paras, &nft_id, &stream_id);
+    assert_eq!(e.get_balance(&tokens.wnear_simple, &users.charlie), 0);
+
+    let nft = e.get_nft_token(&nfts.paras, &nft_id).unwrap();
+    assert_eq!(
+        nft.metadata.unwrap().extra.unwrap(),
+        String::from(&stream_id)
+    );
+
+    e.skip_time(10);
+
+    e.dao_add_approved_nft(&nfts.paras);
+
+    let new_account_id = AccountId::new_unchecked("new_acc.near".to_string());
+    let new_account = e.near.create_user(new_account_id.clone(), d(1, 25));
+
+    e.nft_transfer(&users.charlie, &nfts.paras, &new_account, &nft_id);
+    let nft = e.get_nft_token(&nfts.paras, &nft_id).unwrap();
+    assert_eq!(
+        nft.metadata.unwrap().extra.unwrap(),
+        String::from(&stream_id)
+    );
+
+    let stream = e.get_stream(&stream_id);
+    assert_eq!(
+        e.get_balance(&tokens.wnear_simple, &users.charlie),
+        d(10, 23) / 250 * 249
+    );
+    assert_eq!(e.get_balance(&tokens.wnear_simple, &new_account), 0);
+    assert_eq!(stream.balance, d(90, 23) - d(1, 22));
+
+    e.skip_time(20);
+
+    assert!(!e.withdraw_err(&users.charlie, &stream_id).is_ok());
+    e.withdraw(&new_account, &stream_id);
+    let stream = e.get_stream(&stream_id);
+    assert_eq!(
+        e.get_balance(&tokens.wnear_simple, &users.charlie),
+        d(10, 23) / 250 * 249
+    );
+    assert_eq!(
+        e.get_balance(&tokens.wnear_simple, &new_account),
+        d(20, 23) / 250 * 249
+    );
+    assert_eq!(stream.balance, d(70, 23) - d(1, 22));
 
     e.nft_detach_stream(&nfts.paras, &nft_id, &stream_id);
 

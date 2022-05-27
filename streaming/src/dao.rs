@@ -8,7 +8,7 @@ pub struct Dao {
 
     pub tokens: HashMap<AccountId, Token>,
     #[serde(with = "u128_dec_format")]
-    pub commission_unlisted: Balance,
+    pub commission_non_payment_ft: Balance,
 
     pub utility_token_id: AccountId,
     pub utility_token_decimals: u8,
@@ -30,7 +30,7 @@ impl Dao {
         Self {
             dao_id,
             tokens: HashMap::new(),
-            commission_unlisted: DEFAULT_COMMISSION_UNLISTED,
+            commission_non_payment_ft: DEFAULT_COMMISSION_NON_PAYMENT_FT,
             utility_token_id,
             utility_token_decimals,
             eth_near_ratio: SafeFloat::ZERO,

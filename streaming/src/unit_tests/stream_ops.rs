@@ -73,7 +73,7 @@ mod tests {
         testing_env!(VMContextBuilder::new()
             .signer_account_id(carol())
             .predecessor_account_id(carol())
-            .attached_deposit(DEFAULT_COMMISSION_UNLISTED)
+            .attached_deposit(DEFAULT_COMMISSION_NON_PAYMENT_FT)
             .build());
         contract.account_deposit_near().unwrap();
         let stream = new_stream();
@@ -104,7 +104,7 @@ mod tests {
         testing_env!(VMContextBuilder::new()
             .signer_account_id(carol())
             .predecessor_account_id(carol())
-            .attached_deposit(DEFAULT_COMMISSION_UNLISTED)
+            .attached_deposit(DEFAULT_COMMISSION_NON_PAYMENT_FT)
             .build());
         contract.account_deposit_near().unwrap();
         let mut stream = new_stream();

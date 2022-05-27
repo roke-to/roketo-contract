@@ -37,7 +37,7 @@ pub struct Stats {
 
     pub total_active_streams: u32,
     pub total_aurora_streams: u32,
-    pub total_streams_unlisted: u32,
+    pub total_streams_non_payment_ft: u32,
 
     #[serde(with = "u128_dec_format")]
     pub total_account_deposit_near: Balance,
@@ -81,14 +81,14 @@ impl Contract {
         &mut self,
         token_account_id: &AccountId,
         is_aurora: bool,
-        is_listed: bool,
+        is_payment: bool,
     ) {
         let mut stats: Stats = self.stats.take().unwrap().into();
         if is_aurora {
             stats.total_aurora_streams += 1;
         }
-        if !is_listed {
-            stats.total_streams_unlisted += 1;
+        if !is_payment {
+            stats.total_streams_non_payment_ft += 1;
         }
         stats
             .dao_tokens
@@ -150,37 +150,35 @@ impl Contract {
     }
 
     pub(crate) fn stats_withdraw(&mut self, token: &Token, payment: Balance, commission: Balance) {
-        if !token.is_listed {
-            return;
-        }
         let mut stats: Stats = self.stats.take().unwrap().into();
-        stats
-            .dao_tokens
-            .entry(token.account_id.clone())
-            .and_modify(|e| {
-                e.tvl -= payment + commission;
-                e.transferred += payment;
-                e.total_commission_collected += commission;
-                e.last_update_time = env::block_timestamp();
-            });
-        stats.last_update_time = env::block_timestamp();
+        if stats.dao_tokens.contains_key(&token.account_id) {
+            stats
+                .dao_tokens
+                .entry(token.account_id.clone())
+                .and_modify(|e| {
+                    e.tvl -= payment + commission;
+                    e.transferred += payment;
+                    e.total_commission_collected += commission;
+                    e.last_update_time = env::block_timestamp();
+                });
+            stats.last_update_time = env::block_timestamp();
+        }
         self.stats.set(Some(stats.into()));
     }
 
     pub(crate) fn stats_refund(&mut self, token: &Token, refund: Balance) {
-        if !token.is_listed {
-            return;
-        }
         let mut stats: Stats = self.stats.take().unwrap().into();
-        stats
-            .dao_tokens
-            .entry(token.account_id.clone())
-            .and_modify(|e| {
-                e.tvl -= refund;
-                e.refunded += refund;
-                e.last_update_time = env::block_timestamp();
-            });
-        stats.last_update_time = env::block_timestamp();
+        if stats.dao_tokens.contains_key(&token.account_id) {
+            stats
+                .dao_tokens
+                .entry(token.account_id.clone())
+                .and_modify(|e| {
+                    e.tvl -= refund;
+                    e.refunded += refund;
+                    e.last_update_time = env::block_timestamp();
+                });
+            stats.last_update_time = env::block_timestamp();
+        }
         self.stats.set(Some(stats.into()));
     }
 

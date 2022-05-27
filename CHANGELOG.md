@@ -6,16 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.2] - 2022-05-27
+### Added
+- view-method get_streams
+- useful comments about inner details in the contract
+- running storage deposit in NFT transfer
+- web4 get_streams
+### Changed
+- logic of unlisted replaced with non-payment
+- views simplification
+- `get_account` view signature
+- from and limit are optional for views
+- stats calculation for non-payment tokens minor update
+- taking `commission_on_transfer` in NFTs
+
 ## [2.1.1] - 2022-05-27
 ### Added
 - `streaming_storage_needs_transfer`
 ### Changed
 - `nft_change_receiver` is enabled
 - sdk updated to 4.0.0-pre.9
-
-## [2.1.1] - 2022-05-26
-### Added
-- view-method get_streams
 
 ## [2.1.0] - 2022-05-26
 ### Added

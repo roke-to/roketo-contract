@@ -13,7 +13,8 @@ pub const TICKS_PER_SECOND: u64 = 10u64.pow(9 as _); // 1e9
 
 pub const ONE_TERA: u64 = Gas::ONE_TERA.0; // near-sdk Gas is totally useless
 
-pub const DEFAULT_COMMISSION_UNLISTED: Balance = ONE_NEAR / 10; // 0.1 NEAR
+// Commission in NEAR for tokens that we don't want to accept as payment.
+pub const DEFAULT_COMMISSION_NON_PAYMENT_FT: Balance = ONE_NEAR / 10; // 0.1 NEAR
 
 pub const DEFAULT_VIEW_STREAMS_LIMIT: u32 = 10;
 pub const STORAGE_NEEDS_PER_STREAM: Balance = ONE_NEAR / 20; // 0.05 NEAR

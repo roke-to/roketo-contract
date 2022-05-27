@@ -29,14 +29,14 @@ impl Contract {
 
     #[handle_result]
     #[payable]
-    pub fn dao_update_commission_unlisted(
+    pub fn dao_update_commission_non_payment_ft(
         &mut self,
-        commission_unlisted: U128,
+        commission_non_payment_ft: U128,
     ) -> Result<(), ContractError> {
         check_deposit(ONE_YOCTO)?;
         self.dao.check_owner()?;
 
-        self.dao.commission_unlisted = commission_unlisted.into();
+        self.dao.commission_non_payment_ft = commission_non_payment_ft.into();
         Ok(())
     }
 

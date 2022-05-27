@@ -87,7 +87,7 @@ impl Stream {
 
     pub(crate) fn process_withdraw(&mut self, token: &Token) -> (Balance, Balance) {
         let mut gross_payment = self.available_to_withdraw();
-        let (mut payment, mut commission) = if token.is_listed {
+        let (mut payment, mut commission) = if token.is_payment {
             token.apply_commission(min(gross_payment, self.balance))
         } else {
             (gross_payment, 0)

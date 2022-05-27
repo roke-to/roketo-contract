@@ -52,10 +52,9 @@ impl Contract {
         let mut balance = initial_balance;
 
         let token = self.dao.get_token(&token_account_id);
-        let is_listed = token.is_listed;
         let mut commission = 0;
 
-        if is_listed {
+        if token.is_payment {
             // Take commission as DAO proposed
             if balance < token.commission_on_create {
                 return Err(ContractError::InsufficientDeposit {
@@ -77,13 +76,13 @@ impl Contract {
                 commission += calculated_commission;
             }
         } else {
-            if creator.deposit < self.dao.commission_unlisted {
+            if creator.deposit < self.dao.commission_non_payment_ft {
                 return Err(ContractError::InsufficientNearBalance {
-                    requested: self.dao.commission_unlisted,
+                    requested: self.dao.commission_non_payment_ft,
                     left: creator.deposit,
                 });
             }
-            creator.deposit -= self.dao.commission_unlisted;
+            creator.deposit -= self.dao.commission_non_payment_ft;
         }
 
         if balance > MAX_AMOUNT {
@@ -127,7 +126,7 @@ impl Contract {
         self.stats_inc_streams(
             &stream.token_account_id,
             is_aurora_address(&stream.owner_id) | is_aurora_address(&stream.receiver_id),
-            is_listed,
+            token.is_payment,
         );
 
         if is_auto_start_enabled {
@@ -358,7 +357,7 @@ impl Contract {
     ) -> Result<Vec<Promise>, ContractError> {
         let mut stream = self.extract_stream(&stream_id)?;
 
-        let receiver_view = self.view_account(&stream.receiver_id)?;
+        let receiver_view = self.view_account(&stream.receiver_id, true)?;
 
         if receiver_view.id != *sender_id && !receiver_view.is_cron_allowed {
             return Err(ContractError::CronCallsForbidden {
@@ -396,7 +395,7 @@ impl Contract {
         new_receiver_id: AccountId,
         deposit_needed: Balance,
     ) -> Result<Vec<Promise>, ContractError> {
-        let promises = self.withdraw_op(prev_receiver_id, stream_id)?;
+        let mut promises = self.withdraw_op(prev_receiver_id, stream_id)?;
 
         let mut stream = self.extract_stream(&stream_id)?;
 
@@ -412,13 +411,15 @@ impl Contract {
             });
         }
 
+        let token = self.dao.get_token(&stream.token_account_id);
+
         let mut new_receiver = if let Ok(account) = self.extract_account(&new_receiver_id) {
             account
         } else {
+            // TODO revisit understanding of charging for change receiver
             // Charge for account creation
-            let token = self.dao.get_token(&stream.token_account_id);
-            if token.is_listed {
-                if stream.balance < token.commission_on_transfer {
+            if token.is_payment {
+                if stream.balance <= token.commission_on_transfer {
                     let balance = stream.balance;
                     stream.balance = 0;
                     let action = self.process_action(
@@ -435,13 +436,12 @@ impl Contract {
                     self.stats_withdraw(&token, 0, balance);
                     return Ok(promises);
                 }
-                stream.balance -= token.commission_on_create;
-                self.stats_withdraw(&token, 0, token.commission_on_create);
+                stream.balance -= token.commission_on_transfer;
+                self.stats_withdraw(&token, 0, token.commission_on_transfer);
             } else {
                 // Charge in NEAR
-                // TODO use commission_on_transfer instead
-                check_deposit(self.dao.commission_unlisted + deposit_needed)?;
-                self.stats_inc_account_deposit(self.dao.commission_unlisted, false);
+                check_deposit(self.dao.commission_non_payment_ft + deposit_needed)?;
+                self.stats_inc_account_deposit(self.dao.commission_non_payment_ft, false);
             }
             self.create_account_if_not_exist(&new_receiver_id)?;
             self.extract_account(&new_receiver_id)?
@@ -464,8 +464,17 @@ impl Contract {
         self.save_account(prev_receiver)?;
         self.save_account(new_receiver)?;
 
+        promises.push(ext_storage_management::storage_deposit(
+            Some(new_receiver_id.clone()),
+            Some(true),
+            token.account_id,
+            deposit_needed,
+            token.gas_for_storage_deposit,
+        ));
+
         stream.receiver_id = new_receiver_id;
         self.save_stream(stream)?;
+
         Ok(promises)
     }
 }

@@ -6,7 +6,7 @@ use crate::*;
 pub struct Token {
     pub account_id: AccountId,
 
-    pub is_listed: bool,
+    pub is_payment: bool,
 
     // taken in current fts in case of listed token
     #[serde(with = "u128_dec_format")]
@@ -29,7 +29,7 @@ impl Token {
     pub(crate) fn new_unlisted(token_account_id: &AccountId) -> Self {
         Self {
             account_id: token_account_id.clone(),
-            is_listed: false,
+            is_payment: false,
             commission_on_create: 0, // we don't accept unlisted tokens
             commission_coef: SafeFloat::ZERO,
             commission_on_transfer: 0, // we don't accept unlisted tokens
@@ -58,6 +58,11 @@ pub trait ExtFinanceContract {
         receiver: AccountId,
         amount: U128,
     ) -> Promise;
+}
+
+#[ext_contract]
+pub trait ExtStorageManagement {
+    fn storage_deposit(&mut self, account_id: Option<AccountId>, registration_only: Option<bool>);
 }
 
 impl Contract {

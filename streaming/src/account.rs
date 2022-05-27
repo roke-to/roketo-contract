@@ -44,13 +44,51 @@ impl From<Account> for VAccount {
     }
 }
 
+impl Account {
+    pub(crate) fn new(account_id: &AccountId) -> Account {
+        Self {
+            id: account_id.clone(),
+            active_incoming_streams: UnorderedSet::new(StorageKey::ActiveIncomingStreams {
+                account_id: account_id.clone(),
+            }),
+            active_outgoing_streams: UnorderedSet::new(StorageKey::ActiveOutgoingStreams {
+                account_id: account_id.clone(),
+            }),
+            inactive_incoming_streams: UnorderedSet::new(StorageKey::InactiveIncomingStreams {
+                account_id: account_id.clone(),
+            }),
+            inactive_outgoing_streams: UnorderedSet::new(StorageKey::InactiveOutgoingStreams {
+                account_id: account_id.clone(),
+            }),
+            total_incoming: HashMap::new(),
+            total_outgoing: HashMap::new(),
+            total_received: HashMap::new(),
+            deposit: 0,
+            stake: 0,
+            last_created_stream: None,
+            is_cron_allowed: false,
+            total_streams_created: 0,
+        }
+    }
+}
+
 impl Contract {
-    pub(crate) fn view_account(&self, account_id: &AccountId) -> Result<Account, ContractError> {
+    pub(crate) fn view_account(
+        &self,
+        account_id: &AccountId,
+        only_if_exist: bool,
+    ) -> Result<Account, ContractError> {
         match self.accounts.get(account_id) {
             Some(vaccount) => Ok(vaccount.into()),
-            None => Err(ContractError::AccountNotExist {
-                account_id: (*account_id).clone(),
-            }),
+            None => {
+                if only_if_exist {
+                    Err(ContractError::AccountNotExist {
+                        account_id: (*account_id).clone(),
+                    })
+                } else {
+                    Ok(Account::new(account_id))
+                }
+            }
         }
     }
 
@@ -71,29 +109,7 @@ impl Contract {
         account_id: &AccountId,
     ) -> Result<(), ContractError> {
         if self.accounts.get(account_id).is_none() {
-            self.save_account(Account {
-                id: account_id.clone(),
-                active_incoming_streams: UnorderedSet::new(StorageKey::ActiveIncomingStreams {
-                    account_id: account_id.clone(),
-                }),
-                active_outgoing_streams: UnorderedSet::new(StorageKey::ActiveOutgoingStreams {
-                    account_id: account_id.clone(),
-                }),
-                inactive_incoming_streams: UnorderedSet::new(StorageKey::InactiveIncomingStreams {
-                    account_id: account_id.clone(),
-                }),
-                inactive_outgoing_streams: UnorderedSet::new(StorageKey::InactiveOutgoingStreams {
-                    account_id: account_id.clone(),
-                }),
-                total_incoming: HashMap::new(),
-                total_outgoing: HashMap::new(),
-                total_received: HashMap::new(),
-                deposit: 0,
-                stake: 0,
-                last_created_stream: None,
-                is_cron_allowed: false,
-                total_streams_created: 0,
-            })
+            self.save_account(Account::new(account_id))
         } else {
             Ok(())
         }

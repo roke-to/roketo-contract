@@ -48,93 +48,82 @@ impl Contract {
 
     #[handle_result]
     pub fn get_stream(self, stream_id: Base58CryptoHash) -> Result<Stream, ContractError> {
-        let stream_id = stream_id.into();
-        self.streams
-            .get(&stream_id)
-            .map(|v| Ok(v.into()))
-            .unwrap_or(Err(ContractError::StreamNotExist { stream_id }))
+        self.view_stream(&stream_id.into())
     }
 
     #[handle_result]
-    pub fn get_account(self, account_id: AccountId) -> Result<AccountView, ContractError> {
-        self.accounts
-            .get(&account_id)
-            .map(|v| v.into())
-            .map(|v: Account| {
-                Ok(AccountView {
-                    active_incoming_streams: v.active_incoming_streams.len() as _,
-                    active_outgoing_streams: v.active_outgoing_streams.len() as _,
-                    inactive_incoming_streams: v.inactive_incoming_streams.len() as _,
-                    inactive_outgoing_streams: v.inactive_outgoing_streams.len() as _,
+    pub fn get_account(
+        self,
+        account_id: AccountId,
+        only_if_exist: Option<bool>,
+    ) -> Result<AccountView, ContractError> {
+        self.view_account(&account_id.into(), only_if_exist.unwrap_or(false))
+            .map(|a| AccountView {
+                active_incoming_streams: a.active_incoming_streams.len() as _,
+                active_outgoing_streams: a.active_outgoing_streams.len() as _,
+                inactive_incoming_streams: a.inactive_incoming_streams.len() as _,
+                inactive_outgoing_streams: a.inactive_outgoing_streams.len() as _,
 
-                    total_incoming: self
-                        .dao
-                        .tokens
-                        .iter()
-                        .map(|(k, _)| (k.clone(), U128(*v.total_incoming.get(k).unwrap_or(&0))))
-                        .collect(),
-                    total_outgoing: self
-                        .dao
-                        .tokens
-                        .iter()
-                        .map(|(k, _)| (k.clone(), U128(*v.total_outgoing.get(k).unwrap_or(&0))))
-                        .collect(),
-                    total_received: self
-                        .dao
-                        .tokens
-                        .iter()
-                        .map(|(k, _)| (k.clone(), U128(*v.total_received.get(k).unwrap_or(&0))))
-                        .collect(),
+                total_incoming: self
+                    .dao
+                    .tokens
+                    .iter()
+                    .map(|(k, _)| (k.clone(), U128(*a.total_incoming.get(k).unwrap_or(&0))))
+                    .collect(),
+                total_outgoing: self
+                    .dao
+                    .tokens
+                    .iter()
+                    .map(|(k, _)| (k.clone(), U128(*a.total_outgoing.get(k).unwrap_or(&0))))
+                    .collect(),
+                total_received: self
+                    .dao
+                    .tokens
+                    .iter()
+                    .map(|(k, _)| (k.clone(), U128(*a.total_received.get(k).unwrap_or(&0))))
+                    .collect(),
 
-                    deposit: v.deposit,
-                    stake: v.stake,
-                    last_created_stream: v.last_created_stream.map(|w| w.into()),
-                    is_cron_allowed: v.is_cron_allowed,
-                })
+                deposit: a.deposit,
+                stake: a.stake,
+                last_created_stream: a.last_created_stream.map(|w| w.into()),
+                is_cron_allowed: a.is_cron_allowed,
             })
-            .unwrap_or(Err(ContractError::AccountNotExist { account_id }))
     }
 
     #[handle_result]
     pub fn get_account_incoming_streams(
         self,
         account_id: AccountId,
-        from: u32,
-        limit: u32,
+        from: Option<u32>,
+        limit: Option<u32>,
     ) -> Result<Vec<Stream>, ContractError> {
-        self.accounts
-            .get(&account_id)
-            .map(|v| v.into())
-            .map(|v: Account| {
-                Ok(self.collect_account_data(
-                    &v.active_incoming_streams,
-                    &v.inactive_incoming_streams,
-                    from,
-                    limit,
-                ))
-            })
-            .unwrap_or(Err(ContractError::AccountNotExist { account_id }))
+        let from = from.unwrap_or(0);
+        let limit = limit.unwrap_or(DEFAULT_VIEW_STREAMS_LIMIT);
+        let account = self.view_account(&account_id.into(), false)?;
+        Ok(self.collect_account_data(
+            &account.active_incoming_streams,
+            &account.inactive_incoming_streams,
+            from,
+            limit,
+        ))
     }
 
     #[handle_result]
     pub fn get_account_outgoing_streams(
         self,
         account_id: AccountId,
-        from: u32,
-        limit: u32,
+        from: Option<u32>,
+        limit: Option<u32>,
     ) -> Result<Vec<Stream>, ContractError> {
-        self.accounts
-            .get(&account_id)
-            .map(|v| v.into())
-            .map(|v: Account| {
-                Ok(self.collect_account_data(
-                    &v.active_outgoing_streams,
-                    &v.inactive_outgoing_streams,
-                    from,
-                    limit,
-                ))
-            })
-            .unwrap_or(Err(ContractError::AccountNotExist { account_id }))
+        let from = from.unwrap_or(0);
+        let limit = limit.unwrap_or(DEFAULT_VIEW_STREAMS_LIMIT);
+        let account = self.view_account(&account_id.into(), false)?;
+        Ok(self.collect_account_data(
+            &account.active_outgoing_streams,
+            &account.inactive_outgoing_streams,
+            from,
+            limit,
+        ))
     }
 
     #[handle_result]
@@ -146,8 +135,7 @@ impl Contract {
         let from = from.unwrap_or(0);
         let limit = limit.unwrap_or(DEFAULT_VIEW_STREAMS_LIMIT);
         Ok((from..min(self.streams.len() as _, from + limit))
-            .map(|i| self.streams.values_as_vector().get(i as _).unwrap())
-            .map(|vs| Stream::from(vs))
+            .map(|i| self.streams.values_as_vector().get(i as _).unwrap().into())
             .collect())
     }
 
@@ -157,17 +145,12 @@ impl Contract {
         account_id: AccountId,
         token_account_id: AccountId,
     ) -> Result<(U128, U128, U128), ContractError> {
-        self.accounts
-            .get(&account_id)
-            .map(|v| v.into())
-            .map(|v: Account| {
-                Ok((
-                    (*v.total_incoming.get(&token_account_id).unwrap_or(&0)).into(),
-                    (*v.total_outgoing.get(&token_account_id).unwrap_or(&0)).into(),
-                    (*v.total_received.get(&token_account_id).unwrap_or(&0)).into(),
-                ))
-            })
-            .unwrap_or(Err(ContractError::AccountNotExist { account_id }))
+        let account = self.view_account(&account_id.into(), false)?;
+        Ok((
+            (*account.total_incoming.get(&token_account_id).unwrap_or(&0)).into(),
+            (*account.total_outgoing.get(&token_account_id).unwrap_or(&0)).into(),
+            (*account.total_received.get(&token_account_id).unwrap_or(&0)).into(),
+        ))
     }
 }
 

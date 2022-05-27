@@ -52,9 +52,10 @@ impl Contract {
     ) -> Result<(), ContractError> {
         self.create_account_if_not_exist(&account_id)?;
         let mut account = self.extract_account(&account_id)?;
-        if account.deposit + deposit < self.dao.commission_unlisted {
+        // this is strongly needed to avoid creating accounts for free
+        if account.deposit + deposit < self.dao.commission_non_payment_ft {
             return Err(ContractError::InsufficientDeposit {
-                expected: self.dao.commission_unlisted - account.deposit,
+                expected: self.dao.commission_non_payment_ft - account.deposit,
                 received: deposit,
             });
         }

@@ -195,7 +195,7 @@ impl Env {
             .function_call(
                 self.streaming.contract.dao_update_token(Token {
                     account_id: self.roketo_token.account_id(),
-                    is_listed: true,
+                    is_payment: true,
                     commission_on_create: d(10, 18),
                     commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
                     commission_on_transfer: d(10, 17),
@@ -212,7 +212,7 @@ impl Env {
             .function_call(
                 self.streaming.contract.dao_update_token(Token {
                     account_id: tokens.ndai.account_id(),
-                    is_listed: true,
+                    is_payment: true,
                     commission_on_create: d(1, 18),
                     commission_coef: SafeFloat { val: 1, pow: -3 }, // 0.1%
                     commission_on_transfer: d(1, 17),
@@ -229,7 +229,7 @@ impl Env {
             .function_call(
                 self.streaming.contract.dao_update_token(Token {
                     account_id: tokens.nusdt.account_id(),
-                    is_listed: true,
+                    is_payment: true,
                     commission_on_create: d(1, 6),
                     commission_coef: SafeFloat { val: 1, pow: -3 }, // 0.1%
                     commission_on_transfer: d(1, 5),
@@ -246,7 +246,7 @@ impl Env {
             .function_call(
                 self.streaming.contract.dao_update_token(Token {
                     account_id: tokens.wnear.account_id(),
-                    is_listed: true,
+                    is_payment: true,
                     commission_on_create: d(1, 23), // 0.1 token
                     commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
                     commission_on_transfer: d(1, 22),
@@ -263,7 +263,7 @@ impl Env {
             .function_call(
                 self.streaming.contract.dao_update_token(Token {
                     account_id: tokens.wnear_simple.account_id(),
-                    is_listed: true,
+                    is_payment: true,
                     commission_on_create: d(1, 23), // 0.1 token
                     commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
                     commission_on_transfer: d(1, 22),
@@ -280,7 +280,7 @@ impl Env {
             .function_call(
                 self.streaming.contract.dao_update_token(Token {
                     account_id: tokens.aurora.account_id(),
-                    is_listed: true,
+                    is_payment: true,
                     commission_on_create: d(1, 15), // 0.001 token
                     commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
                     commission_on_transfer: d(1, 14),
@@ -505,7 +505,7 @@ impl Env {
     pub fn get_account(&self, user: &UserAccount) -> AccountView {
         let account: AccountView = self
             .near
-            .view_method_call(self.streaming.contract.get_account(user.account_id()))
+            .view_method_call(self.streaming.contract.get_account(user.account_id(), None))
             .unwrap_json();
         account
     }
@@ -521,8 +521,8 @@ impl Env {
             .near
             .view_method_call(self.streaming.contract.get_account_outgoing_streams(
                 user.account_id(),
-                0,
-                100,
+                None,
+                None,
             ))
             .unwrap_json();
         streams
@@ -533,8 +533,8 @@ impl Env {
             .near
             .view_method_call(self.streaming.contract.get_account_incoming_streams(
                 user.account_id(),
-                0,
-                100,
+                None,
+                None,
             ))
             .unwrap_json();
         streams
