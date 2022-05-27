@@ -5,11 +5,14 @@ use near_contract_standards::non_fungible_token::metadata::{
 use near_contract_standards::non_fungible_token::{metadata::TokenMetadata, TokenId};
 pub use near_sdk::json_types::{Base58CryptoHash, U128};
 pub use near_sdk::serde_json::json;
+pub use near_sdk::CryptoHash;
 pub use near_sdk::{env, serde_json, AccountId, Balance, Timestamp, ONE_NEAR, ONE_YOCTO};
 use near_sdk_sim::runtime::GenesisConfig;
 use near_sdk_sim::{
     deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount,
 };
+pub use std::cmp::min;
+pub use std::collections::HashSet;
 use streaming::ContractContract as StreamingContract;
 pub use streaming::{
     AccountView, ContractError, CreateRequest, Dao, SafeFloat, Stats, Stream, StreamFinishReason,
@@ -17,10 +20,6 @@ pub use streaming::{
     DEFAULT_GAS_FOR_STORAGE_DEPOSIT, DEFAULT_STORAGE_BALANCE, DEFAULT_VIEW_STREAMS_LIMIT,
     MAX_AMOUNT, MAX_STREAMING_SPEED, MIN_STREAMING_SPEED, ONE_TERA,
 };
-
-// use near_sdk::CryptoHash;
-// use std::collections::{HashMap, HashSet};
-// pub use streaming::DEFAULT_VIEW_STREAMS_LIMIT;
 
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
     STREAMING_WASM_BYTES => "res/streaming.wasm",
@@ -511,9 +510,9 @@ impl Env {
         account
     }
 
-    pub fn get_all_streams(&self, from: Option<u32>, limit: Option<u32>) -> Vec<Stream> {
+    pub fn get_streams(&self, from: Option<u32>, limit: Option<u32>) -> Vec<Stream> {
         self.near
-            .view_method_call(self.streaming.contract.get_all_streams(from, limit))
+            .view_method_call(self.streaming.contract.get_streams(from, limit))
             .unwrap_json()
     }
 

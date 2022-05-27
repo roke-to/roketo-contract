@@ -54,9 +54,9 @@ mod setup;
 
 use crate::setup::*;
 
-use near_sdk::CryptoHash;
-use std::collections::HashSet;
-pub use streaming::DEFAULT_VIEW_STREAMS_LIMIT;
+// use near_sdk::CryptoHash;
+// use std::collections::HashSet;
+// pub use streaming::DEFAULT_VIEW_STREAMS_LIMIT;
 
 #[test]
 fn test_init_env() {
@@ -514,8 +514,9 @@ fn test_stream_start_pause_finished() {
 }
 
 #[test]
-fn test_check_get_all_streams() {
+fn test_get_streams() {
     let (e, tokens, _users) = basic_setup();
+    let mut all_streams = HashSet::new();
 
     let mut accounts = Vec::new();
     let n = DEFAULT_VIEW_STREAMS_LIMIT as usize;
@@ -526,55 +527,49 @@ fn test_check_get_all_streams() {
         e.mint_ft(&tokens.wnear, &account, d(1, 28));
         accounts.push(account);
     }
-    assert_eq!(accounts.len(), n + 5, "{}", accounts.len());
-    let mut streams = Vec::new();
+    assert_eq!(accounts.len(), n + 5);
+
+    assert_eq!(e.get_streams(None, None).len(), 0);
     for i in 0..n {
-        assert_eq!(e.get_all_streams(None, None).len(), i);
-        let stream_id = e.create_stream(
+        let stream_id = CryptoHash::from(e.create_stream(
             &accounts[i],
             &accounts[i + 1],
             &tokens.wnear,
             d(1, 24),
             d(1, 23),
-        );
-        streams.push(stream_id);
-    }
-    let streams2 = e.get_all_streams(None, None);
-    assert_eq!(streams.len(), streams2.len());
-    let mut stream_ids = HashSet::new();
-    for stream in streams2 {
-        stream_ids.insert(stream.id);
-    }
-    assert_eq!(streams.len(), stream_ids.len());
-    for stream in streams.clone() {
-        assert!(stream_ids.contains(&CryptoHash::from(stream)));
+        ));
+        let current_streams: HashSet<CryptoHash> = e
+            .get_streams(None, None)
+            .into_iter()
+            .map(|s| s.id.into())
+            .collect();
+        assert_eq!(current_streams.len(), i + 1);
+        let diff = current_streams.difference(&all_streams);
+        assert_eq!(diff.clone().count(), 1);
+        assert_eq!(diff.last().unwrap(), &stream_id);
+        all_streams.insert(stream_id);
     }
     //below pagination's checking
     let mut stream_ids = HashSet::new();
     let block_size = 3 as u32;
-    let block_amount = (n as u32 / block_size) as u32;
-    for i in 0..block_amount {
-        let next_block = e.get_all_streams(Some(i * block_size), Some(block_size));
-        assert_eq!(next_block.len() as u32, block_size);
-        for stream in next_block {
-            stream_ids.insert(stream.id.clone());
-        }
-        assert_eq!(stream_ids.len() as u32, (i + 1) * block_size);
-    }
+    let mut block_amount = (n as u32 / block_size) as u32;
     if n as u32 % block_size != 0 {
-        let next_block = e.get_all_streams(Some(block_amount * block_size), Some(block_size));
-        assert_eq!(
-            next_block.len() as u32,
-            n as u32 - block_amount * block_size
-        );
+        block_amount += 1;
+    }
+    for i in 0..block_amount {
+        let current_block_size = min(block_size, n as u32 - i * block_size);
+        let next_block = e.get_streams(Some(i * block_size), Some(block_size));
+        assert_eq!(next_block.len() as u32, current_block_size);
+        // next_block
+        // .into_iter()
+        // .for_each(|s| stream_ids.insert(s.id.clone()));
         for stream in next_block {
             stream_ids.insert(stream.id.clone());
         }
-        assert_eq!(stream_ids.len(), n);
+        assert_eq!(stream_ids.len() as u32, i * block_size + current_block_size);
     }
-    for stream in streams {
-        assert!(stream_ids.contains(&CryptoHash::from(stream)));
-    }
+    let diff = stream_ids.difference(&all_streams);
+    assert_eq!(diff.count(), 0);
 }
 
 #[test]

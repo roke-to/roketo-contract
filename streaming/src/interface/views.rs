@@ -138,7 +138,7 @@ impl Contract {
     }
 
     #[handle_result]
-    pub fn get_all_streams(
+    pub fn get_streams(
         &self,
         from: Option<u32>,
         limit: Option<u32>,
