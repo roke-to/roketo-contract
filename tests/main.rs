@@ -54,10 +54,6 @@ mod setup;
 
 use crate::setup::*;
 
-// use near_sdk::CryptoHash;
-// use std::collections::HashSet;
-// pub use streaming::DEFAULT_VIEW_STREAMS_LIMIT;
-
 #[test]
 fn test_init_env() {
     let e = Env::init();
