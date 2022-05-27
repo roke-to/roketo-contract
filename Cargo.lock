@@ -452,6 +452,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "near-sdk",
+]
+
+[[package]]
 name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -976,6 +983,7 @@ dependencies = [
 name = "finance"
 version = "0.1.0"
 dependencies = [
+ "common",
  "near-contract-standards",
  "near-sdk",
 ]
@@ -1565,9 +1573,9 @@ dependencies = [
 
 [[package]]
 name = "near-contract-standards"
-version = "4.0.0-pre.8"
+version = "4.0.0-pre.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a47ea28f3a2a912625532fa307ab346cc0112c2c309e654ec81d1b9e7c2ca60e"
+checksum = "04014dddb40fa5f1491f862088f19ee80499c3a154d2bfd293f057878704dcc3"
 dependencies = [
  "near-sdk",
  "serde",
@@ -1842,9 +1850,9 @@ dependencies = [
 
 [[package]]
 name = "near-sdk"
-version = "4.0.0-pre.8"
+version = "4.0.0-pre.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e30889e853c3508ed83b0f507e3c947e3591810d44221b3899c7b407c484a2b2"
+checksum = "a1e895ead9571fcbfcb283aa75612522f1fd6f62a50101e6c4c2950f3f2ddb4f"
 dependencies = [
  "base64 0.13.0",
  "borsh 0.9.2",
@@ -1861,9 +1869,9 @@ dependencies = [
 
 [[package]]
 name = "near-sdk-macros"
-version = "4.0.0-pre.8"
+version = "4.0.0-pre.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e104d6e4f4a85526c7b027c998f16cc5c27c30b691a3aed4cad57dd6414b90e"
+checksum = "86ed4b9e4f65e8bfb73b0db0bd35ba7e30ceb98e65c9ebb4a2ce41c312646d54"
 dependencies = [
  "Inflector",
  "proc-macro2",
@@ -1873,9 +1881,9 @@ dependencies = [
 
 [[package]]
 name = "near-sdk-sim"
-version = "4.0.0-pre.8"
+version = "4.0.0-pre.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e654b760f92c7e6364e0284622676923ecba0ee04e75df25dcd7d905218a406"
+checksum = "cf29b57ff916f80cf76096247be55bd0ec18ba6855c09d997017221ea9b305c7"
 dependencies = [
  "funty",
  "lazy-static-include",
@@ -1912,9 +1920,9 @@ dependencies = [
 
 [[package]]
 name = "near-sys"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6a7aa3f46fac44416d8a93d14f30a562c4d730a1c6bf14bffafab5f475c244a"
+checksum = "e307313276eaeced2ca95740b5639e1f3125b7c97f0a1151809d105f1aa8c6d3"
 
 [[package]]
 name = "near-vm-errors"
@@ -2613,6 +2621,7 @@ dependencies = [
 name = "roketo"
 version = "1.0.0"
 dependencies = [
+ "common",
  "finance",
  "near-contract-standards",
  "near-sdk",
@@ -2817,6 +2826,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 name = "streaming"
 version = "0.1.0"
 dependencies = [
+ "common",
  "near-contract-standards",
  "near-sdk",
 ]

@@ -49,17 +49,17 @@ mod tests {
         let contract = Contract::new(dao_id(), finance_id(), utility_token_id(), 18);
         let aurora_address =
             AccountId::new_unchecked("f5cfbc74057c610c8ef151a439252680ac68c6dc".to_string());
-        assert!(Contract::is_aurora_address(&aurora_address));
+        assert!(is_aurora_address(&aurora_address));
         assert!(contract
             .ft_transfer_from_self(
-                Token::new_unlisted(&Contract::aurora_account_id()).account_id,
+                Token::new_unlisted(&aurora_account_id()).account_id,
                 aurora_address.clone(),
                 123456,
             )
             .is_ok());
         assert!(contract
             .ft_transfer_from_self(
-                Token::new_unlisted(&Contract::aurora_account_id()).account_id,
+                Token::new_unlisted(&aurora_account_id()).account_id,
                 aurora_address,
                 123456,
             )

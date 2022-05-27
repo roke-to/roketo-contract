@@ -13,4 +13,11 @@ impl Contract {
 
         self.ft_transfer(token_account_id, receiver, amount.into())
     }
+
+    #[payable]
+    pub fn streaming_storage_needs_transfer(&mut self) -> Promise {
+        self.check_owner().unwrap();
+
+        Promise::new(self.owner_id.clone()).transfer(STORAGE_NEEDS_PER_STREAM)
+    }
 }

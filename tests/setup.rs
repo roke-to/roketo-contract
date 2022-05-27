@@ -18,7 +18,7 @@ pub use streaming::{
     AccountView, ContractError, CreateRequest, Dao, SafeFloat, Stats, Stream, StreamFinishReason,
     StreamStatus, Token, TokenStats, TransferCallRequest, DEFAULT_GAS_FOR_FT_TRANSFER,
     DEFAULT_GAS_FOR_STORAGE_DEPOSIT, DEFAULT_STORAGE_BALANCE, DEFAULT_VIEW_STREAMS_LIMIT,
-    MAX_AMOUNT, MAX_STREAMING_SPEED, MIN_STREAMING_SPEED, ONE_TERA,
+    MAX_AMOUNT, MAX_STREAMING_SPEED, MIN_STREAMING_SPEED, ONE_TERA, STORAGE_NEEDS_PER_STREAM,
 };
 
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {

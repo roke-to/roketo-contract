@@ -126,8 +126,7 @@ impl Contract {
         self.stats_inc_stream_deposit(&stream.token_account_id, &balance, &commission);
         self.stats_inc_streams(
             &stream.token_account_id,
-            Contract::is_aurora_address(&stream.owner_id)
-                | Contract::is_aurora_address(&stream.receiver_id),
+            is_aurora_address(&stream.owner_id) | is_aurora_address(&stream.receiver_id),
             is_listed,
         );
 
@@ -140,6 +139,13 @@ impl Contract {
             self.finance_id.clone(),
             stream.balance,
         )?;
+
+        // Covering storage needs from finance contract
+        ext_finance::streaming_storage_needs_transfer(
+            self.finance_id.clone(),
+            ONE_YOCTO,
+            Gas::ONE_TERA * 10,
+        );
 
         self.save_stream(stream)?;
 
@@ -421,7 +427,7 @@ impl Contract {
                             reason: StreamFinishReason::FinishedWhileTransferred,
                         },
                     )?;
-                    // No tranfer tokens actions should appear at the point.
+                    // No transfer tokens actions should appear at the point.
                     // All tokens have been charged to previous holder + commission.
                     assert!(action.is_empty());
                     self.save_stream(stream)?;

@@ -75,7 +75,7 @@ impl Contract {
         let token = self.dao.get_token(&stream_view.token_account_id);
 
         // TODO explain why attached deposit is needed at the point
-        let deposit_needed = if Contract::is_aurora_address(&stream_view.receiver_id) {
+        let deposit_needed = if is_aurora_address(&stream_view.receiver_id) {
             // Receiver is at aurora, need no payment for storage deposit
             ONE_YOCTO
         } else {

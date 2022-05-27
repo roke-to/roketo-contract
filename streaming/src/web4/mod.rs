@@ -109,15 +109,17 @@ impl Contract {
         } else if path == "/account.rs" {
             return Web4Response::plain(include_str!("../account.rs").to_string());
         } else if path == "/aurora.rs" {
-            return Web4Response::plain(include_str!("../aurora.rs").to_string());
+            return Web4Response::plain(include_str!("../../../common/src/aurora.rs").to_string());
         } else if path == "/dao.rs" {
             return Web4Response::plain(include_str!("../dao.rs").to_string());
         } else if path == "/err.rs" {
-            return Web4Response::plain(include_str!("../err.rs").to_string());
+            return Web4Response::plain(include_str!("../../../common/src/err.rs").to_string());
         } else if path == "/lib.rs" {
             return Web4Response::plain(include_str!("../lib.rs").to_string());
         } else if path == "/primitives.rs" {
-            return Web4Response::plain(include_str!("../primitives.rs").to_string());
+            return Web4Response::plain(
+                include_str!("../../../common/src/primitives.rs").to_string(),
+            );
         } else if path == "/stats.rs" {
             return Web4Response::plain(include_str!("../stats.rs").to_string());
         } else if path == "/stream.rs" {
