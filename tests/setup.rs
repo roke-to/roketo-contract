@@ -5,17 +5,20 @@ use near_contract_standards::non_fungible_token::metadata::{
 use near_contract_standards::non_fungible_token::{metadata::TokenMetadata, TokenId};
 pub use near_sdk::json_types::{Base58CryptoHash, U128};
 pub use near_sdk::serde_json::json;
+pub use near_sdk::CryptoHash;
 pub use near_sdk::{env, serde_json, AccountId, Balance, Timestamp, ONE_NEAR, ONE_YOCTO};
 use near_sdk_sim::runtime::GenesisConfig;
 use near_sdk_sim::{
     deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount,
 };
+pub use std::cmp::min;
+pub use std::collections::HashSet;
 use streaming::ContractContract as StreamingContract;
 pub use streaming::{
     AccountView, ContractError, CreateRequest, Dao, SafeFloat, Stats, Stream, StreamFinishReason,
     StreamStatus, Token, TokenStats, TransferCallRequest, DEFAULT_GAS_FOR_FT_TRANSFER,
-    DEFAULT_GAS_FOR_STORAGE_DEPOSIT, DEFAULT_STORAGE_BALANCE, MAX_AMOUNT, MAX_STREAMING_SPEED,
-    MIN_STREAMING_SPEED, ONE_TERA, STORAGE_NEEDS_PER_STREAM,
+    DEFAULT_GAS_FOR_STORAGE_DEPOSIT, DEFAULT_STORAGE_BALANCE, DEFAULT_VIEW_STREAMS_LIMIT,
+    MAX_AMOUNT, MAX_STREAMING_SPEED, MIN_STREAMING_SPEED, ONE_TERA, STORAGE_NEEDS_PER_STREAM,
 };
 
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
@@ -505,6 +508,12 @@ impl Env {
             .view_method_call(self.streaming.contract.get_account(user.account_id()))
             .unwrap_json();
         account
+    }
+
+    pub fn get_streams(&self, from: Option<u32>, limit: Option<u32>) -> Vec<Stream> {
+        self.near
+            .view_method_call(self.streaming.contract.get_streams(from, limit))
+            .unwrap_json()
     }
 
     pub fn get_account_outgoing_streams(&self, user: &UserAccount) -> Vec<Stream> {

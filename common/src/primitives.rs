@@ -15,6 +15,7 @@ pub const ONE_TERA: u64 = Gas::ONE_TERA.0; // near-sdk Gas is totally useless
 
 pub const DEFAULT_COMMISSION_UNLISTED: Balance = ONE_NEAR / 10; // 0.1 NEAR
 
+pub const DEFAULT_VIEW_STREAMS_LIMIT: u32 = 10;
 pub const STORAGE_NEEDS_PER_STREAM: Balance = ONE_NEAR / 20; // 0.05 NEAR
 
 // Explanation on default storage balance and gas needs.

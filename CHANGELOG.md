@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `nft_change_receiver` is enabled
 - sdk updated to 4.0.0-pre.9
 
+## [2.1.1] - 2022-05-26
+### Added
+- view-method get_streams
+
 ## [2.1.0] - 2022-05-26
 ### Added
 - `approved_nfts` list to Dao

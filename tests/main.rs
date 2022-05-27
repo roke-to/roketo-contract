@@ -530,6 +530,62 @@ fn test_stream_start_pause_finished() {
 }
 
 #[test]
+fn test_get_streams() {
+    let (e, tokens, _users) = basic_setup();
+    let mut all_streams = HashSet::new();
+
+    let mut accounts = Vec::new();
+    let n = DEFAULT_VIEW_STREAMS_LIMIT as usize;
+    for i in 10..10 + n + 5 {
+        let account_id = AccountId::new_unchecked(i.to_string());
+        let account = e.near.create_user(account_id.clone(), d(1, 28));
+        ft_storage_deposit(&e.near, &tokens.wnear.account_id(), &account_id);
+        e.mint_ft(&tokens.wnear, &account, d(1, 28));
+        accounts.push(account);
+    }
+    assert_eq!(accounts.len(), n + 5);
+
+    assert_eq!(e.get_streams(None, None).len(), 0);
+    for i in 0..n {
+        let stream_id = CryptoHash::from(e.create_stream(
+            &accounts[i],
+            &accounts[i + 1],
+            &tokens.wnear,
+            d(1, 24),
+            d(1, 23),
+        ));
+        let current_streams: HashSet<CryptoHash> = e
+            .get_streams(None, None)
+            .into_iter()
+            .map(|s| s.id.into())
+            .collect();
+        assert_eq!(current_streams.len(), i + 1);
+        let diff = current_streams.difference(&all_streams);
+        assert_eq!(diff.clone().count(), 1);
+        assert_eq!(diff.last().unwrap(), &stream_id);
+        all_streams.insert(stream_id);
+    }
+    //below pagination's checking
+    let mut stream_ids = HashSet::new();
+    let block_size = 3 as u32;
+    let mut block_amount = (n as u32 / block_size) as u32;
+    if n as u32 % block_size != 0 {
+        block_amount += 1;
+    }
+    for i in 0..block_amount {
+        let current_block_size = min(block_size, n as u32 - i * block_size);
+        let next_block = e.get_streams(Some(i * block_size), Some(block_size));
+        assert_eq!(next_block.len() as u32, current_block_size);
+        for stream in next_block {
+            stream_ids.insert(stream.id.clone());
+        }
+        assert_eq!(stream_ids.len() as u32, i * block_size + current_block_size);
+    }
+    let diff = stream_ids.difference(&all_streams);
+    assert_eq!(diff.count(), 0);
+}
+
+#[test]
 fn test_stream_start_pause_stop() {
     let (e, tokens, users) = basic_setup();
 

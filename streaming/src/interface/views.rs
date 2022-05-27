@@ -138,6 +138,20 @@ impl Contract {
     }
 
     #[handle_result]
+    pub fn get_streams(
+        &self,
+        from: Option<u32>,
+        limit: Option<u32>,
+    ) -> Result<Vec<Stream>, ContractError> {
+        let from = from.unwrap_or(0);
+        let limit = limit.unwrap_or(DEFAULT_VIEW_STREAMS_LIMIT);
+        Ok((from..min(self.streams.len() as _, from + limit))
+            .map(|i| self.streams.values_as_vector().get(i as _).unwrap())
+            .map(|vs| Stream::from(vs))
+            .collect())
+    }
+
+    #[handle_result]
     pub fn get_account_ft(
         self,
         account_id: AccountId,
