@@ -576,9 +576,6 @@ fn test_get_streams() {
         let current_block_size = min(block_size, n as u32 - i * block_size);
         let next_block = e.get_streams(Some(i * block_size), Some(block_size));
         assert_eq!(next_block.len() as u32, current_block_size);
-        // next_block
-        // .into_iter()
-        // .for_each(|s| stream_ids.insert(s.id.clone()));
         for stream in next_block {
             stream_ids.insert(stream.id.clone());
         }
