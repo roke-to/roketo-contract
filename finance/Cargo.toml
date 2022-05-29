@@ -2,7 +2,7 @@
 name = "finance"
 version = "0.1.0"
 authors = ["Alex Kouprin <hello@kikimora.tech>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

@@ -2,7 +2,7 @@
 name = "roketo"
 version = "1.0.0"
 authors = ["Alex Kouprin <hello@kikimora.tech>"]
-edition = "2018"
+edition = "2021"
 
 [dev-dependencies]
 near-contract-standards = "=4.0.0-pre.9"
@@ -26,6 +26,7 @@ overflow-checks = true
 [workspace]
 members = [
     "common",
+    "examples/nft",
     "finance",
     "streaming",
 ]

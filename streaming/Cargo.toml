@@ -2,7 +2,7 @@
 name = "streaming"
 version = "0.1.0"
 authors = ["Alex Kouprin <hello@kikimora.tech>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -10,4 +10,4 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 common = { path = "../common/" }
 near-contract-standards = "=4.0.0-pre.9"
-near-sdk = "=4.0.0-pre.9"
+near-sdk = { version = "=4.0.0-pre.9", features = ["unstable"] }

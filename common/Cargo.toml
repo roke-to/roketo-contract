@@ -2,7 +2,7 @@
 name = "common"
 version = "0.1.0"
 authors = ["Alex Kouprin <hello@kikimora.tech>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 near-sdk = "=4.0.0-pre.9"

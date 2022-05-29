@@ -2,7 +2,7 @@
 name = "non-fungible-token-w-roketo"
 version = "1.0.0"
 authors = ["Alex Kouprin <hello@kikimora.tech>"]
-edition = "2018"
+edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
