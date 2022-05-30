@@ -87,8 +87,9 @@ impl Stream {
 
     pub(crate) fn process_withdraw(&mut self, token: &Token) -> (Balance, Balance) {
         let mut gross_payment = self.available_to_withdraw();
+        let _ = check_integrity(gross_payment <= self.balance);
         let (mut payment, mut commission) = if token.is_payment {
-            token.apply_commission(min(gross_payment, self.balance))
+            token.apply_commission(gross_payment)
         } else {
             (gross_payment, 0)
         };
@@ -101,10 +102,10 @@ impl Stream {
             // We already taken the commission while created
             commission = 0;
         }
-        if self.balance > gross_payment {
-            self.balance -= gross_payment;
-        } else {
-            self.balance = 0;
+
+        self.balance -= gross_payment;
+
+        if self.balance == 0 {
             self.status = StreamStatus::Finished {
                 reason: StreamFinishReason::FinishedNaturally,
             };
@@ -143,6 +144,8 @@ impl Contract {
         stream: &mut Stream,
         action_type: ActionType,
     ) -> Result<Vec<Promise>, ContractError> {
+        check_integrity(!stream.status.is_terminated())?;
+
         let mut owner = self.extract_account(&stream.owner_id)?;
         let mut receiver = self.extract_account(&stream.receiver_id)?;
         let mut promises = vec![];
@@ -152,7 +155,6 @@ impl Contract {
             check_integrity(receiver.inactive_incoming_streams.insert(&stream.id))?;
         } else {
             // No action is applicable for terminated stream.
-            check_integrity(!stream.status.is_terminated())?;
             match action_type {
                 ActionType::Start => {
                     check_integrity(owner.inactive_outgoing_streams.remove(&stream.id))?;
