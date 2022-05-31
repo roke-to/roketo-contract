@@ -87,7 +87,12 @@ impl Stream {
 
     pub(crate) fn process_withdraw(&mut self, token: &Token) -> (Balance, Balance) {
         let mut gross_payment = self.available_to_withdraw();
-        let _ = check_integrity(gross_payment <= self.balance);
+        assert!(
+            gross_payment <= self.balance,
+            "available_to_withdraw() must guarantee that gross_payment{} <= self.balance{}",
+            gross_payment,
+            self.balance
+        );
         let (mut payment, mut commission) = if token.is_payment {
             token.apply_commission(gross_payment)
         } else {
