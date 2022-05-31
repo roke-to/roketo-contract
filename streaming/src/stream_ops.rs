@@ -210,6 +210,16 @@ impl Contract {
 
         // Validations passed
 
+        let token = self.dao.get_token(&stream.token_account_id);
+
+        let commission = if token.is_payment && stream.is_locked {
+            // For locked streams we take all commission at the beginning
+            let (_, calculated_commission) = token.apply_commission(amount);
+            calculated_commission
+        } else {
+            0
+        };
+
         stream.balance += amount;
 
         self.ft_transfer_from_self(
@@ -220,7 +230,7 @@ impl Contract {
 
         self.save_stream(stream)?;
 
-        self.stats_inc_stream_deposit(&token_account_id, &amount, &0);
+        self.stats_inc_stream_deposit(&token_account_id, &amount, &commission);
 
         Ok(())
     }

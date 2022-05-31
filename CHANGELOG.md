@@ -6,12 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.3] - 2022-05-31
+### Changed
+- updating commission in `deposit_op` for locked streams
+
 ## [2.1.2] - 2022-05-27
 ### Added
-- view-method get_streams
+- view-method `get_streams`
 - useful comments about inner details in the contract
 - running storage deposit in NFT transfer
-- web4 get_streams
+- web4 `get_streams`
 ### Changed
 - logic of unlisted replaced with non-payment
 - views simplification
