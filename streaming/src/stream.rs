@@ -24,9 +24,43 @@ pub struct Stream {
     #[serde(with = "u128_dec_format")]
     pub tokens_total_withdrawn: Balance,
 
+    // Cliff is a moment of time which divides the stream into two parts:
+    // - before the cliff - withdraw is disabled;
+    // - after the cliff - stream becomes a regular one.
+    //
+    // Streams with cliff must be started immediately.
+    // Additionally, pausing streams with cliff is disabled
+    // because it's hard to predict the proper behavior of the stream.
+    //
+    // The only way to withdraw tokens from stream with active cliff
+    // is to stop it completely. In this case we take commission
+    // that is proportional to time passed for total stream time.
+    //
+    // The reason of having cliffs is to reproduce vesting contracts.
     pub cliff: Option<Timestamp>,
 
+    // Stream non-expiration is a hard concept to understand.
+    //
+    // The idea is based on observation that no stream can be stopped
+    // automatically with no action provided. So, if receiver haven't
+    // withdraw his tokens from fully expired stream yet,
+    // the stream is considered Active.
+    //
+    // This basically means, the owner can deposit tokens onto the stream
+    // even it's already expired, as long as receiver haven't tried to withdraw
+    // the tokens that leads to stream finishing. In other terms,
+    // it's possible to have a credit that may be covered later.
+    //
+    // Such behavior called non-expirable streams and disabled by default.
+    // Expirable streams will be terminated even on stream depositing.
     pub is_expirable: bool,
+
+    // Locked streams are ones that are unable to pause, stop and change receiver.
+    // Locked streams are still may be terminated or deposited until started.
+    //
+    // For locked streams we take commission when the stream is started,
+    // to allow us to own and handle commission tokens without waiting
+    // as the final result of locked stream cannot be changed.
     pub is_locked: bool,
 }
 
