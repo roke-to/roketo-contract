@@ -50,6 +50,7 @@
 // change_receiver_op values of total_incoming, etc.
 // cliff valid tokens_total_withdrawn calculation
 // add tokens with is_payment = false
+// locked stream with instant stop
 
 mod setup;
 

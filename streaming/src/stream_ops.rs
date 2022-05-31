@@ -63,17 +63,17 @@ impl Contract {
                 });
             }
             balance -= token.commission_on_create;
-
-            if is_auto_start_enabled && balance == 0 {
-                return Err(ContractError::ZeroBalanceStreamStart);
-            }
-
             commission += token.commission_on_create;
 
-            if is_locked {
-                // For locked streams we take all commission at the beginning
-                let (_, calculated_commission) = token.apply_commission(balance);
-                commission += calculated_commission;
+            if is_auto_start_enabled {
+                if balance == 0 {
+                    return Err(ContractError::ZeroBalanceStreamStart);
+                }
+                if is_locked {
+                    // For locked streams we take all commission when the stream is started
+                    let (_, calculated_commission) = token.apply_commission(balance);
+                    commission += calculated_commission;
+                }
             }
         } else {
             if creator.deposit < self.dao.commission_non_payment_ft {
@@ -254,6 +254,15 @@ impl Contract {
         }
 
         // Validations passed
+
+        if stream.is_locked {
+            let token = self.dao.get_token(&stream.token_account_id);
+            if token.is_payment {
+                // For locked streams we take all commission when the stream is started
+                let (_, commission) = token.apply_commission(stream.balance);
+                self.stats_inc_stream_deposit(&stream.token_account_id, &0, &commission);
+            }
+        };
 
         assert!(self
             .process_action(&mut stream, ActionType::Start)?
