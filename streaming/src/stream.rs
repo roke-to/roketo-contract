@@ -89,7 +89,7 @@ impl Stream {
         let mut gross_payment = self.available_to_withdraw();
         assert!(
             gross_payment <= self.balance,
-            "available_to_withdraw() must guarantee that gross_payment{} <= self.balance{}",
+            "available_to_withdraw() must guarantee that gross_payment({}) <= self.balance({})",
             gross_payment,
             self.balance
         );
