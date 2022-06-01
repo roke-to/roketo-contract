@@ -397,6 +397,18 @@ impl Contract {
         Ok(promises)
     }
 
+    pub fn change_description_op(
+        &mut self,
+        stream_id: CryptoHash,
+        new_description: String,
+    ) -> Result<Vec<Promise>, ContractError> {
+        let promises = Vec::new();
+        let mut stream = self.extract_stream(&stream_id)?;
+        stream.description = Some(new_description);
+        self.save_stream(stream)?;
+        Ok(promises)
+    }
+
     pub fn change_receiver_op(
         &mut self,
         prev_receiver_id: &AccountId,
