@@ -399,14 +399,28 @@ impl Contract {
 
     pub fn change_description_op(
         &mut self,
+        sender_id: &AccountId,
         stream_id: CryptoHash,
         new_description: String,
-    ) -> Result<Vec<Promise>, ContractError> {
-        let promises = Vec::new();
+    ) -> Result<(), ContractError> {
         let mut stream = self.extract_stream(&stream_id)?;
+
+        if stream.status != StreamStatus::Active {
+            // Inactive stream won't be changed
+            self.save_stream(stream)?;
+            return Ok(());
+        }
+
+        if stream.owner_id != *sender_id// && stream.receiver_id != *sender_id {
+            return Err(ContractError::CallerIsNotStreamActor {
+                owner: stream.owner_id,
+                receiver: stream.receiver_id,
+                caller: sender_id.clone(),
+            });
+        }
         stream.description = Some(new_description);
         self.save_stream(stream)?;
-        Ok(promises)
+        Ok(())
     }
 
     pub fn change_receiver_op(

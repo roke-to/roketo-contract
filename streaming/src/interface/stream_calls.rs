@@ -17,9 +17,13 @@ impl Contract {
         &mut self,
         stream_id: Base58CryptoHash,
         new_description: String,
-    ) -> Result<Vec<Promise>, ContractError> {
+    ) -> Result<(), ContractError> {
         check_deposit(ONE_YOCTO)?;
-        self.change_description_op(stream_id.into(), new_description)
+        self.change_description_op(
+            &env::predecessor_account_id(),
+            stream_id.into(),
+            new_description,
+        )
     }
 
     #[handle_result]
