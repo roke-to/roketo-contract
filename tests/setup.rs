@@ -1,3 +1,6 @@
+pub use std::cmp::min;
+pub use std::collections::HashSet;
+
 use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
 use near_contract_standards::non_fungible_token::metadata::{
     NFTContractMetadata, NFT_METADATA_SPEC,
@@ -11,20 +14,20 @@ use near_sdk_sim::runtime::GenesisConfig;
 use near_sdk_sim::{
     deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount,
 };
-pub use std::cmp::min;
-pub use std::collections::HashSet;
 use streaming::ContractContract as StreamingContract;
 pub use streaming::{
     AccountView, ContractError, CreateRequest, Dao, SafeFloat, Stats, Stream, StreamFinishReason,
     StreamStatus, Token, TokenStats, TransferCallRequest, DEFAULT_GAS_FOR_FT_TRANSFER,
     DEFAULT_GAS_FOR_STORAGE_DEPOSIT, DEFAULT_STORAGE_BALANCE, DEFAULT_VIEW_STREAMS_LIMIT,
-    MAX_AMOUNT, MAX_STREAMING_SPEED, MIN_STREAMING_SPEED, ONE_TERA, STORAGE_NEEDS_PER_STREAM,
+    MAX_AMOUNT, MAX_STREAMING_SPEED, MIN_STREAMING_SPEED, ONE_TERA, ROKE_TOKEN_DECIMALS,
+    STORAGE_NEEDS_PER_STREAM,
 };
 
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
     STREAMING_WASM_BYTES => "res/streaming.wasm",
     FINANCE_WASM_BYTES => "res/finance.wasm",
     FUNGIBLE_TOKEN_WASM_BYTES => "res/fungible_token.wasm",
+    ROKE_TOKEN_WASM_BYTES => "res/roke_token.wasm",
     AURORA_WASM_BYTES => "res/aurora.wasm",
     NFT_ROKETO_WASM_BYTES => "res/nft_roketo.wasm",
     WRAP_NEAR_WASM_BYTES => "res/wrap_near.wasm",
@@ -34,7 +37,7 @@ pub const NEAR: &str = "near";
 pub const ROKETO_ID: &str = "r-v2.near";
 pub const STREAMING_ID: &str = "streaming.r-v2.near";
 pub const FINANCE_ID: &str = "finance.r-v2.near";
-pub const ROKETO_TOKEN_ID: &str = "token.r-v2.near";
+pub const ROKE_TOKEN_ID: &str = "token.r-v2.near";
 pub const DAO_ID: &str = "dao.r-v2.near";
 
 pub type Gas = u64; // Gas is useless in sdk 4.0.0
@@ -43,13 +46,10 @@ pub const T_GAS: Gas = 1_000_000_000_000;
 pub const DEFAULT_GAS: Gas = 15 * T_GAS;
 pub const MAX_GAS: Gas = 300 * T_GAS;
 
-pub const ROKETO_TOKEN_DECIMALS: u8 = 18;
-pub const ROKETO_TOKEN_TOTAL_SUPPLY: Balance =
-    1_000_000_000 * 10u128.pow(ROKETO_TOKEN_DECIMALS as _);
-
 pub struct Env {
     pub root: UserAccount,
     pub near: UserAccount,
+    pub roketo: UserAccount,
     pub dao: UserAccount,
     pub streaming: ContractAccount<StreamingContract>,
     pub finance: UserAccount,
@@ -123,8 +123,6 @@ impl Env {
         let dao = roketo.create_user(DAO_ID.parse().unwrap(), to_yocto("10000"));
         let dao_id = dao.account_id();
         let finance_id = FINANCE_ID.parse().unwrap();
-        let utility_token_id = ROKETO_TOKEN_ID.parse().unwrap();
-        let utility_token_decimals = 18;
 
         let streaming = deploy!(
             contract: StreamingContract,
@@ -136,30 +134,16 @@ impl Env {
             init_method: new(
                 dao_id,
                 finance_id,
-                utility_token_id,
-                utility_token_decimals
+                ROKE_TOKEN_ID.parse().unwrap(),
+                ROKE_TOKEN_DECIMALS
             )
         );
 
         let roketo_token = roketo.deploy_and_init(
-            &FUNGIBLE_TOKEN_WASM_BYTES,
-            ROKETO_TOKEN_ID.parse().unwrap(),
+            &ROKE_TOKEN_WASM_BYTES,
+            ROKE_TOKEN_ID.parse().unwrap(),
             "new",
-            &json!({
-                "owner_id": near.account_id(),
-                "total_supply": U128::from(ROKETO_TOKEN_TOTAL_SUPPLY),
-                "metadata": FungibleTokenMetadata {
-                    spec: FT_METADATA_SPEC.to_string(),
-                    name: "Roketo Token".to_string(),
-                    symbol: "ROKE".to_string(),
-                    icon: None,
-                    reference: None,
-                    reference_hash: None,
-                    decimals: ROKETO_TOKEN_DECIMALS,
-                }
-            })
-            .to_string()
-            .into_bytes(),
+            b"",
             to_yocto("10"),
             DEFAULT_GAS,
         );
@@ -177,12 +161,14 @@ impl Env {
             DEFAULT_GAS,
         );
 
+        ft_storage_deposit(&near, &roketo_token.account_id(), &near.account_id());
         ft_storage_deposit(&near, &roketo_token.account_id(), &streaming.account_id());
         ft_storage_deposit(&near, &roketo_token.account_id(), &finance.account_id());
 
         Self {
             root,
             near,
+            roketo,
             dao,
             streaming,
             finance,
@@ -317,9 +303,14 @@ impl Env {
     }
 
     pub fn mint_ft(&self, token: &UserAccount, receiver: &UserAccount, amount: Balance) {
-        self.near
+        let caller = if token.account_id() == self.roketo_token.account_id() {
+            &self.roketo
+        } else {
+            &self.near
+        };
+        caller
             .call(
-                token.account_id.clone(),
+                token.account_id(),
                 "ft_transfer",
                 &json!({
                     "receiver_id": receiver.account_id(),
