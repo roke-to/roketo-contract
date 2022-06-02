@@ -62,6 +62,10 @@ pub struct Stream {
     // to allow us to own and handle commission tokens without waiting
     // as the final result of locked stream cannot be changed.
     pub is_locked: bool,
+
+    #[borsh_skip]
+    #[serde(with = "u128_dec_format")]
+    pub available_to_withdraw_by_formula: Balance,
 }
 
 #[derive(BorshSerialize, BorshDeserialize)]
@@ -72,7 +76,10 @@ pub enum VStream {
 impl From<VStream> for Stream {
     fn from(v: VStream) -> Self {
         match v {
-            VStream::Current(c) => c,
+            VStream::Current(mut c) => {
+                c.available_to_withdraw_by_formula = c.available_to_withdraw();
+                c
+            }
         }
     }
 }
@@ -116,6 +123,7 @@ impl Stream {
             cliff,
             is_expirable,
             is_locked,
+            available_to_withdraw_by_formula: 0,
         }
     }
 

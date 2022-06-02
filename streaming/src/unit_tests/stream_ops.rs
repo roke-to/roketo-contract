@@ -31,6 +31,7 @@ mod tests {
             cliff: None,
             is_expirable: true,
             is_locked: false,
+            available_to_withdraw_by_formula: 0,
         }
     }
 

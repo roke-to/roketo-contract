@@ -6,9 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.1.3] - 2022-06-01
+## [2.1.5] - 2022-06-02
 ### Added
 - `change_description` method and test for it
+
+## [2.1.4] - 2022-06-01
+### Added
+- `available_to_withdraw_by_formula` in stream view
 
 ## [2.1.3] - 2022-05-31
 ### Changed
