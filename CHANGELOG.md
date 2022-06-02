@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.3] - 2022-06-01
+### Added
+- `change_description` method and test for it
+
 ## [2.1.3] - 2022-05-31
 ### Changed
 - updating commission logic for locked streams

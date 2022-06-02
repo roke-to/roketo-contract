@@ -532,6 +532,41 @@ fn test_stream_start_pause_finished() {
 }
 
 #[test]
+fn test_stream_change_description() {
+    let (e, tokens, users) = basic_setup();
+
+    let stream_id = e.create_stream(
+        &users.alice,
+        &users.charlie,
+        &tokens.wnear_simple,
+        d(1, 26),
+        d(1, 25),
+    );
+
+    let stream = e.get_stream(&stream_id);
+    let A = String::from("A");
+    let B = String::from("A");
+    let C = String::from("A");
+    let a = Some(A.clone());
+    let b = Some(B.clone());
+    let c = Some(C.clone());
+    e.change_description(&users.alice, &stream_id, A.clone());
+    assert_eq!(stream.description, a);
+    e.skip_time(1);
+    assert_eq!(stream.description, a);
+    e.change_description(&users.alice, &stream_id, B.clone());
+    assert_eq!(stream.description, b);
+    e.pause_stream(&users.alice, &stream_id);
+    assert_eq!(stream.description, b);
+    e.change_description(&users.alice, &stream_id, C.clone());
+    assert_eq!(stream.description, c);
+    e.stop_stream(&users.alice, &stream_id);
+    e.change_description(&users.alice, &stream_id, A.clone()); //check returned errors
+    assert_eq!(stream.description, c);
+    // check locked streams
+}
+
+#[test]
 fn test_get_streams() {
     let (e, tokens, _users) = basic_setup();
     let mut all_streams = HashSet::new();

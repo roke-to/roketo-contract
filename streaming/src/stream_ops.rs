@@ -405,13 +405,13 @@ impl Contract {
     ) -> Result<(), ContractError> {
         let mut stream = self.extract_stream(&stream_id)?;
 
-        if stream.status != StreamStatus::Active {
-            // Inactive stream won't be changed
+        if stream.status.is_terminated() || stream.is_locked {
+            // Inactive and locked stream won't be changed
             self.save_stream(stream)?;
             return Ok(());
         }
 
-        if stream.owner_id != *sender_id// && stream.receiver_id != *sender_id {
+        if stream.owner_id != *sender_id {
             return Err(ContractError::CallerIsNotStreamActor {
                 owner: stream.owner_id,
                 receiver: stream.receiver_id,
