@@ -1,6 +1,6 @@
 [package]
 name = "roke-token"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Alex Kouprin <hello@kikimora.tech>"]
 edition = "2021"
 
@@ -10,4 +10,4 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 common = { path = "../common/" }
 near-contract-standards = "=4.0.0-pre.9"
-near-sdk = { version = "=4.0.0-pre.9", features = ["unstable"] }
+near-sdk = "=4.0.0-pre.9"

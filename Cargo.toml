@@ -6,14 +6,14 @@ edition = "2021"
 
 [dev-dependencies]
 near-contract-standards = "=4.0.0-pre.9"
-near-sdk = { version = "=4.0.0-pre.9", features = ["unstable"] }
+near-sdk = "=4.0.0-pre.9"
 near-sdk-sim = "=4.0.0-pre.9"
 
-common = { path = "./common" }
 finance = { path = "./finance" }
 streaming = { path = "./streaming" }
+locked-token = { path = "./locked_token" }
 roke-token = { path = "./roke_token" }
-non-fungible-token-w-roketo = { path = "./examples/nft" }
+nft-roketo = { path = "./examples/nft" }
 
 [profile.release]
 codegen-units=1
@@ -26,9 +26,9 @@ overflow-checks = true
 
 [workspace]
 members = [
-    "common",
     "examples/nft",
     "finance",
     "streaming",
     "roke_token",
+    "locked_token"
 ]

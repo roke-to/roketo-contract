@@ -160,7 +160,7 @@ impl Contract {
         }
 
         if path == "/CHANGELOG.md" {
-            return Web4Response::plain(include_str!("../../../CHANGELOG.md").to_string());
+            return Web4Response::plain(include_str!("../../CHANGELOG.md").to_string());
         }
 
         Web4Response::plain("Not found".to_string())
