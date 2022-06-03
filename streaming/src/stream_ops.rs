@@ -405,10 +405,18 @@ impl Contract {
     ) -> Result<(), ContractError> {
         let mut stream = self.extract_stream(&stream_id)?;
 
-        if stream.status.is_terminated() || stream.is_locked {
-            // Inactive and locked stream won't be changed
-            self.save_stream(stream)?;
-            return Ok(());
+        if stream.status.is_terminated() {
+            // Inactive stream won't be changed
+            return Err(ContractError::StreamTerminated {
+                stream_id: stream_id,
+            });
+        }
+
+        if stream.is_locked {
+            // Locked stream won't be changed
+            return Err(ContractError::StreamLocked {
+                stream_id: stream_id,
+            });
         }
 
         if stream.owner_id != *sender_id {
@@ -434,10 +442,11 @@ impl Contract {
 
         let mut stream = self.extract_stream(&stream_id)?;
 
-        if stream.status != StreamStatus::Active {
+        if stream.status.is_terminated() {
             // Inactive stream won't be transferred
-            self.save_stream(stream)?;
-            return Ok(promises);
+            return Err(ContractError::StreamTerminated {
+                stream_id: stream.id,
+            });
         }
 
         if stream.is_locked {

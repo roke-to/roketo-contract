@@ -543,27 +543,43 @@ fn test_stream_change_description() {
         d(1, 25),
     );
 
-    let stream = e.get_stream(&stream_id);
     let A = String::from("A");
-    let B = String::from("A");
-    let C = String::from("A");
+    let B = String::from("B");
+    let C = String::from("C");
     let a = Some(A.clone());
     let b = Some(B.clone());
     let c = Some(C.clone());
     e.change_description(&users.alice, &stream_id, A.clone());
-    assert_eq!(stream.description, a);
+    assert_eq!(e.get_stream(&stream_id).description, a);
     e.skip_time(1);
-    assert_eq!(stream.description, a);
+    assert_eq!(e.get_stream(&stream_id).description, a);
     e.change_description(&users.alice, &stream_id, B.clone());
-    assert_eq!(stream.description, b);
+    assert_eq!(e.get_stream(&stream_id).description, b);
     e.pause_stream(&users.alice, &stream_id);
-    assert_eq!(stream.description, b);
+    assert_eq!(e.get_stream(&stream_id).description, b);
     e.change_description(&users.alice, &stream_id, C.clone());
-    assert_eq!(stream.description, c);
+    assert_eq!(e.get_stream(&stream_id).description, c);
     e.stop_stream(&users.alice, &stream_id);
-    e.change_description(&users.alice, &stream_id, A.clone()); //check returned errors
-    assert_eq!(stream.description, c);
-    // check locked streams
+    assert!(!e
+        .change_description_err(&users.alice, &stream_id, A.clone())
+        .is_ok());
+    assert_eq!(e.get_stream(&stream_id).description, c);
+
+    let locked_stream_id = e.create_stream_ext(
+        &users.alice,
+        &users.charlie,
+        &tokens.wnear_simple,
+        d(1, 26),
+        d(1, 25),
+        None,
+        None,
+        None,
+        None,
+        Some(true),
+    );
+
+    e.change_description(&users.alice, &locked_stream_id, A.clone());
+    assert_eq!(e.get_stream(&locked_stream_id).description, None);
 }
 
 #[test]
