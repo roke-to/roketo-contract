@@ -24,13 +24,14 @@ pub use streaming::{
 };
 
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
-    STREAMING_WASM_BYTES => "res/streaming.wasm",
     FINANCE_WASM_BYTES => "res/finance.wasm",
-    FUNGIBLE_TOKEN_WASM_BYTES => "res/fungible_token.wasm",
-    ROKE_TOKEN_WASM_BYTES => "res/roke_token.wasm",
-    AURORA_WASM_BYTES => "res/aurora.wasm",
     NFT_ROKETO_WASM_BYTES => "res/nft_roketo.wasm",
-    WRAP_NEAR_WASM_BYTES => "res/wrap_near.wasm",
+    ROKE_TOKEN_WASM_BYTES => "res/roke_token.wasm",
+    STREAMING_WASM_BYTES => "res/streaming.wasm",
+
+    AURORA_WASM_BYTES => "tests/aurora.wasm",
+    FUNGIBLE_TOKEN_WASM_BYTES => "tests/fungible_token.wasm",
+    WRAP_NEAR_WASM_BYTES => "tests/wrap_near.wasm",
 }
 
 pub const NEAR: &str = "near";

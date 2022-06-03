@@ -1,5 +1,5 @@
 [package]
-name = "nft-roketo"
+name = "locked-token"
 version = "1.0.0"
 authors = ["Alex Kouprin <hello@kikimora.tech>"]
 edition = "2021"
@@ -8,5 +8,6 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+common = { path = "../common/" }
 near-contract-standards = "=4.0.0-pre.9"
 near-sdk = "=4.0.0-pre.9"

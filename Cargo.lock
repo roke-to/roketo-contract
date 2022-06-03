@@ -452,7 +452,7 @@ dependencies = [
 
 [[package]]
 name = "common"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "near-sdk",
 ]
@@ -946,7 +946,7 @@ dependencies = [
 
 [[package]]
 name = "finance"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "common",
  "near-contract-standards",
@@ -1408,6 +1408,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "88943dd7ef4a2e5a4bfa2753aaab3013e34ce2533d1996fb18ef591e315e2b3b"
 dependencies = [
  "scopeguard",
+]
+
+[[package]]
+name = "locked-token"
+version = "1.0.0"
+dependencies = [
+ "common",
+ "near-contract-standards",
+ "near-sdk",
 ]
 
 [[package]]
@@ -1977,6 +1986,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "nft-roketo"
+version = "1.0.0"
+dependencies = [
+ "near-contract-standards",
+ "near-sdk",
+]
+
+[[package]]
 name = "nix"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1997,14 +2014,6 @@ checksum = "a8903e5a29a317527874d0402f867152a3d21c908bb0b933e416c65e301d4c36"
 dependencies = [
  "memchr",
  "minimal-lexical",
-]
-
-[[package]]
-name = "non-fungible-token-w-roketo"
-version = "1.0.0"
-dependencies = [
- "near-contract-standards",
- "near-sdk",
 ]
 
 [[package]]
@@ -2581,7 +2590,7 @@ dependencies = [
 
 [[package]]
 name = "roke-token"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "common",
  "near-contract-standards",
@@ -2592,12 +2601,12 @@ dependencies = [
 name = "roketo"
 version = "1.0.0"
 dependencies = [
- "common",
  "finance",
+ "locked-token",
  "near-contract-standards",
  "near-sdk",
  "near-sdk-sim",
- "non-fungible-token-w-roketo",
+ "nft-roketo",
  "roke-token",
  "streaming",
 ]
@@ -2796,7 +2805,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "streaming"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "common",
  "near-contract-standards",
