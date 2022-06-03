@@ -1,5 +1,14 @@
+use std::collections::HashMap;
+
+mod dao;
+mod interface;
+
+pub use crate::dao::*;
+
 pub use common::*;
 
+use near_contract_standards::fungible_token::core_impl::ext_fungible_token;
+use near_contract_standards::fungible_token::events::{FtBurn, FtMint};
 use near_contract_standards::fungible_token::metadata::{
     FungibleTokenMetadata, FungibleTokenMetadataProvider, FT_METADATA_SPEC,
 };
@@ -7,9 +16,10 @@ use near_contract_standards::fungible_token::FungibleToken;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::LazyOption;
 use near_sdk::json_types::U128;
+use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::{
-    env, log, near_bindgen, require, AccountId, Balance, BorshStorageKey, PanicOnDefault,
-    PromiseOrValue,
+    env, log, near_bindgen, require, AccountId, Balance, BorshStorageKey, Gas, PanicOnDefault,
+    Promise, PromiseOrValue, Timestamp, ONE_YOCTO,
 };
 
 #[near_bindgen]
@@ -17,6 +27,8 @@ use near_sdk::{
 pub struct Contract {
     token: FungibleToken,
     metadata: LazyOption<FungibleTokenMetadata>,
+
+    pub dao: Dao,
 }
 
 #[derive(BorshSerialize, BorshStorageKey)]
@@ -28,7 +40,7 @@ enum StorageKey {
 #[near_bindgen]
 impl Contract {
     #[init]
-    pub fn new() -> Self {
+    pub fn new(dao_id: AccountId, unlock_price: Balance) -> Self {
         require!(!env::state_exists(), "Already initialized");
         let metadata = FungibleTokenMetadata {
             spec: FT_METADATA_SPEC.to_string(),
@@ -43,14 +55,33 @@ impl Contract {
         let mut contract = Self {
             token: FungibleToken::new(StorageKey::FungibleToken),
             metadata: LazyOption::new(StorageKey::Metadata, Some(&metadata)),
+            dao: Dao::new(dao_id, unlock_price),
         };
         contract
             .token
-            .internal_register_account(&env::predecessor_account_id());
+            .internal_register_account(&contract.dao.dao_id);
         contract
-            .token
-            .internal_deposit(&env::predecessor_account_id(), ROKE_TOKEN_TOTAL_SUPPLY);
-        contract
+    }
+
+    fn mint(&mut self, amount: Balance, memo: Option<&str>) {
+        self.token.internal_deposit(&self.dao.dao_id, amount);
+        FtMint {
+            owner_id: &self.dao.dao_id,
+            amount: &amount.into(),
+            memo,
+        }
+        .emit();
+    }
+
+    fn burn(&mut self, amount: Balance) {
+        self.token
+            .internal_withdraw(&env::predecessor_account_id(), amount);
+        FtBurn {
+            owner_id: &env::predecessor_account_id(),
+            amount: &amount.into(),
+            memo: None,
+        }
+        .emit();
     }
 
     fn on_account_closed(&mut self, account_id: AccountId, balance: Balance) {
@@ -92,7 +123,8 @@ mod tests {
     fn test_new() {
         let mut context = get_context(accounts(1));
         testing_env!(context.build());
-        let contract = Contract::new();
+        let mut contract = Contract::new(accounts(1), 0);
+        contract.mint(ROKE_TOKEN_TOTAL_SUPPLY, Some("init minting"));
         testing_env!(context.is_view(true).build());
         assert_eq!(contract.ft_total_supply().0, ROKE_TOKEN_TOTAL_SUPPLY);
         assert_eq!(
@@ -113,7 +145,8 @@ mod tests {
     fn test_transfer() {
         let mut context = get_context(accounts(2));
         testing_env!(context.build());
-        let mut contract = Contract::new();
+        let mut contract = Contract::new(accounts(2), 0);
+        contract.mint(ROKE_TOKEN_TOTAL_SUPPLY, None);
         testing_env!(context
             .storage_usage(env::storage_usage())
             .attached_deposit(contract.storage_balance_bounds().min.into())
@@ -141,5 +174,44 @@ mod tests {
             (ROKE_TOKEN_TOTAL_SUPPLY - transfer_amount)
         );
         assert_eq!(contract.ft_balance_of(accounts(1)).0, transfer_amount);
+    }
+
+    #[test]
+    fn test_multiple_mint() {
+        let mut context = get_context(accounts(1));
+        testing_env!(context.build());
+        let mut contract = Contract::new(accounts(1), 0);
+        contract.mint(12345, None);
+        testing_env!(context.is_view(true).build());
+        assert_eq!(contract.ft_total_supply().0, 12345);
+        assert_eq!(contract.ft_balance_of(accounts(1)).0, 12345);
+        testing_env!(context.is_view(false).build());
+        contract.mint(ROKE_TOKEN_TOTAL_SUPPLY / 3, None);
+        testing_env!(context.is_view(true).build());
+        assert_eq!(
+            contract.ft_total_supply().0,
+            12345 + ROKE_TOKEN_TOTAL_SUPPLY / 3
+        );
+        assert_eq!(
+            contract.ft_balance_of(accounts(1)).0,
+            12345 + ROKE_TOKEN_TOTAL_SUPPLY / 3
+        );
+    }
+
+    #[test]
+    fn test_burn() {
+        let mut context = get_context(accounts(1));
+        testing_env!(context.build());
+        let mut contract = Contract::new(accounts(1), 0);
+        contract.mint(12345, None);
+        contract.burn(345);
+        testing_env!(context.is_view(true).build());
+        assert_eq!(contract.ft_total_supply().0, 12000);
+        assert_eq!(contract.ft_balance_of(accounts(1)).0, 12000);
+        testing_env!(context.is_view(false).build());
+        contract.burn(2000);
+        testing_env!(context.is_view(true).build());
+        assert_eq!(contract.ft_total_supply().0, 10000);
+        assert_eq!(contract.ft_balance_of(accounts(1)).0, 10000);
     }
 }
