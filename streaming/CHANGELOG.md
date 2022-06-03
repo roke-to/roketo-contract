@@ -6,9 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.1.5] - 2022-06-02
+## [2.1.5] - 2022-06-03
 ### Added
 - `change_description` method and test for it
+### Changed
+- minor changes for method `change_description`
 
 ## [2.1.4] - 2022-06-01
 ### Added
