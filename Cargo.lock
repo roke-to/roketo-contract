@@ -2580,6 +2580,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "roke-token"
+version = "0.1.0"
+dependencies = [
+ "common",
+ "near-contract-standards",
+ "near-sdk",
+]
+
+[[package]]
 name = "roketo"
 version = "1.0.0"
 dependencies = [
@@ -2589,6 +2598,7 @@ dependencies = [
  "near-sdk",
  "near-sdk-sim",
  "non-fungible-token-w-roketo",
+ "roke-token",
  "streaming",
 ]
 

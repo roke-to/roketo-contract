@@ -12,6 +12,7 @@ near-sdk-sim = "=4.0.0-pre.9"
 common = { path = "./common" }
 finance = { path = "./finance" }
 streaming = { path = "./streaming" }
+roke-token = { path = "./roke_token" }
 non-fungible-token-w-roketo = { path = "./examples/nft" }
 
 [profile.release]
@@ -29,4 +30,5 @@ members = [
     "examples/nft",
     "finance",
     "streaming",
+    "roke_token",
 ]
