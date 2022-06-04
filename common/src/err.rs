@@ -23,8 +23,12 @@ pub enum ContractError {
         receiver: AccountId,
         caller: AccountId,
     },
+    NoOraclesFound,
     UnknownOracle {
         received: AccountId,
+    },
+    OracleNotApproved {
+        oracle: AccountId,
     },
     UnknownToken {
         received: AccountId,
@@ -52,6 +56,9 @@ pub enum ContractError {
         stream_status: StreamStatus,
     },
     CliffNotPassed {
+        timestamp: u64,
+    },
+    UnlockPeriodNotPassed {
         timestamp: u64,
     },
     InvalidCommission,
