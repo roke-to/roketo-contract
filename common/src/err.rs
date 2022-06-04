@@ -7,6 +7,9 @@ use near_sdk::FunctionError;
 #[serde(crate = "near_sdk::serde")]
 pub enum ContractError {
     Unknown,
+    InvalidParameter {
+        text: String,
+    },
     CallerIsNotDao {
         expected: AccountId,
         received: AccountId,

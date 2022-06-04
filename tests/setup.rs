@@ -546,8 +546,12 @@ impl Env {
         stream_id: &Base58CryptoHash,
         new_description: String,
     ) {
-        self.change_description_err(user, stream_id, new_description)
-            .is_ok();
+        assert!(
+            self.change_description_err(user, stream_id, new_description.clone())
+                .is_ok(),
+            "{}",
+            new_description
+        );
     }
 
     pub fn change_description_err(

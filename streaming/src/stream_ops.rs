@@ -406,29 +406,30 @@ impl Contract {
         let mut stream = self.extract_stream(&stream_id)?;
 
         if stream.status.is_terminated() {
-            // Inactive stream won't be changed
             return Err(ContractError::StreamTerminated {
                 stream_id: stream_id,
             });
         }
 
         if stream.is_locked {
-            // Locked stream won't be changed
             return Err(ContractError::StreamLocked {
                 stream_id: stream_id,
             });
         }
 
         if stream.owner_id != *sender_id {
-            return Err(ContractError::CallerIsNotStreamActor {
-                owner: stream.owner_id,
-                receiver: stream.receiver_id,
-                caller: sender_id.clone(),
+            return Err(ContractError::CallerIsNotStreamOwner {
+                expected: stream.owner_id,
+                received: sender_id.clone(),
+            });
+        }
+        if new_description.len() > 255 {
+            return Err(ContractError::InvalidParameter {
+                text: String::from("description is too long"),
             });
         }
         stream.description = Some(new_description);
-        self.save_stream(stream)?;
-        Ok(())
+        self.save_stream(stream)
     }
 
     pub fn change_receiver_op(
@@ -443,7 +444,6 @@ impl Contract {
         let mut stream = self.extract_stream(&stream_id)?;
 
         if stream.status.is_terminated() {
-            // Inactive stream won't be transferred
             return Err(ContractError::StreamTerminated {
                 stream_id: stream.id,
             });

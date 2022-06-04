@@ -549,6 +549,25 @@ fn test_stream_change_description() {
     let a = Some(A.clone());
     let b = Some(B.clone());
     let c = Some(C.clone());
+    let mut long_string = String::new();
+    for _ in 0..255 {
+        long_string.push('0');
+    }
+    let mut very_long_string = long_string.clone();
+    very_long_string.push('0');
+    assert_eq!(long_string.len(), 255);
+    assert_eq!(very_long_string.len(), 256);
+
+    e.change_description(&users.alice, &stream_id, long_string.clone());
+    assert_eq!(
+        e.get_stream(&stream_id).description,
+        Some(long_string.clone())
+    );
+    assert!(!e
+        .change_description_err(&users.alice, &stream_id, very_long_string.clone())
+        .is_ok());
+    assert_eq!(e.get_stream(&stream_id).description, Some(long_string));
+
     e.change_description(&users.alice, &stream_id, A.clone());
     assert_eq!(e.get_stream(&stream_id).description, a);
     e.skip_time(1);
