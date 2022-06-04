@@ -597,7 +597,9 @@ fn test_stream_change_description() {
         Some(true),
     );
 
-    e.change_description(&users.alice, &locked_stream_id, A.clone());
+    assert!(!e
+        .change_description_err(&users.alice, &locked_stream_id, A.clone())
+        .is_ok());
     assert_eq!(e.get_stream(&locked_stream_id).description, None);
 }
 
