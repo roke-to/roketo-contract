@@ -553,6 +553,7 @@ impl Env {
         is_expirable: Option<bool>,
         is_locked: Option<bool>,
     ) -> U128 {
+        let tokens_per_sec = U128(tokens_per_sec);
         self.contract_ft_transfer_call(
             &token,
             &owner,
