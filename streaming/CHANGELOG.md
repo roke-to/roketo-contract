@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Changed
 - `account_unstake` signature fix
+- `tokens_per_sec` is U128
 
 ## [2.1.5] - 2022-06-03
 ### Added
