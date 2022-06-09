@@ -16,7 +16,7 @@ impl Contract {
     pub fn change_description(
         &mut self,
         stream_id: Base58CryptoHash,
-        new_description: String,
+        new_description: Option<String>,
     ) -> Result<(), ContractError> {
         check_deposit(ONE_YOCTO)?;
         self.change_description_op(

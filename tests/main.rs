@@ -543,12 +543,9 @@ fn test_stream_change_description() {
         d(1, 25),
     );
 
-    let A = String::from("A");
-    let B = String::from("B");
-    let C = String::from("C");
-    let a = Some(A.clone());
-    let b = Some(B.clone());
-    let c = Some(C.clone());
+    let a = Some(String::from("A"));
+    let b = Some(String::from("B"));
+    let c = Some(String::from("C"));
     let mut long_string = String::new();
     for _ in 0..255 {
         long_string.push('0');
@@ -558,29 +555,29 @@ fn test_stream_change_description() {
     assert_eq!(long_string.len(), 255);
     assert_eq!(very_long_string.len(), 256);
 
-    e.change_description(&users.alice, &stream_id, long_string.clone());
-    assert_eq!(
-        e.get_stream(&stream_id).description,
-        Some(long_string.clone())
-    );
+    e.change_description(&users.alice, &stream_id, a.clone());
+    assert_eq!(e.get_stream(&stream_id).description, a);
+
+    e.change_description(&users.alice, &stream_id, Some(long_string.clone()));
+    assert_eq!(e.get_stream(&stream_id).description.unwrap(), long_string);
     assert!(!e
-        .change_description_err(&users.alice, &stream_id, very_long_string.clone())
+        .change_description_err(&users.alice, &stream_id, Some(very_long_string.clone()))
         .is_ok());
     assert_eq!(e.get_stream(&stream_id).description, Some(long_string));
 
-    e.change_description(&users.alice, &stream_id, A.clone());
+    e.change_description(&users.alice, &stream_id, a.clone());
     assert_eq!(e.get_stream(&stream_id).description, a);
     e.skip_time(1);
     assert_eq!(e.get_stream(&stream_id).description, a);
-    e.change_description(&users.alice, &stream_id, B.clone());
+    e.change_description(&users.alice, &stream_id, b.clone());
     assert_eq!(e.get_stream(&stream_id).description, b);
     e.pause_stream(&users.alice, &stream_id);
     assert_eq!(e.get_stream(&stream_id).description, b);
-    e.change_description(&users.alice, &stream_id, C.clone());
+    e.change_description(&users.alice, &stream_id, c.clone());
     assert_eq!(e.get_stream(&stream_id).description, c);
     e.stop_stream(&users.alice, &stream_id);
     assert!(!e
-        .change_description_err(&users.alice, &stream_id, A.clone())
+        .change_description_err(&users.alice, &stream_id, a.clone())
         .is_ok());
     assert_eq!(e.get_stream(&stream_id).description, c);
 
@@ -598,7 +595,7 @@ fn test_stream_change_description() {
     );
 
     assert!(!e
-        .change_description_err(&users.alice, &locked_stream_id, A.clone())
+        .change_description_err(&users.alice, &locked_stream_id, a.clone())
         .is_ok());
     assert_eq!(e.get_stream(&locked_stream_id).description, None);
 }

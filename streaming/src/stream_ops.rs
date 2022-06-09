@@ -401,7 +401,7 @@ impl Contract {
         &mut self,
         sender_id: &AccountId,
         stream_id: CryptoHash,
-        new_description: String,
+        new_description: Option<String>,
     ) -> Result<(), ContractError> {
         let mut stream = self.extract_stream(&stream_id)?;
 
@@ -423,12 +423,15 @@ impl Contract {
                 received: sender_id.clone(),
             });
         }
-        if new_description.len() > 255 {
-            return Err(ContractError::InvalidParameter {
-                text: String::from("description is too long"),
-            });
+        if let Some(text) = &new_description {
+            if text.len() > MAX_DESCRIPTION_LEN {
+                return Err(ContractError::DescriptionTooLong {
+                    max_description_len: MAX_DESCRIPTION_LEN,
+                    received: text.len(),
+                });
+            }
         }
-        stream.description = Some(new_description);
+        stream.description = new_description;
         self.save_stream(stream)
     }
 

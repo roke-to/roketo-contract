@@ -544,21 +544,18 @@ impl Env {
         &self,
         user: &UserAccount,
         stream_id: &Base58CryptoHash,
-        new_description: String,
+        new_description: Option<String>,
     ) {
-        assert!(
-            self.change_description_err(user, stream_id, new_description.clone())
-                .is_ok(),
-            "{}",
-            new_description
-        );
+        assert!(self
+            .change_description_err(user, stream_id, new_description)
+            .is_ok());
     }
 
     pub fn change_description_err(
         &self,
         user: &UserAccount,
         stream_id: &Base58CryptoHash,
-        new_description: String,
+        new_description: Option<String>,
     ) -> ExecutionResult {
         user.function_call(
             self.streaming
