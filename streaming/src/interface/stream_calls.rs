@@ -13,6 +13,21 @@ impl Contract {
 
     #[handle_result]
     #[payable]
+    pub fn change_description(
+        &mut self,
+        stream_id: Base58CryptoHash,
+        new_description: Option<String>,
+    ) -> Result<(), ContractError> {
+        check_deposit(ONE_YOCTO)?;
+        self.change_description_op(
+            &env::predecessor_account_id(),
+            stream_id.into(),
+            new_description,
+        )
+    }
+
+    #[handle_result]
+    #[payable]
     pub fn pause_stream(
         &mut self,
         stream_id: Base58CryptoHash,

@@ -532,6 +532,75 @@ fn test_stream_start_pause_finished() {
 }
 
 #[test]
+fn test_stream_change_description() {
+    let (e, tokens, users) = basic_setup();
+
+    let stream_id = e.create_stream(
+        &users.alice,
+        &users.charlie,
+        &tokens.wnear_simple,
+        d(1, 26),
+        d(1, 25),
+    );
+
+    let a = Some(String::from("A"));
+    let b = Some(String::from("B"));
+    let c = Some(String::from("C"));
+    let mut long_string = String::new();
+    for _ in 0..255 {
+        long_string.push('0');
+    }
+    let mut very_long_string = long_string.clone();
+    very_long_string.push('0');
+    assert_eq!(long_string.len(), 255);
+    assert_eq!(very_long_string.len(), 256);
+
+    e.change_description(&users.alice, &stream_id, a.clone());
+    assert_eq!(e.get_stream(&stream_id).description, a);
+
+    e.change_description(&users.alice, &stream_id, Some(long_string.clone()));
+    assert_eq!(e.get_stream(&stream_id).description.unwrap(), long_string);
+    assert!(!e
+        .change_description_err(&users.alice, &stream_id, Some(very_long_string.clone()))
+        .is_ok());
+    assert_eq!(e.get_stream(&stream_id).description, Some(long_string));
+
+    e.change_description(&users.alice, &stream_id, a.clone());
+    assert_eq!(e.get_stream(&stream_id).description, a);
+    e.skip_time(1);
+    assert_eq!(e.get_stream(&stream_id).description, a);
+    e.change_description(&users.alice, &stream_id, b.clone());
+    assert_eq!(e.get_stream(&stream_id).description, b);
+    e.pause_stream(&users.alice, &stream_id);
+    assert_eq!(e.get_stream(&stream_id).description, b);
+    e.change_description(&users.alice, &stream_id, c.clone());
+    assert_eq!(e.get_stream(&stream_id).description, c);
+    e.stop_stream(&users.alice, &stream_id);
+    assert!(!e
+        .change_description_err(&users.alice, &stream_id, a.clone())
+        .is_ok());
+    assert_eq!(e.get_stream(&stream_id).description, c);
+
+    let locked_stream_id = e.create_stream_ext(
+        &users.alice,
+        &users.charlie,
+        &tokens.wnear_simple,
+        d(1, 26),
+        d(1, 25),
+        None,
+        None,
+        None,
+        None,
+        Some(true),
+    );
+
+    assert!(!e
+        .change_description_err(&users.alice, &locked_stream_id, a.clone())
+        .is_ok());
+    assert_eq!(e.get_stream(&locked_stream_id).description, None);
+}
+
+#[test]
 fn test_get_streams() {
     let (e, tokens, _users) = basic_setup();
     let mut all_streams = HashSet::new();

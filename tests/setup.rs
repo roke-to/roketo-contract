@@ -540,6 +540,32 @@ impl Env {
         stream
     }
 
+    pub fn change_description(
+        &self,
+        user: &UserAccount,
+        stream_id: &Base58CryptoHash,
+        new_description: Option<String>,
+    ) {
+        assert!(self
+            .change_description_err(user, stream_id, new_description)
+            .is_ok());
+    }
+
+    pub fn change_description_err(
+        &self,
+        user: &UserAccount,
+        stream_id: &Base58CryptoHash,
+        new_description: Option<String>,
+    ) -> ExecutionResult {
+        user.function_call(
+            self.streaming
+                .contract
+                .change_description(*stream_id, new_description),
+            MAX_GAS,
+            ONE_YOCTO,
+        )
+    }
+
     pub fn create_stream_ext_err(
         &self,
         owner: &UserAccount,

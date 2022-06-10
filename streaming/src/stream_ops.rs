@@ -397,6 +397,44 @@ impl Contract {
         Ok(promises)
     }
 
+    pub fn change_description_op(
+        &mut self,
+        sender_id: &AccountId,
+        stream_id: CryptoHash,
+        new_description: Option<String>,
+    ) -> Result<(), ContractError> {
+        let mut stream = self.extract_stream(&stream_id)?;
+
+        if stream.status.is_terminated() {
+            return Err(ContractError::StreamTerminated {
+                stream_id: stream_id,
+            });
+        }
+
+        if stream.is_locked {
+            return Err(ContractError::StreamLocked {
+                stream_id: stream_id,
+            });
+        }
+
+        if stream.owner_id != *sender_id {
+            return Err(ContractError::CallerIsNotStreamOwner {
+                expected: stream.owner_id,
+                received: sender_id.clone(),
+            });
+        }
+        if let Some(text) = &new_description {
+            if text.len() > MAX_DESCRIPTION_LEN {
+                return Err(ContractError::DescriptionTooLong {
+                    max_description_len: MAX_DESCRIPTION_LEN,
+                    received: text.len(),
+                });
+            }
+        }
+        stream.description = new_description;
+        self.save_stream(stream)
+    }
+
     pub fn change_receiver_op(
         &mut self,
         prev_receiver_id: &AccountId,
@@ -408,10 +446,10 @@ impl Contract {
 
         let mut stream = self.extract_stream(&stream_id)?;
 
-        if stream.status != StreamStatus::Active {
-            // Inactive stream won't be transferred
-            self.save_stream(stream)?;
-            return Ok(promises);
+        if stream.status.is_terminated() {
+            return Err(ContractError::StreamTerminated {
+                stream_id: stream.id,
+            });
         }
 
         if stream.is_locked {
