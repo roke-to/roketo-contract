@@ -1,35 +1,22 @@
-pub use std::cmp::min;
-pub use std::collections::HashSet;
-
 use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
-use near_contract_standards::non_fungible_token::metadata::{
-    NFTContractMetadata, NFT_METADATA_SPEC,
-};
-use near_contract_standards::non_fungible_token::{metadata::TokenMetadata, TokenId};
-pub use near_sdk::json_types::{Base58CryptoHash, U128};
+pub use near_sdk::json_types::U128;
 pub use near_sdk::serde_json::json;
-pub use near_sdk::CryptoHash;
-pub use near_sdk::{env, serde_json, AccountId, Balance, Timestamp, ONE_NEAR, ONE_YOCTO};
+pub use near_sdk::{env, serde_json, AccountId, Balance, ONE_YOCTO};
 use near_sdk_sim::runtime::GenesisConfig;
 use near_sdk_sim::{
-    deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount,
+    deploy, init_simulator, ContractAccount, ExecutionResult, UserAccount,
 };
 use streaming::ContractContract as StreamingContract;
 pub use streaming::{
-    AccountView, ContractError, CreateRequest, Dao, SafeFloat, Stats, Stream, StreamFinishReason,
-    StreamStatus, Token, TokenStats, TransferCallRequest, DEFAULT_GAS_FOR_FT_TRANSFER,
-    DEFAULT_GAS_FOR_STORAGE_DEPOSIT, DEFAULT_STORAGE_BALANCE, DEFAULT_VIEW_STREAMS_LIMIT,
-    MAX_AMOUNT, MAX_STREAMING_SPEED, MIN_STREAMING_SPEED, ONE_TERA, ROKE_TOKEN_DECIMALS,
-    STORAGE_NEEDS_PER_STREAM,
+    AccountView, ContractError, CreateRequest, SafeFloat, Token, TransferCallRequest, ONE_TERA,
+    ROKE_TOKEN_DECIMALS, STORAGE_NEEDS_PER_STREAM,
 };
 
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
     FINANCE_WASM_BYTES => "res/finance.wasm",
-    NFT_ROKETO_WASM_BYTES => "res/nft_roketo.wasm",
     ROKE_TOKEN_WASM_BYTES => "res/roke_token.wasm",
     STREAMING_WASM_BYTES => "res/streaming.wasm",
 
-    AURORA_WASM_BYTES => "tests/aurora.wasm",
     FUNGIBLE_TOKEN_WASM_BYTES => "tests/fungible_token.wasm",
     WRAP_NEAR_WASM_BYTES => "tests/wrap_near.wasm",
 }
@@ -47,6 +34,19 @@ pub const T_GAS: Gas = 1_000_000_000_000;
 pub const DEFAULT_GAS: Gas = 15 * T_GAS;
 pub const MAX_GAS: Gas = 300 * T_GAS;
 
+
+pub fn to_yocto(value: &str) -> u128 {
+    let vals: Vec<_> = value.split('.').collect();
+    let part1 = vals[0].parse::<u128>().unwrap() * 10u128.pow(24);
+    if vals.len() > 1 {
+        let power = vals[1].len() as u32;
+        let part2 = vals[1].parse::<u128>().unwrap() * 10u128.pow(24 - power);
+        part1 + part2
+    } else {
+        part1
+    }
+}
+
 pub struct Env {
     pub root: UserAccount,
     pub near: UserAccount,
@@ -58,24 +58,12 @@ pub struct Env {
 }
 
 pub struct Tokens {
-    pub wnear: UserAccount,
     pub wnear_simple: UserAccount,
-    pub dacha: UserAccount,
-    pub ndai: UserAccount,
-    pub nusdt: UserAccount,
-    pub aurora: UserAccount,
 }
 
 pub struct Users {
     pub alice: UserAccount,
-    pub bob: UserAccount,
     pub charlie: UserAccount,
-    pub dude: UserAccount,
-    pub eve: UserAccount,
-}
-
-pub struct RoketoNFTs {
-    pub paras: UserAccount,
 }
 
 pub fn storage_deposit(
@@ -105,10 +93,6 @@ pub fn ft_storage_deposit(
         account_id,
         125 * env::STORAGE_PRICE_PER_BYTE,
     );
-}
-
-pub fn to_nano(timestamp: u64) -> Timestamp {
-    Timestamp::from(timestamp) * 10u64.pow(9)
 }
 
 impl Env {
@@ -198,57 +182,6 @@ impl Env {
         self.dao
             .function_call(
                 self.streaming.contract.dao_update_token(Token {
-                    account_id: tokens.ndai.account_id(),
-                    is_payment: true,
-                    commission_on_create: d(1, 18),
-                    commission_coef: SafeFloat { val: 1, pow: -3 }, // 0.1%
-                    commission_on_transfer: d(1, 17),
-                    storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
-                    gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
-                    gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
-                }),
-                DEFAULT_GAS,
-                ONE_YOCTO,
-            )
-            .assert_success();
-
-        self.dao
-            .function_call(
-                self.streaming.contract.dao_update_token(Token {
-                    account_id: tokens.nusdt.account_id(),
-                    is_payment: true,
-                    commission_on_create: d(1, 6),
-                    commission_coef: SafeFloat { val: 1, pow: -3 }, // 0.1%
-                    commission_on_transfer: d(1, 5),
-                    storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
-                    gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
-                    gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
-                }),
-                DEFAULT_GAS,
-                ONE_YOCTO,
-            )
-            .assert_success();
-
-        self.dao
-            .function_call(
-                self.streaming.contract.dao_update_token(Token {
-                    account_id: tokens.wnear.account_id(),
-                    is_payment: true,
-                    commission_on_create: d(1, 23), // 0.1 token
-                    commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
-                    commission_on_transfer: d(1, 22),
-                    storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
-                    gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
-                    gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
-                }),
-                DEFAULT_GAS,
-                ONE_YOCTO,
-            )
-            .assert_success();
-
-        self.dao
-            .function_call(
-                self.streaming.contract.dao_update_token(Token {
                     account_id: tokens.wnear_simple.account_id(),
                     is_payment: true,
                     commission_on_create: d(1, 23), // 0.1 token
@@ -257,23 +190,6 @@ impl Env {
                     storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
                     gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
                     gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
-                }),
-                DEFAULT_GAS,
-                ONE_YOCTO,
-            )
-            .assert_success();
-
-        self.dao
-            .function_call(
-                self.streaming.contract.dao_update_token(Token {
-                    account_id: tokens.aurora.account_id(),
-                    is_payment: true,
-                    commission_on_create: d(1, 15), // 0.001 token
-                    commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
-                    commission_on_transfer: d(1, 14),
-                    storage_balance_needed: 0, // aurora doesn't need storage deposit
-                    gas_for_ft_transfer: near_sdk::Gas(20 * ONE_TERA),
-                    gas_for_storage_deposit: near_sdk::Gas(20 * ONE_TERA),
                 }),
                 DEFAULT_GAS,
                 ONE_YOCTO,
@@ -326,126 +242,13 @@ impl Env {
     }
 
     pub fn mint_tokens(&self, tokens: &Tokens, user: &UserAccount, amount: Balance) {
-        ft_storage_deposit(user, &tokens.wnear.account_id(), &user.account_id());
         ft_storage_deposit(user, &tokens.wnear_simple.account_id(), &user.account_id());
-        ft_storage_deposit(user, &tokens.dacha.account_id(), &user.account_id());
-        ft_storage_deposit(user, &tokens.ndai.account_id(), &user.account_id());
-        ft_storage_deposit(user, &tokens.nusdt.account_id(), &user.account_id());
-        ft_storage_deposit(user, &tokens.aurora.account_id(), &user.account_id());
         ft_storage_deposit(user, &self.roketo_token.account_id(), &user.account_id());
 
         if amount > 0 {
-            self.mint_ft(&tokens.wnear, user, d(amount, 24));
             self.mint_ft(&tokens.wnear_simple, user, d(amount, 24));
-            self.mint_ft(&tokens.dacha, user, d(amount, 18));
-            self.mint_ft(&tokens.ndai, user, d(amount, 18));
-            self.mint_ft(&tokens.nusdt, user, d(amount, 6));
-            self.mint_ft(&tokens.aurora, user, d(amount, 18));
             self.mint_ft(&self.roketo_token, user, d(amount, 18));
         }
-    }
-
-    pub fn nft_mint(&self, token: &UserAccount, user: &UserAccount, token_id: &TokenId) {
-        self.near
-            .call(
-                token.account_id(),
-                "nft_mint",
-                &json!({
-                    "token_id": token_id.clone(),
-                    "token_owner_id": user.account_id(),
-                    "token_metadata": Some(sample_token_metadata()),
-                })
-                .to_string()
-                .into_bytes(),
-                MAX_GAS,
-                ONE_NEAR,
-            )
-            .assert_success()
-    }
-
-    pub fn nft_attach_stream(
-        &self,
-        token: &UserAccount,
-        token_id: &TokenId,
-        stream_id: &Base58CryptoHash,
-    ) {
-        self.near
-            .call(
-                token.account_id(),
-                "nft_attach_stream",
-                &json!({
-                    "token_id": token_id.clone(),
-                    "stream_id": stream_id.clone()
-                })
-                .to_string()
-                .into_bytes(),
-                MAX_GAS,
-                ONE_YOCTO,
-            )
-            .assert_success()
-    }
-
-    pub fn nft_detach_stream(
-        &self,
-        token: &UserAccount,
-        token_id: &TokenId,
-        stream_id: &Base58CryptoHash,
-    ) {
-        self.near
-            .call(
-                token.account_id(),
-                "nft_detach_stream",
-                &json!({
-                    "token_id": token_id.clone(),
-                    "stream_id": stream_id.clone()
-                })
-                .to_string()
-                .into_bytes(),
-                MAX_GAS,
-                ONE_YOCTO,
-            )
-            .assert_success()
-    }
-
-    pub fn nft_transfer(
-        &self,
-        sender: &UserAccount,
-        token: &UserAccount,
-        receiver: &UserAccount,
-        token_id: &TokenId,
-    ) {
-        sender
-            .call(
-                token.account_id(),
-                "nft_transfer",
-                &json!({
-                    "receiver_id": receiver.account_id(),
-                    "token_id": token_id.clone()
-                })
-                .to_string()
-                .into_bytes(),
-                MAX_GAS,
-                DEFAULT_STORAGE_BALANCE,
-            )
-            .assert_success()
-    }
-
-    pub fn get_nft_token(
-        &self,
-        token: &UserAccount,
-        token_id: &TokenId,
-    ) -> Option<near_contract_standards::non_fungible_token::Token> {
-        self.near
-            .view(
-                token.account_id(),
-                "nft_token",
-                &json!({
-                    "token_id": token_id.clone()
-                })
-                .to_string()
-                .into_bytes(),
-            )
-            .unwrap_json()
     }
 
     pub fn get_near_balance(&self, user: &UserAccount) -> u128 {
@@ -465,104 +268,6 @@ impl Env {
                     .into_bytes(),
                 )
                 .unwrap_json::<U128>(),
-        )
-    }
-
-    pub fn get_stats(&self) -> Stats {
-        self.near
-            .view(self.streaming.account_id(), "get_stats", &[])
-            .unwrap_json()
-    }
-
-    pub fn get_dao(&self) -> Dao {
-        self.near
-            .view(self.streaming.account_id(), "get_dao", &[])
-            .unwrap_json()
-    }
-
-    pub fn get_token(&self, token: &UserAccount) -> (Token, Option<TokenStats>) {
-        self.near
-            .view(
-                self.streaming.account_id(),
-                "get_token",
-                &json!({
-                    "token_account_id": token.account_id(),
-                })
-                .to_string()
-                .into_bytes(),
-            )
-            .unwrap_json()
-    }
-
-    pub fn get_account(&self, user: &UserAccount) -> AccountView {
-        let account: AccountView = self
-            .near
-            .view_method_call(self.streaming.contract.get_account(user.account_id(), None))
-            .unwrap_json();
-        account
-    }
-
-    pub fn get_streams(&self, from: Option<u32>, limit: Option<u32>) -> Vec<Stream> {
-        self.near
-            .view_method_call(self.streaming.contract.get_streams(from, limit))
-            .unwrap_json()
-    }
-
-    pub fn get_account_outgoing_streams(&self, user: &UserAccount) -> Vec<Stream> {
-        let streams: Vec<Stream> = self
-            .near
-            .view_method_call(self.streaming.contract.get_account_outgoing_streams(
-                user.account_id(),
-                None,
-                None,
-            ))
-            .unwrap_json();
-        streams
-    }
-
-    pub fn get_account_incoming_streams(&self, user: &UserAccount) -> Vec<Stream> {
-        let streams: Vec<Stream> = self
-            .near
-            .view_method_call(self.streaming.contract.get_account_incoming_streams(
-                user.account_id(),
-                None,
-                None,
-            ))
-            .unwrap_json();
-        streams
-    }
-
-    pub fn get_stream(&self, stream_id: &Base58CryptoHash) -> Stream {
-        let stream: Stream = self
-            .near
-            .view_method_call(self.streaming.contract.get_stream(*stream_id))
-            .unwrap_json();
-        stream
-    }
-
-    pub fn change_description(
-        &self,
-        user: &UserAccount,
-        stream_id: &Base58CryptoHash,
-        new_description: Option<String>,
-    ) {
-        assert!(self
-            .change_description_err(user, stream_id, new_description)
-            .is_ok());
-    }
-
-    pub fn change_description_err(
-        &self,
-        user: &UserAccount,
-        stream_id: &Base58CryptoHash,
-        new_description: Option<String>,
-    ) -> ExecutionResult {
-        user.function_call(
-            self.streaming
-                .contract
-                .change_description(*stream_id, new_description),
-            MAX_GAS,
-            ONE_YOCTO,
         )
     }
 
@@ -600,279 +305,25 @@ impl Env {
         )
         .unwrap_json()
     }
-
-    pub fn create_stream_ext(
-        &self,
-        owner: &UserAccount,
-        receiver: &UserAccount,
-        token: &UserAccount,
-        amount: Balance,
-        tokens_per_sec: Balance,
-        description: Option<String>,
-        cliff_period_sec: Option<u32>,
-        is_auto_start_enabled: Option<bool>,
-        is_expirable: Option<bool>,
-        is_locked: Option<bool>,
-    ) -> Base58CryptoHash {
-        let amount_accepted = self.create_stream_ext_err(
-            owner,
-            receiver,
-            token,
-            amount,
-            tokens_per_sec,
-            description,
-            cliff_period_sec,
-            is_auto_start_enabled,
-            is_expirable,
-            is_locked,
-        );
-        assert_eq!(amount_accepted, U128(amount));
-        self.get_account(&owner).last_created_stream.unwrap()
-    }
-
-    pub fn create_stream(
-        &self,
-        owner: &UserAccount,
-        receiver: &UserAccount,
-        token: &UserAccount,
-        amount: Balance,
-        tokens_per_sec: Balance,
-    ) -> Base58CryptoHash {
-        self.create_stream_ext(
-            owner,
-            receiver,
-            token,
-            amount,
-            tokens_per_sec,
-            None,
-            None,
-            None,
-            None,
-            None,
-        )
-    }
-
-    pub fn start_stream_err(
-        &self,
-        user: &UserAccount,
-        stream_id: &Base58CryptoHash,
-    ) -> ExecutionResult {
-        user.function_call(
-            self.streaming.contract.start_stream(*stream_id),
-            MAX_GAS,
-            ONE_YOCTO,
-        )
-    }
-
-    pub fn pause_stream_err(
-        &self,
-        user: &UserAccount,
-        stream_id: &Base58CryptoHash,
-    ) -> ExecutionResult {
-        user.function_call(
-            self.streaming.contract.pause_stream(*stream_id),
-            MAX_GAS,
-            ONE_YOCTO,
-        )
-    }
-
-    pub fn stop_stream_err(
-        &self,
-        user: &UserAccount,
-        stream_id: &Base58CryptoHash,
-    ) -> ExecutionResult {
-        user.function_call(
-            self.streaming.contract.stop_stream(*stream_id),
-            MAX_GAS,
-            ONE_YOCTO,
-        )
-    }
-
-    pub fn withdraw_err(
-        &self,
-        user: &UserAccount,
-        stream_id: &Base58CryptoHash,
-    ) -> ExecutionResult {
-        user.function_call(
-            self.streaming.contract.withdraw(vec![*stream_id]),
-            MAX_GAS,
-            ONE_YOCTO,
-        )
-    }
-
-    pub fn withdraw_ext_err(
-        &self,
-        user: &UserAccount,
-        stream_ids: &[&Base58CryptoHash],
-    ) -> ExecutionResult {
-        user.function_call(
-            self.streaming
-                .contract
-                .withdraw(stream_ids.iter().map(|&x| (*x).into()).collect()),
-            MAX_GAS,
-            ONE_YOCTO,
-        )
-    }
-
-    pub fn deposit_err(
-        &self,
-        user: &UserAccount,
-        stream_id: &Base58CryptoHash,
-        token: &UserAccount,
-        amount: Balance,
-    ) -> U128 {
-        self.contract_ft_transfer_call(
-            &token,
-            &user,
-            amount,
-            &serde_json::to_string(&TransferCallRequest::Deposit {
-                stream_id: *stream_id,
-            })
-            .unwrap(),
-        )
-        .unwrap_json()
-    }
-
-    #[allow(dead_code)]
-    pub fn nft_change_receiver(
-        &self,
-        prev_receiver: &UserAccount,
-        stream_id: &Base58CryptoHash,
-        receiver: &UserAccount,
-    ) {
-        prev_receiver
-            .function_call(
-                self.streaming
-                    .contract
-                    .nft_change_receiver(*stream_id, receiver.account_id()),
-                MAX_GAS,
-                ONE_NEAR, // TODO set reasonable
-            )
-            .assert_success()
-    }
-
-    pub fn start_stream(&self, user: &UserAccount, stream_id: &Base58CryptoHash) {
-        assert!(self.start_stream_err(user, stream_id).is_ok());
-    }
-
-    pub fn pause_stream(&self, user: &UserAccount, stream_id: &Base58CryptoHash) {
-        assert!(self.pause_stream_err(user, stream_id).is_ok());
-    }
-
-    pub fn stop_stream(&self, user: &UserAccount, stream_id: &Base58CryptoHash) {
-        assert!(self.stop_stream_err(user, stream_id).is_ok());
-    }
-
-    pub fn withdraw(&self, user: &UserAccount, stream_id: &Base58CryptoHash) {
-        assert!(self.withdraw_err(user, stream_id).is_ok());
-    }
-
-    #[allow(dead_code)]
-    pub fn deposit(
-        &self,
-        user: &UserAccount,
-        stream_id: &Base58CryptoHash,
-        token: &UserAccount,
-        amount: Balance,
-    ) {
-        assert_eq!(
-            self.deposit_err(user, stream_id, token, amount),
-            U128(amount)
-        );
-    }
-
-    pub fn account_deposit_near(&self, user: &UserAccount, amount: Balance) {
-        user.function_call(
-            self.streaming.contract.account_deposit_near(),
-            MAX_GAS,
-            amount,
-        )
-        .assert_success();
-    }
-
-    pub fn account_update_cron_flag(&self, user: &UserAccount, flag: bool) {
-        user.function_call(
-            self.streaming.contract.account_update_cron_flag(flag),
-            MAX_GAS,
-            ONE_YOCTO,
-        )
-        .assert_success();
-    }
-
-    pub fn dao_update_token(&self, token: Token) {
-        self.dao
-            .function_call(
-                self.streaming.contract.dao_update_token(token),
-                MAX_GAS,
-                ONE_YOCTO,
-            )
-            .assert_success();
-    }
-
-    pub fn dao_add_approved_nft(&self, nft: &UserAccount) {
-        self.dao
-            .function_call(
-                self.streaming
-                    .contract
-                    .dao_add_approved_nft(nft.account_id()),
-                MAX_GAS,
-                ONE_YOCTO,
-            )
-            .assert_success();
-    }
-
-    pub fn skip_time(&self, seconds: u64) {
-        self.near.borrow_runtime_mut().cur_block.block_timestamp += to_nano(seconds);
-    }
-
-    #[allow(dead_code)]
-    pub fn show_balances(&self, users: &Users, tokens: &Tokens) {
-        for user in [
-            &users.alice,
-            &users.bob,
-            &users.charlie,
-            &users.dude,
-            &users.eve,
-            &self.near,
-            &self.dao,
-            &self.streaming.user_account,
-            &self.finance,
-        ] {
-            for token in [
-                &tokens.wnear,
-                &tokens.dacha,
-                &tokens.ndai,
-                &tokens.nusdt,
-                &tokens.aurora,
-                &self.roketo_token,
-            ] {
-                println!(
-                    "{:?}, {:?}: {:?}",
-                    user.account_id().to_string(),
-                    token.account_id().to_string(),
-                    self.get_balance(&token, &user)
-                )
-            }
-        }
-    }
 }
 
-pub fn init_nft_roketo_token(e: &Env, token_account_id: &str) -> UserAccount {
+pub fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> UserAccount {
     let token_account_id: AccountId = token_account_id.parse().unwrap();
     let token = e.near.deploy_and_init(
-        &NFT_ROKETO_WASM_BYTES,
+        &FUNGIBLE_TOKEN_WASM_BYTES,
         token_account_id.clone(),
         "new",
         &json!({
             "owner_id": e.near.account_id(),
-            "metadata": NFTContractMetadata {
-                spec: NFT_METADATA_SPEC.to_string(),
+            "total_supply": U128::from(10u128.pow((10 + decimals) as _)),
+            "metadata": FungibleTokenMetadata {
+                spec: FT_METADATA_SPEC.to_string(),
                 name: token_account_id.to_string(),
                 symbol: token_account_id.to_string(),
                 icon: None,
-                base_uri: None,
                 reference: None,
                 reference_hash: None,
+                decimals: decimals,
             }
         })
         .to_string()
@@ -880,105 +331,16 @@ pub fn init_nft_roketo_token(e: &Env, token_account_id: &str) -> UserAccount {
         to_yocto("10"),
         DEFAULT_GAS,
     );
+
+    ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
+    ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
     token
-}
-
-pub fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> UserAccount {
-    if token_account_id == "aurora" {
-        // TODO deploy and init aurora contract
-        // use AURORA_WASM_BYTES
-        let token_account_id = AccountId::new_unchecked(token_account_id.to_string());
-        let token = e.near.deploy_and_init(
-            &FUNGIBLE_TOKEN_WASM_BYTES,
-            token_account_id.clone(),
-            "new",
-            &json!({
-                "owner_id": e.near.account_id(),
-                "total_supply": U128::from(10u128.pow((10 + decimals) as _)),
-                "metadata": FungibleTokenMetadata {
-                    spec: FT_METADATA_SPEC.to_string(),
-                    name: token_account_id.to_string(),
-                    symbol: token_account_id.to_string(),
-                    icon: None,
-                    reference: None,
-                    reference_hash: None,
-                    decimals: decimals,
-                }
-            })
-            .to_string()
-            .into_bytes(),
-            to_yocto("10"),
-            DEFAULT_GAS,
-        );
-
-        // remove these lines - aurora don't do storage deposit
-        ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
-        ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
-        token
-    } else if token_account_id == "wrap.near" {
-        let token_account_id: AccountId = token_account_id.parse().unwrap();
-        let token = e.near.deploy_and_init(
-            &WRAP_NEAR_WASM_BYTES,
-            token_account_id.clone(),
-            "new",
-            b"",
-            to_yocto("10"),
-            DEFAULT_GAS,
-        );
-
-        ft_storage_deposit(&e.near, &token_account_id, &e.near.account_id());
-        e.near
-            .call(
-                token_account_id.clone(),
-                "near_deposit",
-                b"",
-                DEFAULT_GAS,
-                d(10_000_000, 24),
-            )
-            .assert_success();
-        ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
-        ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
-        token
-    } else {
-        let token_account_id: AccountId = token_account_id.parse().unwrap();
-        let token = e.near.deploy_and_init(
-            &FUNGIBLE_TOKEN_WASM_BYTES,
-            token_account_id.clone(),
-            "new",
-            &json!({
-                "owner_id": e.near.account_id(),
-                "total_supply": U128::from(10u128.pow((10 + decimals) as _)),
-                "metadata": FungibleTokenMetadata {
-                    spec: FT_METADATA_SPEC.to_string(),
-                    name: token_account_id.to_string(),
-                    symbol: token_account_id.to_string(),
-                    icon: None,
-                    reference: None,
-                    reference_hash: None,
-                    decimals: decimals,
-                }
-            })
-            .to_string()
-            .into_bytes(),
-            to_yocto("10"),
-            DEFAULT_GAS,
-        );
-
-        ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
-        ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
-        token
-    }
 }
 
 impl Tokens {
     pub fn init(e: &Env) -> Self {
         Self {
-            wnear: init_token(e, "wrap.near", 24),
             wnear_simple: init_token(e, "wnear_simple.near", 24),
-            dacha: init_token(e, "dacha.near", 18),
-            ndai: init_token(e, "dai.near", 18),
-            nusdt: init_token(e, "nusdt.near", 6),
-            aurora: init_token(e, "aurora", 18),
         }
     }
 }
@@ -989,44 +351,10 @@ impl Users {
             alice: e
                 .near
                 .create_user("alice.near".parse().unwrap(), to_yocto("10000")),
-            bob: e
-                .near
-                .create_user("bob.near".parse().unwrap(), to_yocto("10000")),
             charlie: e
                 .near
                 .create_user("charlie.near".parse().unwrap(), to_yocto("10000")),
-            dude: e
-                .near
-                .create_user("dude.near".parse().unwrap(), to_yocto("10000")),
-            eve: e
-                .near
-                .create_user("eve.near".parse().unwrap(), to_yocto("10000")),
         }
-    }
-}
-
-impl RoketoNFTs {
-    pub fn init(e: &Env) -> Self {
-        Self {
-            paras: init_nft_roketo_token(e, "paras.near"),
-        }
-    }
-}
-
-pub fn sample_token_metadata() -> TokenMetadata {
-    TokenMetadata {
-        title: Some("Olympus Mons".into()),
-        description: Some("The tallest mountain in the charted solar system".into()),
-        media: None,
-        media_hash: None,
-        copies: Some(1u64),
-        issued_at: None,
-        expires_at: None,
-        starts_at: None,
-        updated_at: None,
-        extra: None,
-        reference: None,
-        reference_hash: None,
     }
 }
 
@@ -1043,20 +371,8 @@ pub fn basic_setup() -> (Env, Tokens, Users) {
 
     let users = Users::init(&e);
     e.mint_tokens(&tokens, &users.alice, 1000000);
-    e.mint_tokens(&tokens, &users.bob, 1000000);
 
     e.mint_tokens(&tokens, &users.charlie, 0);
-    e.mint_tokens(&tokens, &users.dude, 0);
-    e.mint_tokens(&tokens, &users.eve, 0);
 
-    // e.show_balances(&users, &tokens);
     (e, tokens, users)
-}
-
-pub fn basic_nft_setup() -> (Env, Tokens, Users, RoketoNFTs) {
-    let (e, tokens, users) = basic_setup();
-
-    let nfts = RoketoNFTs::init(&e);
-
-    (e, tokens, users, nfts)
 }
