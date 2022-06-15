@@ -9,6 +9,12 @@ near-contract-standards = "=4.0.0-pre.9"
 near-sdk = "=4.0.0-pre.9"
 near-sdk-sim = "=4.0.0-pre.9"
 
+workspaces = "0.2.1"
+near-units = "0.2.0"
+tokio = { version = "1.18.1", features = ["full"] }
+anyhow = "1.0"
+
+
 finance = { path = "./finance" }
 streaming = { path = "./streaming" }
 locked-token = { path = "./locked_token" }

@@ -2,8 +2,30 @@ mod setup;
 
 use crate::setup::*;
 
-#[test]
-fn test_finance_transfers() {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    let sandbox = sandbox().await?;
+    let wasm = std::fs::read(STREAMING_ID)?;
+    let contract = sandbox.dev_deploy(&wasm).await?;
+
+    // create accounts
+    let owner = sandbox.root_account();
+    let user = owner
+        .create_subaccount(&sandbox, "user")
+        .initial_balance(parse_near!("30 N"))
+        .transact()
+        .await?
+        .into_result()?;
+
+    // test_increment(&user, &contract, &sandbox).await?;
+    // test_decrement(&user, &contract, &sandbox).await?;
+    // test_reset(&user, &contract, &sandbox).await?;
+    test_finance_transfers().await?;
+    Ok(())
+}
+
+//#[test]
+async fn test_finance_transfers() -> anyhow::Result<()> {
     let (e, tokens, users) = basic_setup();
 
     assert_eq!(
@@ -51,4 +73,5 @@ fn test_finance_transfers() {
         e.get_near_balance(&e.finance)
             < near_finance - STORAGE_NEEDS_PER_STREAM + STORAGE_NEEDS_PER_STREAM / 100
     );
+    Ok(())
 }
