@@ -1,23 +1,31 @@
 pub use near_units::parse_near;
 //pub use test_log::test;
 pub use workspaces::prelude::*;
-pub use workspaces::{network::Sandbox, sandbox, Account, Contract, Worker};
+pub use workspaces::{network::Sandbox, sandbox, Account, AccountId, Contract, Worker};
 
 pub use near_contract_standards::fungible_token::metadata::{
     FungibleTokenMetadata, FT_METADATA_SPEC,
 };
 pub use near_sdk::json_types::U128;
 pub use near_sdk::serde_json::json;
-pub use near_sdk::{env, serde_json, AccountId, Balance, ONE_YOCTO};
+pub use near_sdk::{
+    env,
+    serde_json,
+    Balance,
+    ONE_YOCTO,
+    //    AccountId,
+};
 use near_sdk_sim::runtime::GenesisConfig;
 use near_sdk_sim::{
-    deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount,
+    deploy, init_simulator, ContractAccount, ExecutionResult, 
+//    Account,
 };
-use streaming::ContractContract as StreamingContract;
-pub use streaming::{
-    AccountView, ContractError, CreateRequest, SafeFloat, Token, TransferCallRequest, ONE_TERA,
-    ROKE_TOKEN_DECIMALS, STORAGE_NEEDS_PER_STREAM,
-};
+
+// use streaming::ContractContract as StreamingContract;
+// pub use streaming::{
+//     AccountView, ContractError, CreateRequest, SafeFloat, Token, TransferCallRequest, ONE_TERA,
+//     ROKE_TOKEN_DECIMALS, STORAGE_NEEDS_PER_STREAM,
+// };
 
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
     FINANCE_WASM_BYTES => "res/finance.wasm",
@@ -41,47 +49,59 @@ pub const T_GAS: Gas = 1_000_000_000_000;
 pub const DEFAULT_GAS: Gas = 15 * T_GAS;
 pub const MAX_GAS: Gas = 300 * T_GAS;
 
+pub fn to_yocto(value: &str) -> u128 {
+    let vals: Vec<_> = value.split('.').collect();
+    let part1 = vals[0].parse::<u128>().unwrap() * 10u128.pow(24);
+    if vals.len() > 1 {
+        let power = vals[1].len() as u32;
+        let part2 = vals[1].parse::<u128>().unwrap() * 10u128.pow(24 - power);
+        part1 + part2
+    } else {
+        part1
+    }
+}
+
 pub struct Env {
-    pub root: UserAccount,
-    pub near: UserAccount,
-    pub roketo: UserAccount,
-    pub dao: UserAccount,
-    pub streaming: ContractAccount<StreamingContract>,
-    pub finance: UserAccount,
-    pub roketo_token: UserAccount,
+    pub root: Account,
+    pub near: Account,
+    pub roketo: Account,
+    pub dao: Account,
+    pub streaming: Account,
+    pub finance: Account,
+    pub roketo_token: Account,
 }
 
 pub struct Tokens {
-    pub wnear_simple: UserAccount,
+    pub wnear_simple: Account,
 }
 
 pub struct Users {
-    pub alice: UserAccount,
-    pub charlie: UserAccount,
+    pub alice: Account,
+    pub charlie: Account,
 }
 
-pub fn storage_deposit(
-    user: &UserAccount,
+pub async fn storage_deposit(
+    sandbox: &Worker<Sandbox>,
+    user: &Account,
     contract_id: &AccountId,
     account_id: &AccountId,
     attached_deposit: Balance,
-) {
-    user.call(
-        contract_id.clone(),
-        "storage_deposit",
-        &json!({ "account_id": account_id }).to_string().into_bytes(),
-        DEFAULT_GAS,
-        attached_deposit,
-    )
-    .assert_success();
+) -> anyhow::Result<()> {
+    user.call(&sandbox, &contract_id, "storage_deposit")
+        .args_json(json!({ "account_id": account_id }))?
+        .transact()
+        .await?;
+    Ok(())
+    //     &json!().to_string().into_bytes(),
+    //     DEFAULT_GAS,
+    //     attached_deposit,
+    // )
+    // .assert_success();
 }
 
-pub fn ft_storage_deposit(
-    user: &UserAccount,
-    token_account_id: &AccountId,
-    account_id: &AccountId,
-) {
+pub fn ft_storage_deposit(sandbox: &Worker<Sandbox>, user: &Account, token_account_id: &AccountId, account_id: &AccountId) {
     storage_deposit(
+        sandbox,
         user,
         token_account_id,
         account_id,
@@ -89,7 +109,7 @@ pub fn ft_storage_deposit(
     );
 }
 
-// . -> root -> near -> roketo -> dao
+// // . -> root -> near -> roketo -> dao
 
 impl Env {
     pub fn init() -> Self {
@@ -195,8 +215,8 @@ impl Env {
 
     pub fn contract_ft_transfer_call(
         &self,
-        token: &UserAccount,
-        user: &UserAccount,
+        token: &Account,
+        user: &Account,
         amount: Balance,
         msg: &str,
     ) -> ExecutionResult {
@@ -215,7 +235,7 @@ impl Env {
         )
     }
 
-    pub fn mint_ft(&self, token: &UserAccount, receiver: &UserAccount, amount: Balance) {
+    pub fn mint_ft(&self, token: &Account, receiver: &Account, amount: Balance) {
         let caller = if token.account_id() == self.roketo_token.account_id() {
             &self.roketo
         } else {
@@ -237,7 +257,7 @@ impl Env {
             .assert_success();
     }
 
-    pub fn mint_tokens(&self, tokens: &Tokens, user: &UserAccount, amount: Balance) {
+    pub fn mint_tokens(&self, tokens: &Tokens, user: &Account, amount: Balance) {
         ft_storage_deposit(user, &tokens.wnear_simple.account_id(), &user.account_id());
         ft_storage_deposit(user, &self.roketo_token.account_id(), &user.account_id());
 
@@ -247,11 +267,11 @@ impl Env {
         }
     }
 
-    pub fn get_near_balance(&self, user: &UserAccount) -> u128 {
+    pub fn get_near_balance(&self, user: &Account) -> u128 {
         user.account().unwrap().amount
     }
 
-    pub fn get_balance(&self, token: &UserAccount, user: &UserAccount) -> u128 {
+    pub fn get_balance(&self, token: &Account, user: &Account) -> u128 {
         u128::from(
             self.near
                 .view(
@@ -269,9 +289,9 @@ impl Env {
 
     pub fn create_stream_ext_err(
         &self,
-        owner: &UserAccount,
-        receiver: &UserAccount,
-        token: &UserAccount,
+        owner: &Account,
+        receiver: &Account,
+        token: &Account,
         amount: Balance,
         tokens_per_sec: Balance,
         description: Option<String>,
@@ -281,7 +301,7 @@ impl Env {
         is_locked: Option<bool>,
     ) -> U128 {
         let tokens_per_sec = U128(tokens_per_sec);
-        self.contract_ft_transfer_call(
+        self.call(
             &token,
             &owner,
             amount,
@@ -303,72 +323,72 @@ impl Env {
     }
 }
 
-pub fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> UserAccount {
-    let token_account_id: AccountId = token_account_id.parse().unwrap();
-    let token = e.near.deploy_and_init(
-        &FUNGIBLE_TOKEN_WASM_BYTES,
-        token_account_id.clone(),
-        "new",
-        &json!({
-            "owner_id": e.near.account_id(),
-            "total_supply": U128::from(10u128.pow((10 + decimals) as _)),
-            "metadata": FungibleTokenMetadata {
-                spec: FT_METADATA_SPEC.to_string(),
-                name: token_account_id.to_string(),
-                symbol: token_account_id.to_string(),
-                icon: None,
-                reference: None,
-                reference_hash: None,
-                decimals: decimals,
-            }
-        })
-        .to_string()
-        .into_bytes(),
-        to_yocto("10"),
-        DEFAULT_GAS,
-    );
+// pub fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> Account {
+//     let token_account_id: AccountId = token_account_id.parse().unwrap();
+//     let token = e.near.deploy_and_init(
+//         &FUNGIBLE_TOKEN_WASM_BYTES,
+//         token_account_id.clone(),
+//         "new",
+//         &json!({
+//             "owner_id": e.near.account_id(),
+//             "total_supply": U128::from(10u128.pow((10 + decimals) as _)),
+//             "metadata": FungibleTokenMetadata {
+//                 spec: FT_METADATA_SPEC.to_string(),
+//                 name: token_account_id.to_string(),
+//                 symbol: token_account_id.to_string(),
+//                 icon: None,
+//                 reference: None,
+//                 reference_hash: None,
+//                 decimals: decimals,
+//             }
+//         })
+//         .to_string()
+//         .into_bytes(),
+//         to_yocto("10"),
+//         DEFAULT_GAS,
+//     );
 
-    ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
-    ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
-    token
-}
+//     ft_storage_deposit(&e.near, &token_account_id, &e.streaming.account_id());
+//     ft_storage_deposit(&e.near, &token_account_id, &e.finance.account_id());
+//     token
+// }
 
-impl Tokens {
-    pub fn init(e: &Env) -> Self {
-        Self {
-            wnear_simple: init_token(e, "wnear_simple.near", 24),
-        }
-    }
-}
+// impl Tokens {
+//     pub fn init(e: &Env) -> Self {
+//         Self {
+//             wnear_simple: init_token(e, "wnear_simple.near", 24),
+//         }
+//     }
+// }
 
-impl Users {
-    pub fn init(e: &Env) -> Self {
-        Self {
-            alice: e
-                .near
-                .create_user("alice.near".parse().unwrap(), to_yocto("10000")),
-            charlie: e
-                .near
-                .create_user("charlie.near".parse().unwrap(), to_yocto("10000")),
-        }
-    }
-}
+// impl Users {
+//     pub fn init(e: &Env) -> Self {
+//         Self {
+//             alice: e
+//                 .near
+//                 .create_user("alice.near".parse().unwrap(), to_yocto("10000")),
+//             charlie: e
+//                 .near
+//                 .create_user("charlie.near".parse().unwrap(), to_yocto("10000")),
+//         }
+//     }
+// }
 
-pub fn d(value: Balance, decimals: u8) -> Balance {
-    value * 10u128.pow(decimals as _)
-}
+// pub fn d(value: Balance, decimals: u8) -> Balance {
+//     value * 10u128.pow(decimals as _)
+// }
 
-// TODO check balances integrity
+// // TODO check balances integrity
 
-pub fn basic_setup() -> (Env, Tokens, Users) {
-    let e = Env::init();
-    let tokens = Tokens::init(&e);
-    e.setup_assets(&tokens);
+// pub fn basic_setup() -> (Env, Tokens, Users) {
+//     let e = Env::init();
+//     let tokens = Tokens::init(&e);
+//     e.setup_assets(&tokens);
 
-    let users = Users::init(&e);
-    e.mint_tokens(&tokens, &users.alice, 1000000);
+//     let users = Users::init(&e);
+//     e.mint_tokens(&tokens, &users.alice, 1000000);
 
-    e.mint_tokens(&tokens, &users.charlie, 0);
+//     e.mint_tokens(&tokens, &users.charlie, 0);
 
-    (e, tokens, users)
-}
+//     (e, tokens, users)
+// }
