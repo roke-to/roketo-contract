@@ -2,13 +2,14 @@ mod setup;
 
 use crate::setup::*;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+#[tokio::test]
+async fn test_hello2() -> anyhow::Result<()> {
+    println!("Hello World");
+    assert_eq!(0, 2);
     let sandbox = sandbox().await?;
     let wasm = std::fs::read(STREAMING_ID)?;
     let contract = sandbox.dev_deploy(&wasm).await?;
 
-    // create accounts
     let owner = sandbox.root_account();
     let user = owner
         .create_subaccount(&sandbox, "user")
@@ -17,14 +18,30 @@ async fn main() -> anyhow::Result<()> {
         .await?
         .into_result()?;
 
-    // test_increment(&user, &contract, &sandbox).await?;
-    // test_decrement(&user, &contract, &sandbox).await?;
-    // test_reset(&user, &contract, &sandbox).await?;
     test_finance_transfers().await?;
     Ok(())
 }
 
-//#[test]
+#[tokio::test]
+async fn test_hello() -> anyhow::Result<()> {
+    println!("Hello World");
+    assert_eq!(0, 1);
+    let sandbox = sandbox().await?;
+    let wasm = std::fs::read(STREAMING_ID)?;
+    let contract = sandbox.dev_deploy(&wasm).await?;
+
+    let owner = sandbox.root_account();
+    let user = owner
+        .create_subaccount(&sandbox, "user")
+        .initial_balance(parse_near!("30 N"))
+        .transact()
+        .await?
+        .into_result()?;
+
+    test_finance_transfers().await?;
+    Ok(())
+}
+
 async fn test_finance_transfers() -> anyhow::Result<()> {
     let (e, tokens, users) = basic_setup();
 

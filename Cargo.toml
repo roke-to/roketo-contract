@@ -9,11 +9,17 @@ near-contract-standards = "=4.0.0-pre.9"
 near-sdk = "=4.0.0-pre.9"
 near-sdk-sim = "=4.0.0-pre.9"
 
-workspaces = "0.2.1"
-near-units = "0.2.0"
-tokio = { version = "1.18.1", features = ["full"] }
 anyhow = "1.0"
-
+borsh = "0.9"
+maplit = "1.0"
+near-units = "0.2.0"
+# arbitrary_precision enabled for u128 types that workspaces requires for Balance types
+serde_json = { version = "1.0", features = ["arbitrary_precision"] }
+tokio = { version = "1.18.1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3.11", features = ["env-filter"] }
+workspaces = "0.2.1"
+pkg-config = "0.3.1"
 
 finance = { path = "./finance" }
 streaming = { path = "./streaming" }
@@ -36,5 +42,5 @@ members = [
     "finance",
     "streaming",
     "roke_token",
-    "locked_token"
+    "locked_token",
 ]
