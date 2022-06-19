@@ -18,7 +18,7 @@ pub use near_sdk::{
 // use near_sdk_sim::runtime::GenesisConfig;
 //use near_sdk_sim::{deploy, init_simulator, UserAccount, ContractAccount, ExecutionResult};
 
-// use streaming::ContractContract as StreamingContract;
+use streaming::ContractContract as StreamingContract;
 pub use streaming::{
     AccountView, ContractError, CreateRequest, SafeFloat, Token, TransferCallRequest, ONE_TERA,
     ROKE_TOKEN_DECIMALS, STORAGE_NEEDS_PER_STREAM,
@@ -175,41 +175,39 @@ impl Env {
     //     }
     // }
 
-    // pub fn setup_assets(&self, tokens: &Tokens) {
-    //     self.dao
-    //         .function_call(
-    //             self.streaming.contract.dao_update_token(Token {
-    //                 account_id: self.roketo_token.account_id(),
-    //                 is_payment: true,
-    //                 commission_on_create: d(10, 18),
-    //                 commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
-    //                 commission_on_transfer: d(10, 17),
-    //                 storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
-    //                 gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
-    //                 gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
-    //             }),
-    //             DEFAULT_GAS,
-    //             ONE_YOCTO,
-    //         )
-    //         .assert_success();
+    pub fn setup_assets(&self, tokens: &Tokens) {
+        self.dao
+            .call(
+                self.streaming.contract.dao_update_token(Token {
+                    account_id: self.roketo_token.id(),
+                    is_payment: true,
+                    commission_on_create: d(10, 18),
+                    commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
+                    commission_on_transfer: d(10, 17),
+                    storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
+                    gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
+                    gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
+                }),
+            )
+            .assert_success();
 
-    //     self.dao
-    //         .function_call(
-    //             self.streaming.contract.dao_update_token(Token {
-    //                 account_id: tokens.wnear_simple.account_id(),
-    //                 is_payment: true,
-    //                 commission_on_create: d(1, 23), // 0.1 token
-    //                 commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
-    //                 commission_on_transfer: d(1, 22),
-    //                 storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
-    //                 gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
-    //                 gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
-    //             }),
-    //             DEFAULT_GAS,
-    //             ONE_YOCTO,
-    //         )
-    //         .assert_success();
-    // }
+        // self.dao
+        //     .call(
+        //         self.streaming.contract.dao_update_token(Token {
+        //             account_id: tokens.wnear_simple.id(),
+        //             is_payment: true,
+        //             commission_on_create: d(1, 23), // 0.1 token
+        //             commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
+        //             commission_on_transfer: d(1, 22),
+        //             storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
+        //             gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
+        //             gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
+        //         }),
+        //         DEFAULT_GAS,
+        //         ONE_YOCTO,
+        //     )
+        //     .assert_success();
+    }
 
     pub async fn contract_ft_transfer_call(
         &self,
@@ -233,37 +231,43 @@ impl Env {
         Ok(num)
     }
 
-    // pub fn mint_ft(&self, token: &Account, receiver: &Account, amount: Balance) {
-    //     let caller = if token.account_id() == self.roketo_token.account_id() {
-    //         &self.roketo
-    //     } else {
-    //         &self.near
-    //     };
-    //     caller
-    //         .call(
-    //             token.account_id(),
-    //             "ft_transfer",
-    //             &json!({
-    //                 "receiver_id": receiver.account_id(),
-    //                 "amount": U128::from(amount),
-    //             })
-    //             .to_string()
-    //             .into_bytes(),
-    //             DEFAULT_GAS,
-    //             1,
-    //         )
-    //         .assert_success();
-    // }
+    pub async fn mint_ft(
+        &self,
+        worker: &Worker<Sandbox>,
+        token: &Account,
+        receiver: &Account,
+        amount: Balance,
+    ) -> anyhow::Result<()> {
+        let caller = if token.id() == self.roketo_token.id() {
+            &self.roketo
+        } else {
+            &self.near
+        };
+        caller
+            .call(worker, token.id(), "ft_transfer")
+            .args_json(&json!({
+                "receiver_id": receiver.id(),
+                "amount": U128::from(amount),
+            }));
+        Ok(())
+    }
 
-    // pub fn mint_tokens(&self, tokens: &Tokens, user: &Account, amount: Balance) {
-    //     ft_storage_deposit(user, &tokens.wnear_simple.account_id(), &user.account_id());
-    //     ft_storage_deposit(user, &self.roketo_token.account_id(), &user.account_id());
+    pub async fn mint_tokens(
+        &self,
+        worker: &Worker<Sandbox>,
+        tokens: &Tokens,
+        user: &Account,
+        amount: Balance,
+    ) -> anyhow::Result<()> {
+        ft_storage_deposit(worker, user, &tokens.wnear_simple.id(), &user.id());
+        ft_storage_deposit(worker, user, &self.roketo_token.id(), &user.id());
 
-    //     if amount > 0 {
-    //         self.mint_ft(&tokens.wnear_simple, user, d(amount, 24));
-    //         self.mint_ft(&self.roketo_token, user, d(amount, 18));
-    //     }
-    // }
+        if amount > 0 {
+            // self.mint_ft(&tokens.wnear_simple, user, d(amount, 24));
+            // self.mint_ft(&self.roketo_token, user, d(amount, 18));
+        }
+        Ok(())
+    }
 
     pub async fn get_near_balance(
         &self,
@@ -365,15 +369,23 @@ impl Tokens {
 }
 
 impl Users {
-    pub async fn init(worker: &Worker<Sandbox>, e: &Env) -> Self {
-        Self {
+    pub async fn init(worker: &Worker<Sandbox>, e: &Env) -> anyhow::Result<Self> {
+        Ok(Self {
             alice: e
                 .near
-                .create_subaccount(worker, "alice.near".parse().unwrap()), //, to_yocto("10000")
-            // charlie: e
-            //     .near
-            //     .create_subaccount(worker, "charlie.near".parse().unwrap()),
-        }
+                .create_subaccount(worker, "alice.near")
+                .initial_balance(to_yocto("10000"))
+                .transact()
+                .await?
+                .into_result()?,
+            charlie: e
+                .near
+                .create_subaccount(worker, "charlie.near")
+                .initial_balance(to_yocto("10000"))
+                .transact()
+                .await?
+                .into_result()?,
+        })
     }
 }
 
