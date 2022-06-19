@@ -16,13 +16,7 @@ pub use near_sdk::{
     //    AccountId,
 };
 // use near_sdk_sim::runtime::GenesisConfig;
-// use near_sdk_sim::{
-//     deploy,
-//     init_simulator,
-//     ContractAccount,
-//     ExecutionResult,
-//     //    Account,
-// };
+//use near_sdk_sim::{deploy, init_simulator, UserAccount, ContractAccount, ExecutionResult};
 
 // use streaming::ContractContract as StreamingContract;
 pub use streaming::{
@@ -76,7 +70,7 @@ pub struct Env {
 }
 
 pub struct Tokens {
-    pub wnear_simple: Account,
+    pub wnear_simple: Contract,
 }
 
 pub struct Users {
@@ -300,7 +294,7 @@ impl Env {
 
     pub async fn create_stream_ext_err(
         &self,
-        sandbox: &Worker<Sandbox>,
+        worker: &Worker<Sandbox>,
         owner: &Account,
         receiver: &Account,
         token: &Account,
@@ -315,7 +309,7 @@ impl Env {
         let tokens_per_sec = U128(tokens_per_sec);
         let ans = self
             .contract_ft_transfer_call(
-                sandbox, &token, &owner, amount,
+                worker, &token, &owner, amount,
                 "", // &serde_json::to_string(&TransferCallRequest::Create {
                    //     request: CreateRequest {
                    //         owner_id: owner.view_account(streaming),
@@ -336,7 +330,7 @@ impl Env {
     }
 }
 
-pub async fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> anyhow::Result<Account> {
+pub async fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> anyhow::Result<Contract> {
     let token_account_id: AccountId = token_account_id.parse().unwrap();
     let contract = e.worker.dev_deploy(&FUNGIBLE_TOKEN_WASM_BYTES).await?;
     let token = contract
@@ -371,14 +365,14 @@ impl Tokens {
 }
 
 impl Users {
-    pub async fn init(e: &Env) -> Self {
+    pub async fn init(worker: &Worker<Sandbox>, e: &Env) -> Self {
         Self {
             alice: e
                 .near
-                .create_user("alice.near".parse().unwrap(), to_yocto("10000")),
-            charlie: e
-                .near
-                .create_user("charlie.near".parse().unwrap(), to_yocto("10000")),
+                .create_subaccount(worker, "alice.near".parse().unwrap()), //, to_yocto("10000")
+            // charlie: e
+            //     .near
+            //     .create_subaccount(worker, "charlie.near".parse().unwrap()),
         }
     }
 }
