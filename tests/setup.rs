@@ -177,18 +177,16 @@ impl Env {
 
     pub fn setup_assets(&self, tokens: &Tokens) {
         self.dao
-            .call(
-                self.streaming.contract.dao_update_token(Token {
-                    account_id: self.roketo_token.id(),
-                    is_payment: true,
-                    commission_on_create: d(10, 18),
-                    commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
-                    commission_on_transfer: d(10, 17),
-                    storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
-                    gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
-                    gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
-                }),
-            )
+            .call(self.streaming.contract.dao_update_token(Token {
+                account_id: self.roketo_token.id(),
+                is_payment: true,
+                commission_on_create: d(10, 18),
+                commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
+                commission_on_transfer: d(10, 17),
+                storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
+                gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
+                gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
+            }))
             .assert_success();
 
         // self.dao
