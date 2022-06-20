@@ -1,5 +1,6 @@
 pub use near_units::parse_near;
 //pub use test_log::test;
+use std::str;
 pub use workspaces::prelude::*;
 pub use workspaces::{network::Sandbox, sandbox, Account, AccountId, Contract, Worker};
 
@@ -15,23 +16,22 @@ pub use near_sdk::{
     ONE_YOCTO,
     //    AccountId,
 };
+//use near_sdk_sim::UserAccount;
 // use near_sdk_sim::runtime::GenesisConfig;
 //use near_sdk_sim::{deploy, init_simulator, UserAccount, ContractAccount, ExecutionResult};
 
-use streaming::ContractContract as StreamingContract;
+//use streaming::ContractContract as StreamingContract;
 pub use streaming::{
     AccountView, ContractError, CreateRequest, SafeFloat, Token, TransferCallRequest, ONE_TERA,
     ROKE_TOKEN_DECIMALS, STORAGE_NEEDS_PER_STREAM,
 };
 
-near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
-    FINANCE_WASM_BYTES => "res/finance.wasm",
-    ROKE_TOKEN_WASM_BYTES => "res/roke_token.wasm",
-    STREAMING_WASM_BYTES => "res/streaming.wasm",
+const FINANCE_WASM_BYTES: &[u8] = include_bytes!("../res/finance.wasm");
+const ROKE_TOKEN_WASM_BYTES: &[u8] = include_bytes!("../res/roke_token.wasm");
+const STREAMING_WASM_BYTES: &[u8] = include_bytes!("../res/streaming.wasm");
 
-    FUNGIBLE_TOKEN_WASM_BYTES => "tests/fungible_token.wasm",
-    WRAP_NEAR_WASM_BYTES => "tests/wrap_near.wasm",
-}
+const FUNGIBLE_TOKEN_WASM_BYTES: &[u8] = include_bytes!("../tests/fungible_token.wasm");
+const WRAP_NEAR_WASM_BYTES: &[u8] = include_bytes!("../tests/wrap_near.wasm");
 
 pub const NEAR: &str = "near";
 pub const ROKETO_ID: &str = "r-v2.near";
@@ -59,14 +59,14 @@ pub fn to_yocto(value: &str) -> u128 {
 }
 
 pub struct Env {
+    pub worker: Worker<Sandbox>,
     pub root: Account,
     pub near: Account,
     pub roketo: Account,
     pub dao: Account,
     pub streaming: Contract,
-    pub finance: Account,
-    pub roketo_token: Account,
-    pub worker: Worker<Sandbox>,
+    pub finance: Contract,
+    pub roketo_token: Contract,
 }
 
 pub struct Tokens {
@@ -110,101 +110,131 @@ pub fn ft_storage_deposit(
 // // . -> root -> near -> roketo -> dao
 
 impl Env {
-    // pub fn init() -> Self {
-    //     let mut genesis_config = GenesisConfig::default();
-    //     genesis_config.block_prod_time = 0;
-    //     let root = init_simulator(Some(genesis_config));
-    //     let near = root.create_user(
-    //         AccountId::new_unchecked(NEAR.to_string()),
-    //         to_yocto("100000000"),
-    //     );
-    //     let roketo = near.create_user(ROKETO_ID.parse().unwrap(), to_yocto("20000"));
-    //     let dao = roketo.create_user(DAO_ID.parse().unwrap(), to_yocto("10000"));
-    //     let dao_id = dao.account_id();
-    //     let finance_id = FINANCE_ID.parse().unwrap();
+    pub async fn init() -> anyhow::Result<Self> {
+        let worker = workspaces::sandbox().await?;
+        //     let mut genesis_config = GenesisConfig::default();
+        //     genesis_config.block_prod_time = 0;
+        let root = worker.dev_create_account().await?;
+        //     let root = init_simulator(Some(genesis_config));
+        //     );
+        let dao = worker.dev_create_account().await?;
+        //     let dao = roketo.create_user(DAO_ID.parse().unwrap(), to_yocto("10000"));
+        let near = worker.dev_create_account().await?;
+        //     let near = root.create_user(
+        //         AccountId::new_unchecked(NEAR.to_string()),
+        //         to_yocto("100000000"),
+        let roketo = worker.dev_create_account().await?;
+        //     let roketo = near.create_user(ROKETO_ID.parse().unwrap(), to_yocto("20000"));
+        let dao_id = dao.id();
+        let finance_id: AccountId = FINANCE_ID.parse().unwrap();
 
-    //     let streaming = deploy!(
-    //         contract: StreamingContract,
-    //         contract_id: STREAMING_ID.to_string(),
-    //         bytes: &STREAMING_WASM_BYTES,
-    //         signer_account: roketo,
-    //         deposit: to_yocto("30"),
-    //         gas: DEFAULT_GAS,
-    //         init_method: new(
-    //             dao_id,
-    //             finance_id,
-    //             ROKE_TOKEN_ID.parse().unwrap(),
-    //             ROKE_TOKEN_DECIMALS
-    //         )
-    //     );
+        //     let streaming = deploy!(
+        //         contract: StreamingContract,
+        //         contract_id: STREAMING_ID.to_string(),
+        //         bytes: &STREAMING_WASM_BYTES,
+        //         signer_account: roketo,
+        //         deposit: to_yocto("30"),
+        //         gas: DEFAULT_GAS,
+        //         init_method: new(
+        //             dao_id,
+        //             finance_id,
+        //             ROKE_TOKEN_ID.parse().unwrap(),
+        //             ROKE_TOKEN_DECIMALS
+        //         )
+        //     );
 
-    //     let roketo_token = roketo.deploy_and_init(
-    //         &ROKE_TOKEN_WASM_BYTES,
-    //         ROKE_TOKEN_ID.parse().unwrap(),
-    //         "new",
-    //         b"",
-    //         to_yocto("10"),
-    //         DEFAULT_GAS,
-    //     );
-
-    //     let finance = roketo.deploy_and_init(
-    //         &FINANCE_WASM_BYTES,
-    //         FINANCE_ID.parse().unwrap(),
-    //         "new",
-    //         &json!({
-    //             "streaming_account_id": streaming.user_account.account_id()
-    //         })
-    //         .to_string()
-    //         .into_bytes(),
-    //         to_yocto("10"),
-    //         DEFAULT_GAS,
-    //     );
-
-    //     ft_storage_deposit(&near, &roketo_token.account_id(), &near.account_id());
-    //     ft_storage_deposit(&near, &roketo_token.account_id(), &streaming.account_id());
-    //     ft_storage_deposit(&near, &roketo_token.account_id(), &finance.account_id());
-
-    //     Self {
-    //         root,
-    //         near,
-    //         roketo,
-    //         dao,
-    //         streaming,
-    //         finance,
-    //         roketo_token,
-    //     }
-    // }
-
-    pub fn setup_assets(&self, tokens: &Tokens) {
-        self.dao
-            .call(self.streaming.contract.dao_update_token(Token {
-                account_id: self.roketo_token.id(),
-                is_payment: true,
-                commission_on_create: d(10, 18),
-                commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
-                commission_on_transfer: d(10, 17),
-                storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
-                gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
-                gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
-            }))
-            .assert_success();
-
-        // self.dao
-        //     .call(
-        //         self.streaming.contract.dao_update_token(Token {
-        //             account_id: tokens.wnear_simple.id(),
-        //             is_payment: true,
-        //             commission_on_create: d(1, 23), // 0.1 token
-        //             commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
-        //             commission_on_transfer: d(1, 22),
-        //             storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
-        //             gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
-        //             gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
-        //         }),
+        let roketo_token = roketo
+            .dev_deploy(ROKE_TOKEN_WASM_BYTES)
+            .await?;
+        // roke_token.call(&worker, "new").args_json()
+        //     ,
+        //     ROKE_TOKEN_ID.parse().unwrap(),
+        //     "new",
+        //     b"",
+        //     to_yocto("10"),
+        //     DEFAULT_GAS,
+        // );
+        //     let roketo_token = roketo.deploy_and_init(
+        //         &ROKE_TOKEN_WASM_BYTES,
+        //         ROKE_TOKEN_ID.parse().unwrap(),
+        //         "new",
+        //         b"",
+        //         to_yocto("10"),
         //         DEFAULT_GAS,
-        //         ONE_YOCTO,
-        //     )
-        //     .assert_success();
+        //     );
+
+        //     let finance = roketo.deploy_and_init(
+        //         &FINANCE_WASM_BYTES,
+        //         FINANCE_ID.parse().unwrap(),
+        //         "new",
+        //         &json!({
+        //             "streaming_account_id": streaming.user_account.account_id()
+        //         })
+        //         .to_string()
+        //         .into_bytes(),
+        //         to_yocto("10"),
+        //         DEFAULT_GAS,
+        //     );
+
+        ft_storage_deposit(&worker, &near, &roketo_token.account_id(), &near.id());
+        // ft_storage_deposit(&worker, &near, &roketo_token.account_id(), &streaming.account_id());
+        // ft_storage_deposit(&worker, &near, &roketo_token.account_id(), &finance.account_id());
+
+        Ok(Self {
+            worker,
+            root,
+            near,
+            roketo,
+            dao,
+            streaming: roketo_token, // streaming,
+            finance: roketo_token,   // finance,
+            roketo_token,
+        })
+    }
+
+    pub async fn setup_assets(
+        &self,
+        worker: &Worker<Sandbox>,
+        tokens: &Tokens,
+    ) -> anyhow::Result<()> {
+        let tmp = self.roketo_token.id().as_bytes();
+        let s = str::from_utf8(&tmp).unwrap();
+        let account_id = near_sdk::AccountId::new_unchecked(s.to_string());
+        let token = Token {
+            account_id: account_id,
+            is_payment: true,
+            commission_on_create: d(10, 18),
+            commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
+            commission_on_transfer: d(10, 17),
+            storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
+            gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
+            gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
+        };
+        self.streaming
+            .call(worker, "dao_update_token")
+            .args_json(json!({
+                "token": token,
+            }))?;
+
+        let tmp = tokens.wnear_simple.id().as_bytes();
+        let s = str::from_utf8(&tmp).unwrap();
+        let account_id = near_sdk::AccountId::new_unchecked(s.to_string());
+        let token = Token {
+            account_id: account_id,
+            is_payment: true,
+            commission_on_create: d(1, 23), // 0.1 token
+            commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
+            commission_on_transfer: d(1, 22),
+            storage_balance_needed: 125 * env::STORAGE_PRICE_PER_BYTE,
+            gas_for_ft_transfer: near_sdk::Gas(10 * ONE_TERA),
+            gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
+        };
+        self.streaming
+            .call(worker, "dao_update_token")
+            .args_json(json!({
+                "token": token,
+            }))?;
+        Ok(())
     }
 
     pub async fn contract_ft_transfer_call(
@@ -232,7 +262,7 @@ impl Env {
     pub async fn mint_ft(
         &self,
         worker: &Worker<Sandbox>,
-        token: &Account,
+        token: &Contract,
         receiver: &Account,
         amount: Balance,
     ) -> anyhow::Result<()> {
@@ -246,7 +276,7 @@ impl Env {
             .args_json(&json!({
                 "receiver_id": receiver.id(),
                 "amount": U128::from(amount),
-            }));
+            }))?;
         Ok(())
     }
 
@@ -261,8 +291,8 @@ impl Env {
         ft_storage_deposit(worker, user, &self.roketo_token.id(), &user.id());
 
         if amount > 0 {
-            // self.mint_ft(&tokens.wnear_simple, user, d(amount, 24));
-            // self.mint_ft(&self.roketo_token, user, d(amount, 18));
+            self.mint_ft(worker, &tokens.wnear_simple, user, d(amount, 24));
+            self.mint_ft(worker, &self.roketo_token, user, d(amount, 18));
         }
         Ok(())
     }
@@ -334,7 +364,10 @@ impl Env {
 
 pub async fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> anyhow::Result<Contract> {
     let token_account_id: AccountId = token_account_id.parse().unwrap();
-    let contract = e.worker.dev_deploy(&FUNGIBLE_TOKEN_WASM_BYTES).await?;
+    let contract = e
+        .worker
+        .dev_deploy(FUNGIBLE_TOKEN_WASM_BYTES)
+        .await?;
     let token = contract
         .call(&e.worker, "new")
         .args_json(json!({ "owner_id": e.near.id(),
@@ -393,7 +426,7 @@ pub fn d(value: Balance, decimals: u8) -> Balance {
 
 // TODO check balances integrity
 
-// pub fn basic_setup() -> (Env, Tokens, Users) {
+// pub async fn basic_setup() ->  anyhow::Result<(Env, Tokens, Users)> {
 //     let e = Env::init();
 //     let tokens = Tokens::init(&e);
 //     e.setup_assets(&tokens);
@@ -403,5 +436,5 @@ pub fn d(value: Balance, decimals: u8) -> Balance {
 
 //     e.mint_tokens(&tokens, &users.charlie, 0);
 
-//     (e, tokens, users)
+//     Ok((e, tokens, users))
 // }
