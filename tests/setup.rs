@@ -143,9 +143,9 @@ impl Env {
         //         )
         //     );
 
-        let roketo_token = roketo
-            .dev_deploy(ROKE_TOKEN_WASM_BYTES)
-            .await?;
+        let finance = worker.dev_deploy(FINANCE_WASM_BYTES).await?;
+        let streaming = worker.dev_deploy(STREAMING_WASM_BYTES).await?;
+        let roketo_token = worker.dev_deploy(ROKE_TOKEN_WASM_BYTES).await?;
         // roke_token.call(&worker, "new").args_json()
         //     ,
         //     ROKE_TOKEN_ID.parse().unwrap(),
@@ -176,9 +176,9 @@ impl Env {
         //         DEFAULT_GAS,
         //     );
 
-        ft_storage_deposit(&worker, &near, &roketo_token.account_id(), &near.id());
-        // ft_storage_deposit(&worker, &near, &roketo_token.account_id(), &streaming.account_id());
-        // ft_storage_deposit(&worker, &near, &roketo_token.account_id(), &finance.account_id());
+        ft_storage_deposit(&worker, &near, &roketo_token.id(), &near.id());
+        ft_storage_deposit(&worker, &near, &roketo_token.id(), &streaming.id());
+        ft_storage_deposit(&worker, &near, &roketo_token.id(), &finance.id());
 
         Ok(Self {
             worker,
@@ -186,15 +186,14 @@ impl Env {
             near,
             roketo,
             dao,
-            streaming: roketo_token, // streaming,
-            finance: roketo_token,   // finance,
+            streaming, // streaming,
+            finance,   // finance,
             roketo_token,
         })
     }
 
     pub async fn setup_assets(
         &self,
-        worker: &Worker<Sandbox>,
         tokens: &Tokens,
     ) -> anyhow::Result<()> {
         let tmp = self.roketo_token.id().as_bytes();
@@ -211,7 +210,7 @@ impl Env {
             gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
         };
         self.streaming
-            .call(worker, "dao_update_token")
+            .call(&self.worker, "dao_update_token")
             .args_json(json!({
                 "token": token,
             }))?;
@@ -230,7 +229,7 @@ impl Env {
             gas_for_storage_deposit: near_sdk::Gas(10 * ONE_TERA),
         };
         self.streaming
-            .call(worker, "dao_update_token")
+            .call(&self.worker, "dao_update_token")
             .args_json(json!({
                 "token": token,
             }))?;
@@ -239,15 +238,14 @@ impl Env {
 
     pub async fn contract_ft_transfer_call(
         &self,
-        worker: &Worker<Sandbox>,
-        token: &Account,
+        token: &Contract,
         user: &Account,
         amount: Balance,
         msg: &str,
     ) -> anyhow::Result<U128> {
         let num: U128 = self
             .streaming
-            .call(worker, "ft_transfer_call")
+            .call(&self.worker, "ft_transfer_call")
             .args_json(json!({
                 "receiver_id": self.streaming.id(),
                 "amount": U128::from(amount),
@@ -261,7 +259,6 @@ impl Env {
 
     pub async fn mint_ft(
         &self,
-        worker: &Worker<Sandbox>,
         token: &Contract,
         receiver: &Account,
         amount: Balance,
@@ -272,7 +269,7 @@ impl Env {
             &self.near
         };
         caller
-            .call(worker, token.id(), "ft_transfer")
+            .call(&self.worker, token.id(), "ft_transfer")
             .args_json(&json!({
                 "receiver_id": receiver.id(),
                 "amount": U128::from(amount),
@@ -282,41 +279,38 @@ impl Env {
 
     pub async fn mint_tokens(
         &self,
-        worker: &Worker<Sandbox>,
         tokens: &Tokens,
         user: &Account,
         amount: Balance,
     ) -> anyhow::Result<()> {
-        ft_storage_deposit(worker, user, &tokens.wnear_simple.id(), &user.id());
-        ft_storage_deposit(worker, user, &self.roketo_token.id(), &user.id());
+        ft_storage_deposit(&self.worker, user, &tokens.wnear_simple.id(), &user.id());
+        ft_storage_deposit(&self.worker, user, &self.roketo_token.id(), &user.id());
 
         if amount > 0 {
-            self.mint_ft(worker, &tokens.wnear_simple, user, d(amount, 24));
-            self.mint_ft(worker, &self.roketo_token, user, d(amount, 18));
+            self.mint_ft(&tokens.wnear_simple, user, d(amount, 24));
+            self.mint_ft(&self.roketo_token, user, d(amount, 18));
         }
         Ok(())
     }
 
     pub async fn get_near_balance(
         &self,
-        worker: &Worker<Sandbox>,
-        user: &Account,
+        user: &Contract,
     ) -> anyhow::Result<u128> {
-        let amount = user.view_account(worker).await?.balance;
+        let amount = user.view_account(&self.worker).await?.balance;
         Ok(amount)
     }
 
     pub async fn get_balance(
         &self,
-        worker: &Worker<Sandbox>,
-        token: &Account,
-        user: &Account,
+        token: &Contract,
+        user: &Contract,
     ) -> anyhow::Result<u128> {
         let tmp = self
             .near
-            .call(worker, token.id(), "ft_balance_of")
+            .call(&self.worker, token.id(), "ft_balance_of")
             .args_json(&json!({
-                "account_id": user.id(),
+                "account_id": &user.id(),
             }))?
             .view()
             .await?
@@ -326,10 +320,9 @@ impl Env {
 
     pub async fn create_stream_ext_err(
         &self,
-        worker: &Worker<Sandbox>,
         owner: &Account,
         receiver: &Account,
-        token: &Account,
+        token: &Contract,
         amount: Balance,
         tokens_per_sec: Balance,
         description: Option<String>,
@@ -341,7 +334,7 @@ impl Env {
         let tokens_per_sec = U128(tokens_per_sec);
         let ans = self
             .contract_ft_transfer_call(
-                worker, &token, &owner, amount,
+                &token, &owner, amount,
                 "", // &serde_json::to_string(&TransferCallRequest::Create {
                    //     request: CreateRequest {
                    //         owner_id: owner.view_account(streaming),
@@ -364,10 +357,7 @@ impl Env {
 
 pub async fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> anyhow::Result<Contract> {
     let token_account_id: AccountId = token_account_id.parse().unwrap();
-    let contract = e
-        .worker
-        .dev_deploy(FUNGIBLE_TOKEN_WASM_BYTES)
-        .await?;
+    let contract = e.worker.dev_deploy(FUNGIBLE_TOKEN_WASM_BYTES).await?;
     let token = contract
         .call(&e.worker, "new")
         .args_json(json!({ "owner_id": e.near.id(),
@@ -400,18 +390,18 @@ impl Tokens {
 }
 
 impl Users {
-    pub async fn init(worker: &Worker<Sandbox>, e: &Env) -> anyhow::Result<Self> {
+    pub async fn init(e: &Env) -> anyhow::Result<Self> {
         Ok(Self {
             alice: e
                 .near
-                .create_subaccount(worker, "alice.near")
+                .create_subaccount(&e.worker, "alice.near")
                 .initial_balance(to_yocto("10000"))
                 .transact()
                 .await?
                 .into_result()?,
             charlie: e
                 .near
-                .create_subaccount(worker, "charlie.near")
+                .create_subaccount(&e.worker, "charlie.near")
                 .initial_balance(to_yocto("10000"))
                 .transact()
                 .await?
@@ -426,15 +416,15 @@ pub fn d(value: Balance, decimals: u8) -> Balance {
 
 // TODO check balances integrity
 
-// pub async fn basic_setup() ->  anyhow::Result<(Env, Tokens, Users)> {
-//     let e = Env::init();
-//     let tokens = Tokens::init(&e);
-//     e.setup_assets(&tokens);
+pub async fn basic_setup() ->  anyhow::Result<(Env, Tokens, Users)> {
+    let e = Env::init().await?;
+    let tokens = Tokens::init(&e).await?;
+    e.setup_assets(&tokens);
 
-//     let users = Users::init(&e);
-//     e.mint_tokens(&tokens, &users.alice, 1000000);
+    let users = Users::init(&e).await?;
+    e.mint_tokens(&tokens, &users.alice, 1000000);
 
-//     e.mint_tokens(&tokens, &users.charlie, 0);
+    e.mint_tokens(&tokens, &users.charlie, 0);
 
-//     Ok((e, tokens, users))
-// }
+    Ok((e, tokens, users))
+}
