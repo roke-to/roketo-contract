@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2022-06-29
+### Changed
+- `is_cron_allowed` also provide access to `start_stream` 
+
 ## [2.2.0] - 2022-06-14
 ### Changed
 - `account_unstake` signature fix

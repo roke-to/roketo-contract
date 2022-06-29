@@ -238,7 +238,9 @@ impl Contract {
             });
         }
 
-        if stream.owner_id != *sender_id {
+        let owner_view = self.view_account(&stream.owner_id, true)?;
+
+        if stream.owner_id != *sender_id && !owner_view.is_cron_allowed {
             return Err(ContractError::CallerIsNotStreamOwner {
                 expected: stream.owner_id,
                 received: sender_id.clone(),
