@@ -1,9 +1,10 @@
 pub use near_units::parse_near;
 //pub use test_log::test;
 use std::str;
+use workspaces::network::NetworkInfo;
 pub use workspaces::prelude::*;
 pub use workspaces::{network::Sandbox, sandbox, Account, AccountId, Contract, Worker};
-
+use near_crypto::SecretKey;
 pub use near_contract_standards::fungible_token::metadata::{
     FungibleTokenMetadata, FT_METADATA_SPEC,
 };
@@ -87,24 +88,28 @@ pub async fn storage_deposit(
 ) -> anyhow::Result<()> {
     user.call(&worker, &contract_id, "storage_deposit")
         .args_json(json!({ "account_id": account_id }))?
+        .deposit(attached_deposit)
+        .gas(DEFAULT_GAS)
         .transact()
         .await?;
     Ok(())
 }
 
-pub fn ft_storage_deposit(
+pub async fn ft_storage_deposit(
     worker: &Worker<Sandbox>,
     user: &Account,
     token_account_id: &AccountId,
     account_id: &AccountId,
-) {
+) -> anyhow::Result<()> {
     storage_deposit(
         worker,
         user,
         token_account_id,
         account_id,
         125 * env::STORAGE_PRICE_PER_BYTE,
-    );
+    )
+    .await?;
+    Ok(())
 }
 
 // // . -> root -> near -> roketo -> dao
@@ -112,20 +117,19 @@ pub fn ft_storage_deposit(
 impl Env {
     pub async fn init() -> anyhow::Result<Self> {
         let worker = workspaces::sandbox().await?;
-        //     let mut genesis_config = GenesisConfig::default();
-        //     genesis_config.block_prod_time = 0;
-        let root = worker.dev_create_account().await?;
-        //     let root = init_simulator(Some(genesis_config));
-        //     );
-        let dao = worker.dev_create_account().await?;
+        let root = worker.root_account();
+        let dao = root.create_subaccount(&worker, "dao").transact().await?.into_result()?;
+        let near = worker.create_tla(NEAR.to_string(), SecretKey::from_seed(KeyType::ED25519, DEV_ACCOUNT_SEED)).await?;
+//        let dao = worker.dev_create_account().await?;
         //     let dao = roketo.create_user(DAO_ID.parse().unwrap(), to_yocto("10000"));
-        let near = worker.dev_create_account().await?;
         //     let near = root.create_user(
         //         AccountId::new_unchecked(NEAR.to_string()),
         //         to_yocto("100000000"),
+//        let near = worker.dev_create_account().await?;
         let roketo = worker.dev_create_account().await?;
         //     let roketo = near.create_user(ROKETO_ID.parse().unwrap(), to_yocto("20000"));
         let dao_id = dao.id();
+        worker.info();
         let finance_id: AccountId = FINANCE_ID.parse().unwrap();
 
         //     let streaming = deploy!(
@@ -142,7 +146,6 @@ impl Env {
         //             ROKE_TOKEN_DECIMALS
         //         )
         //     );
-
         let finance = worker.dev_deploy(FINANCE_WASM_BYTES).await?;
         let streaming = worker.dev_deploy(STREAMING_WASM_BYTES).await?;
         let roketo_token = worker.dev_deploy(ROKE_TOKEN_WASM_BYTES).await?;
@@ -192,10 +195,7 @@ impl Env {
         })
     }
 
-    pub async fn setup_assets(
-        &self,
-        tokens: &Tokens,
-    ) -> anyhow::Result<()> {
+    pub async fn setup_assets(&self, tokens: &Tokens) -> anyhow::Result<()> {
         let tmp = self.roketo_token.id().as_bytes();
         let s = str::from_utf8(&tmp).unwrap();
         let account_id = near_sdk::AccountId::new_unchecked(s.to_string());
@@ -293,19 +293,12 @@ impl Env {
         Ok(())
     }
 
-    pub async fn get_near_balance(
-        &self,
-        user: &Contract,
-    ) -> anyhow::Result<u128> {
+    pub async fn get_near_balance(&self, user: &Contract) -> anyhow::Result<u128> {
         let amount = user.view_account(&self.worker).await?.balance;
         Ok(amount)
     }
 
-    pub async fn get_balance(
-        &self,
-        token: &Contract,
-        user: &Contract,
-    ) -> anyhow::Result<u128> {
+    pub async fn get_balance(&self, token: &Contract, user: &Contract) -> anyhow::Result<u128> {
         let tmp = self
             .near
             .call(&self.worker, token.id(), "ft_balance_of")
@@ -394,14 +387,14 @@ impl Users {
         Ok(Self {
             alice: e
                 .near
-                .create_subaccount(&e.worker, "alice.near")
+                .create_subaccount(&e.worker, "alice")
                 .initial_balance(to_yocto("10000"))
                 .transact()
                 .await?
                 .into_result()?,
             charlie: e
                 .near
-                .create_subaccount(&e.worker, "charlie.near")
+                .create_subaccount(&e.worker, "charlie")
                 .initial_balance(to_yocto("10000"))
                 .transact()
                 .await?
@@ -416,7 +409,7 @@ pub fn d(value: Balance, decimals: u8) -> Balance {
 
 // TODO check balances integrity
 
-pub async fn basic_setup() ->  anyhow::Result<(Env, Tokens, Users)> {
+pub async fn basic_setup() -> anyhow::Result<(Env, Tokens, Users)> {
     let e = Env::init().await?;
     let tokens = Tokens::init(&e).await?;
     e.setup_assets(&tokens);
