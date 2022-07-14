@@ -1,10 +1,5 @@
 pub use near_units::parse_near;
 //pub use test_log::test;
-use std::str;
-use workspaces::network::NetworkInfo;
-pub use workspaces::prelude::*;
-pub use workspaces::{network::Sandbox, sandbox, Account, AccountId, Contract, Worker};
-use near_crypto::SecretKey;
 pub use near_contract_standards::fungible_token::metadata::{
     FungibleTokenMetadata, FT_METADATA_SPEC,
 };
@@ -17,6 +12,9 @@ pub use near_sdk::{
     ONE_YOCTO,
     //    AccountId,
 };
+use std::str;
+pub use workspaces::prelude::*;
+pub use workspaces::{network::Sandbox, sandbox, Account, AccountId, Contract, Worker};
 //use near_sdk_sim::UserAccount;
 // use near_sdk_sim::runtime::GenesisConfig;
 //use near_sdk_sim::{deploy, init_simulator, UserAccount, ContractAccount, ExecutionResult};
@@ -61,7 +59,6 @@ pub fn to_yocto(value: &str) -> u128 {
 
 pub struct Env {
     pub worker: Worker<Sandbox>,
-    pub root: Account,
     pub near: Account,
     pub roketo: Account,
     pub dao: Account,
@@ -114,22 +111,64 @@ pub async fn ft_storage_deposit(
 
 // // . -> root -> near -> roketo -> dao
 
+// pub const NEAR: &str = "near";
+// pub const ROKETO_ID: &str = "r-v2.near";
+
+// pub const STREAMING_ID: &str = "streaming.r-v2.near";
+// pub const FINANCE_ID: &str = "finance.r-v2.near";
+// pub const ROKE_TOKEN_ID: &str = "token.r-v2.near";
+// pub const DAO_ID: &str = "dao.r-v2.near";
+
 impl Env {
     pub async fn init() -> anyhow::Result<Self> {
         let worker = workspaces::sandbox().await?;
-        let root = worker.root_account();
-        let dao = root.create_subaccount(&worker, "dao").transact().await?.into_result()?;
-        let near = worker.create_tla(NEAR.to_string(), SecretKey::from_seed(KeyType::ED25519, DEV_ACCOUNT_SEED)).await?;
-//        let dao = worker.dev_create_account().await?;
+        let near = worker.root_account(); // name will be "near" in mainnet
+        let roketo = near
+            .create_subaccount(&worker, "r-v2")
+            .transact()
+            .await?
+            .into_result()?; // name will be r-v2.near
+        let streaming = roketo
+            .create_subaccount(&worker, "streaming")
+            .transact()
+            .await?
+            .into_result()?; // name will be streaming.r-v2.near
+        let finance = roketo
+            .create_subaccount(&worker, "finance")
+            .transact()
+            .await?
+            .into_result()?; // name will be finance.r-v2.near
+        let roketo_token = roketo
+            .create_subaccount(&worker, "token")
+            .transact()
+            .await?
+            .into_result()?; // name will be token.r-v2.near
+        let dao = roketo
+            .create_subaccount(&worker, "dao")
+            .transact()
+            .await?
+            .into_result()?; // name will be dao.r-v2.near
+        let streaming = streaming
+            .deploy(&worker, STREAMING_WASM_BYTES)
+            .await?
+            .into_result()?;
+        let finance = finance
+            .deploy(&worker, STREAMING_WASM_BYTES)
+            .await?
+            .into_result()?;
+        let roketo_token = roketo_token
+            .deploy(&worker, STREAMING_WASM_BYTES)
+            .await?
+            .into_result()?;
+        //            let roketo = roketo.deploy(&worker, STREAMING_WASM_BYTES).await?.into_result()?;
+
+        //        let dao = worker.dev_create_account().await?;
         //     let dao = roketo.create_user(DAO_ID.parse().unwrap(), to_yocto("10000"));
         //     let near = root.create_user(
         //         AccountId::new_unchecked(NEAR.to_string()),
         //         to_yocto("100000000"),
-//        let near = worker.dev_create_account().await?;
-        let roketo = worker.dev_create_account().await?;
+        //        let near = worker.dev_create_account().await?;
         //     let roketo = near.create_user(ROKETO_ID.parse().unwrap(), to_yocto("20000"));
-        let dao_id = dao.id();
-        worker.info();
         let finance_id: AccountId = FINANCE_ID.parse().unwrap();
 
         //     let streaming = deploy!(
@@ -146,9 +185,6 @@ impl Env {
         //             ROKE_TOKEN_DECIMALS
         //         )
         //     );
-        let finance = worker.dev_deploy(FINANCE_WASM_BYTES).await?;
-        let streaming = worker.dev_deploy(STREAMING_WASM_BYTES).await?;
-        let roketo_token = worker.dev_deploy(ROKE_TOKEN_WASM_BYTES).await?;
         // roke_token.call(&worker, "new").args_json()
         //     ,
         //     ROKE_TOKEN_ID.parse().unwrap(),
@@ -185,12 +221,11 @@ impl Env {
 
         Ok(Self {
             worker,
-            root,
             near,
             roketo,
             dao,
-            streaming, // streaming,
-            finance,   // finance,
+            streaming, 
+            finance,   
             roketo_token,
         })
     }
