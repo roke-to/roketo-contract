@@ -224,8 +224,8 @@ impl Env {
             near,
             roketo,
             dao,
-            streaming, 
-            finance,   
+            streaming,
+            finance,
             roketo_token,
         })
     }
