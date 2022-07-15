@@ -1,5 +1,3 @@
-pub use near_units::parse_near;
-//pub use test_log::test;
 pub use near_contract_standards::fungible_token::metadata::{
     FungibleTokenMetadata, FT_METADATA_SPEC,
 };
@@ -9,17 +7,13 @@ pub use near_sdk::{
     env,
     serde_json,
     Balance,
-    ONE_YOCTO,
-    //    AccountId,
+    ONE_YOCTO, //    AccountId,
 };
+pub use near_units::parse_near;
 use std::str;
 pub use workspaces::prelude::*;
 pub use workspaces::{network::Sandbox, sandbox, Account, AccountId, Contract, Worker};
-//use near_sdk_sim::UserAccount;
-// use near_sdk_sim::runtime::GenesisConfig;
-//use near_sdk_sim::{deploy, init_simulator, UserAccount, ContractAccount, ExecutionResult};
 
-//use streaming::ContractContract as StreamingContract;
 pub use streaming::{
     AccountView, ContractError, CreateRequest, SafeFloat, Token, TransferCallRequest, ONE_TERA,
     ROKE_TOKEN_DECIMALS, STORAGE_NEEDS_PER_STREAM,
@@ -30,22 +24,14 @@ const ROKE_TOKEN_WASM_BYTES: &[u8] = include_bytes!("../res/roke_token.wasm");
 const STREAMING_WASM_BYTES: &[u8] = include_bytes!("../res/streaming.wasm");
 
 const FUNGIBLE_TOKEN_WASM_BYTES: &[u8] = include_bytes!("../tests/fungible_token.wasm");
-const WRAP_NEAR_WASM_BYTES: &[u8] = include_bytes!("../tests/wrap_near.wasm");
-
-pub const NEAR: &str = "near";
-pub const ROKETO_ID: &str = "r-v2.near";
-pub const STREAMING_ID: &str = "streaming.r-v2.near";
-pub const FINANCE_ID: &str = "finance.r-v2.near";
-pub const ROKE_TOKEN_ID: &str = "token.r-v2.near";
-pub const DAO_ID: &str = "dao.r-v2.near";
 
 pub type Gas = u64; // Gas is useless in sdk 4.0.0
 
 pub const T_GAS: Gas = 1_000_000_000_000;
 pub const DEFAULT_GAS: Gas = 15 * T_GAS;
-pub const MAX_GAS: Gas = 300 * T_GAS;
 
 pub fn to_yocto(value: &str) -> u128 {
+    // this code is from near_sdk_sim. I inserted it here because I cannot use this library
     let vals: Vec<_> = value.split('.').collect();
     let part1 = vals[0].parse::<u128>().unwrap() * 10u128.pow(24);
     if vals.len() > 1 {
@@ -109,42 +95,37 @@ pub async fn ft_storage_deposit(
     Ok(())
 }
 
-// // . -> root -> near -> roketo -> dao
-
-// pub const NEAR: &str = "near";
-// pub const ROKETO_ID: &str = "r-v2.near";
-
-// pub const STREAMING_ID: &str = "streaming.r-v2.near";
-// pub const FINANCE_ID: &str = "finance.r-v2.near";
-// pub const ROKE_TOKEN_ID: &str = "token.r-v2.near";
-// pub const DAO_ID: &str = "dao.r-v2.near";
-
 impl Env {
     pub async fn init() -> anyhow::Result<Self> {
         let worker = workspaces::sandbox().await?;
         let near = worker.root_account(); // name will be "near" in mainnet
         let roketo = near
             .create_subaccount(&worker, "r-v2")
+            .initial_balance(to_yocto("100000000"))
             .transact()
             .await?
             .into_result()?; // name will be r-v2.near
         let streaming = roketo
             .create_subaccount(&worker, "streaming")
+            .initial_balance(to_yocto("10000000"))
             .transact()
             .await?
             .into_result()?; // name will be streaming.r-v2.near
         let finance = roketo
             .create_subaccount(&worker, "finance")
+            .initial_balance(to_yocto("10000000"))
             .transact()
             .await?
             .into_result()?; // name will be finance.r-v2.near
         let roketo_token = roketo
             .create_subaccount(&worker, "token")
+            .initial_balance(to_yocto("10000000"))
             .transact()
             .await?
             .into_result()?; // name will be token.r-v2.near
         let dao = roketo
             .create_subaccount(&worker, "dao")
+            .initial_balance(to_yocto("10000000"))
             .transact()
             .await?
             .into_result()?; // name will be dao.r-v2.near
@@ -153,71 +134,42 @@ impl Env {
             .await?
             .into_result()?;
         let finance = finance
-            .deploy(&worker, STREAMING_WASM_BYTES)
+            .deploy(&worker, FINANCE_WASM_BYTES)
             .await?
             .into_result()?;
         let roketo_token = roketo_token
-            .deploy(&worker, STREAMING_WASM_BYTES)
+            .deploy(&worker, ROKE_TOKEN_WASM_BYTES)
             .await?
             .into_result()?;
-        //            let roketo = roketo.deploy(&worker, STREAMING_WASM_BYTES).await?.into_result()?;
 
-        //        let dao = worker.dev_create_account().await?;
-        //     let dao = roketo.create_user(DAO_ID.parse().unwrap(), to_yocto("10000"));
-        //     let near = root.create_user(
-        //         AccountId::new_unchecked(NEAR.to_string()),
-        //         to_yocto("100000000"),
-        //        let near = worker.dev_create_account().await?;
-        //     let roketo = near.create_user(ROKETO_ID.parse().unwrap(), to_yocto("20000"));
-        let finance_id: AccountId = FINANCE_ID.parse().unwrap();
+        streaming
+            .call(&worker, "new")
+            .args_json(json!({
+                "dao_id": dao.id(),
+                "finance_id": finance.id(),
+                "utility_token_id": roketo_token.id(),
+                "utility_token_decimals": ROKE_TOKEN_DECIMALS,
+            }))?
+            .transact()
+            .await?; // In the old code in this place it was deploy with init method "new". I didn't find such method here, so just did a call
 
-        //     let streaming = deploy!(
-        //         contract: StreamingContract,
-        //         contract_id: STREAMING_ID.to_string(),
-        //         bytes: &STREAMING_WASM_BYTES,
-        //         signer_account: roketo,
-        //         deposit: to_yocto("30"),
-        //         gas: DEFAULT_GAS,
-        //         init_method: new(
-        //             dao_id,
-        //             finance_id,
-        //             ROKE_TOKEN_ID.parse().unwrap(),
-        //             ROKE_TOKEN_DECIMALS
-        //         )
-        //     );
-        // roke_token.call(&worker, "new").args_json()
-        //     ,
-        //     ROKE_TOKEN_ID.parse().unwrap(),
-        //     "new",
-        //     b"",
-        //     to_yocto("10"),
-        //     DEFAULT_GAS,
-        // );
-        //     let roketo_token = roketo.deploy_and_init(
-        //         &ROKE_TOKEN_WASM_BYTES,
-        //         ROKE_TOKEN_ID.parse().unwrap(),
-        //         "new",
-        //         b"",
-        //         to_yocto("10"),
-        //         DEFAULT_GAS,
-        //     );
+        roketo_token
+            .call(&worker, "new")
+            .args_json("")?
+            .transact()
+            .await?; // In the old code in this place it was deploy with init method "new". I didn't find such method here, so just did a call
 
-        //     let finance = roketo.deploy_and_init(
-        //         &FINANCE_WASM_BYTES,
-        //         FINANCE_ID.parse().unwrap(),
-        //         "new",
-        //         &json!({
-        //             "streaming_account_id": streaming.user_account.account_id()
-        //         })
-        //         .to_string()
-        //         .into_bytes(),
-        //         to_yocto("10"),
-        //         DEFAULT_GAS,
-        //     );
+        finance
+            .call(&worker, "new")
+            .args_json(json!({
+                "streaming_account_id": streaming.id(),
+            }))?
+            .transact()
+            .await?; // In the old code in this place it was deploy with init method "new". I didn't find such method here, so just did a call
 
-        ft_storage_deposit(&worker, &near, &roketo_token.id(), &near.id());
-        ft_storage_deposit(&worker, &near, &roketo_token.id(), &streaming.id());
-        ft_storage_deposit(&worker, &near, &roketo_token.id(), &finance.id());
+        ft_storage_deposit(&worker, &near, &roketo_token.id(), &near.id()).await?;
+        ft_storage_deposit(&worker, &near, &roketo_token.id(), &streaming.id()).await?;
+        ft_storage_deposit(&worker, &near, &roketo_token.id(), &finance.id()).await?;
 
         Ok(Self {
             worker,
@@ -318,12 +270,14 @@ impl Env {
         user: &Account,
         amount: Balance,
     ) -> anyhow::Result<()> {
-        ft_storage_deposit(&self.worker, user, &tokens.wnear_simple.id(), &user.id());
-        ft_storage_deposit(&self.worker, user, &self.roketo_token.id(), &user.id());
+        ft_storage_deposit(&self.worker, user, &tokens.wnear_simple.id(), &user.id()).await?;
+        ft_storage_deposit(&self.worker, user, &self.roketo_token.id(), &user.id()).await?;
 
         if amount > 0 {
-            self.mint_ft(&tokens.wnear_simple, user, d(amount, 24));
-            self.mint_ft(&self.roketo_token, user, d(amount, 18));
+            self.mint_ft(&tokens.wnear_simple, user, d(amount, 24))
+                .await?;
+            self.mint_ft(&self.roketo_token, user, d(amount, 18))
+                .await?;
         }
         Ok(())
     }
@@ -404,8 +358,8 @@ pub async fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> anyhow
         .await?
         .json()?;
 
-    ft_storage_deposit(&e.worker, &e.near, &token_account_id, &e.streaming.id());
-    ft_storage_deposit(&e.worker, &e.near, &token_account_id, &e.finance.id());
+    ft_storage_deposit(&e.worker, &e.near, &token_account_id, &e.streaming.id()).await?;
+    ft_storage_deposit(&e.worker, &e.near, &token_account_id, &e.finance.id()).await?;
     Ok(contract.into())
 }
 
@@ -442,17 +396,15 @@ pub fn d(value: Balance, decimals: u8) -> Balance {
     value * 10u128.pow(decimals as _)
 }
 
-// TODO check balances integrity
-
 pub async fn basic_setup() -> anyhow::Result<(Env, Tokens, Users)> {
     let e = Env::init().await?;
     let tokens = Tokens::init(&e).await?;
-    e.setup_assets(&tokens);
+    e.setup_assets(&tokens).await?;
 
     let users = Users::init(&e).await?;
-    e.mint_tokens(&tokens, &users.alice, 1000000);
+    e.mint_tokens(&tokens, &users.alice, 1000000).await?;
 
-    e.mint_tokens(&tokens, &users.charlie, 0);
+    e.mint_tokens(&tokens, &users.charlie, 0).await?;
 
     Ok((e, tokens, users))
 }
