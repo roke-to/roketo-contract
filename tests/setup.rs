@@ -95,6 +95,12 @@ pub async fn ft_storage_deposit(
     Ok(())
 }
 
+pub fn convert_account_id(account_id: &AccountId) -> near_sdk::AccountId {
+    let tmp = account_id.as_bytes();
+    let s = str::from_utf8(&tmp).unwrap();
+    near_sdk::AccountId::new_unchecked(s.to_string())
+}
+
 impl Env {
     pub async fn init() -> anyhow::Result<Self> {
         let worker = workspaces::sandbox().await?;
@@ -151,13 +157,13 @@ impl Env {
                 "utility_token_decimals": ROKE_TOKEN_DECIMALS,
             }))?
             .transact()
-            .await?; // In the old code in this place it was deploy with init method "new". I didn't find such method here, so just did a call
+            .await?; // In the old code in this place it was deploy with init method "new". I didn't find such method here, so just did a call. You need to fix this place
 
         roketo_token
             .call(&worker, "new")
             .args_json("")?
             .transact()
-            .await?; // In the old code in this place it was deploy with init method "new". I didn't find such method here, so just did a call
+            .await?; // In the old code in this place it was deploy with init method "new". I didn't find such method here, so just did a call. You need to fix this place
 
         finance
             .call(&worker, "new")
@@ -165,7 +171,7 @@ impl Env {
                 "streaming_account_id": streaming.id(),
             }))?
             .transact()
-            .await?; // In the old code in this place it was deploy with init method "new". I didn't find such method here, so just did a call
+            .await?; // In the old code in this place it was deploy with init method "new". I didn't find such method here, so just did a call. You need to fix this place
 
         ft_storage_deposit(&worker, &near, &roketo_token.id(), &near.id()).await?;
         ft_storage_deposit(&worker, &near, &roketo_token.id(), &streaming.id()).await?;
@@ -183,11 +189,8 @@ impl Env {
     }
 
     pub async fn setup_assets(&self, tokens: &Tokens) -> anyhow::Result<()> {
-        let tmp = self.roketo_token.id().as_bytes();
-        let s = str::from_utf8(&tmp).unwrap();
-        let account_id = near_sdk::AccountId::new_unchecked(s.to_string());
-        let token = Token {
-            account_id: account_id,
+        let roketo_token = Token {
+            account_id: convert_account_id(self.roketo_token.id()),
             is_payment: true,
             commission_on_create: d(10, 18),
             commission_coef: SafeFloat { val: 1, pow: -4 }, // 0.01%
@@ -199,14 +202,11 @@ impl Env {
         self.streaming
             .call(&self.worker, "dao_update_token")
             .args_json(json!({
-                "token": token,
+                "token": roketo_token,
             }))?;
 
-        let tmp = tokens.wnear_simple.id().as_bytes();
-        let s = str::from_utf8(&tmp).unwrap();
-        let account_id = near_sdk::AccountId::new_unchecked(s.to_string());
-        let token = Token {
-            account_id: account_id,
+        let wnear_token = Token {
+            account_id: convert_account_id(tokens.wnear_simple.id()),
             is_payment: true,
             commission_on_create: d(1, 23), // 0.1 token
             commission_coef: SafeFloat { val: 4, pow: -3 }, // 0.4%
@@ -218,7 +218,7 @@ impl Env {
         self.streaming
             .call(&self.worker, "dao_update_token")
             .args_json(json!({
-                "token": token,
+                "token": wnear_token,
             }))?;
         Ok(())
     }
@@ -230,9 +230,8 @@ impl Env {
         amount: Balance,
         msg: &str,
     ) -> anyhow::Result<U128> {
-        let num: U128 = self
-            .streaming
-            .call(&self.worker, "ft_transfer_call")
+        let num: U128 = user
+            .call(&self.worker, token.id(), "ft_transfer_call")
             .args_json(json!({
                 "receiver_id": self.streaming.id(),
                 "amount": U128::from(amount),
@@ -288,7 +287,7 @@ impl Env {
     }
 
     pub async fn get_balance(&self, token: &Contract, user: &Contract) -> anyhow::Result<u128> {
-        let tmp = self
+        let string_value = self
             .near
             .call(&self.worker, token.id(), "ft_balance_of")
             .args_json(&json!({
@@ -297,7 +296,7 @@ impl Env {
             .view()
             .await?
             .json::<String>()?;
-        Ok(u128::from_str_radix(&tmp[..], 10).unwrap())
+        Ok(u128::from_str_radix(&string_value[..], 10).unwrap())
     }
 
     pub async fn create_stream_ext_err(
@@ -314,22 +313,24 @@ impl Env {
         is_locked: Option<bool>,
     ) -> anyhow::Result<U128> {
         let tokens_per_sec = U128(tokens_per_sec);
+        let something = TransferCallRequest::Create {
+            request: CreateRequest {
+                owner_id: convert_account_id(owner.id()),
+                receiver_id: convert_account_id(receiver.id()),
+                tokens_per_sec,
+                description,
+                cliff_period_sec,
+                is_auto_start_enabled,
+                is_expirable,
+                is_locked,
+            },
+        };
         let ans = self
             .contract_ft_transfer_call(
-                &token, &owner, amount,
-                "", // &serde_json::to_string(&TransferCallRequest::Create {
-                   //     request: CreateRequest {
-                   //         owner_id: owner.view_account(streaming),
-                   //         receiver_id: receiver.id(),
-                   //         tokens_per_sec,
-                   //         description,
-                   //         cliff_period_sec,
-                   //         is_auto_start_enabled,
-                   //         is_expirable,
-                   //         is_locked,
-                   //     },
-                   // })
-                   // .unwrap(),
+                &token,
+                &owner,
+                amount,
+                &serde_json::to_string(&something).unwrap(),
             )
             .await
             .unwrap();
@@ -340,7 +341,7 @@ impl Env {
 pub async fn init_token(e: &Env, token_account_id: &str, decimals: u8) -> anyhow::Result<Contract> {
     let token_account_id: AccountId = token_account_id.parse().unwrap();
     let contract = e.worker.dev_deploy(FUNGIBLE_TOKEN_WASM_BYTES).await?;
-    let token = contract
+    let _token = contract // you need to check it. There is a bug
         .call(&e.worker, "new")
         .args_json(json!({ "owner_id": e.near.id(),
             "total_supply": U128::from(10u128.pow((10 + decimals) as _)),
