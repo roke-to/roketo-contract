@@ -13,6 +13,7 @@ perl -i -pe 's/\["cdylib", "rlib"\]/\["cdylib"\]/' examples/nft/Cargo.toml
 cargo fmt
 
 RUSTFLAGS='-C link-arg=-s' cargo build --all --target wasm32-unknown-unknown --release
+mkdir -p ./res
 cp $TARGET/wasm32-unknown-unknown/release/streaming.wasm ./res/streaming.wasm
 cp $TARGET/wasm32-unknown-unknown/release/finance.wasm ./res/finance.wasm
 cp $TARGET/wasm32-unknown-unknown/release/locked_token.wasm ./res/locked_token.wasm

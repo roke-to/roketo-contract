@@ -11,6 +11,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - run: rustup target add wasm32-unknown-unknown
       - run: sh build.sh
       - uses: actions/upload-artifact@v3
         with:
