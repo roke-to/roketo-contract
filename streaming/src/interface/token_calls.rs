@@ -6,6 +6,7 @@ pub enum TransferCallRequest {
     Stake,
     Create { request: CreateRequest },
     Deposit { stream_id: Base58CryptoHash },
+    BatchCreate { requests: Vec<CreateRequest> },
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -19,6 +20,7 @@ pub struct CreateRequest {
     pub is_auto_start_enabled: Option<bool>,
     pub is_expirable: Option<bool>,
     pub is_locked: Option<bool>,
+    pub balance: Option<U128>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -94,13 +96,65 @@ impl FungibleTokenReceiver for Contract {
         }
 
         let token_account_id = env::predecessor_account_id();
-        let key: Result<TransferCallRequest, _> = serde_json::from_str(&msg);
-        if key.is_err() {
-            log!("cannot parse message {:?}, error {:?}", msg, key);
-            // return everything back
-            return PromiseOrValue::Value(amount);
-        }
-        match key.unwrap() {
+
+        // Deserialize TransferCallRequest from attached msg with json.
+        let request = match serde_json::from_str::<TransferCallRequest>(&msg) {
+            Ok(req) => req,
+            Err(e) => {
+                log!("cannot parse message {:?}, error {:?}", msg, e);
+                // return everything back
+                return PromiseOrValue::Value(amount);
+            }
+        };
+
+        match request {
+            TransferCallRequest::BatchCreate { requests } => {
+                // Vaidate that enough tokens were transferred.
+                // Skip requests without balance.
+                let streams_total_balance: u128 = requests
+                    .iter()
+                    .filter_map(|req| req.balance)
+                    .try_fold(0u128, |acc, b| acc.checked_add(b.0))
+                    .expect("total streams balance overflow");
+                assert!(
+                    streams_total_balance <= amount.0,
+                    "not enough tokens transferred to create all streams"
+                );
+
+                let mut refund = amount.0;
+
+                for (i, req) in requests.into_iter().enumerate() {
+                    let initial_balance = if let Some(b) = req.balance {
+                        b.0
+                    } else {
+                        log!("Stream #{} create request must contrain 'balance'", i);
+                        continue;
+                    };
+
+                    // If stream creation failed, just skip it and refund balance later.
+                    if let Err(err) = self.create_stream_op(
+                        req.description,
+                        sender_id.clone(),
+                        req.owner_id,
+                        req.receiver_id,
+                        token_account_id.clone(),
+                        initial_balance,
+                        req.tokens_per_sec.0,
+                        req.cliff_period_sec,
+                        req.is_auto_start_enabled,
+                        req.is_expirable,
+                        req.is_locked,
+                    ) {
+                        log!("Stream #{} create error: {:?}", i, err);
+                    } else {
+                        refund = refund.checked_sub(initial_balance).expect(
+                            "overflow, transferred amount is less than total streams balance",
+                        );
+                        log!("Stream #{} created", i);
+                    }
+                }
+                PromiseOrValue::Value(U128::from(refund))
+            }
             TransferCallRequest::Stake => {
                 assert_eq!(token_account_id, self.dao.utility_token_id);
                 let mut sender = self.extract_account(&sender_id).unwrap();
@@ -109,20 +163,38 @@ impl FungibleTokenReceiver for Contract {
                 PromiseOrValue::Value(U128::from(0))
             }
             TransferCallRequest::Create { request } => {
+                let mut refund = 0;
+
+                // If balance field is present in request, use it as initial balance
+                // and refund remaining tokens.
+                // Else use transferred amount as initial balance.
+                let initial_balance = if let Some(balance) = request.balance {
+                    assert!(
+                        balance.0 <= amount.0,
+                        "not enough tokens transferred to cover initial balance"
+                    );
+                    refund = amount
+                        .0
+                        .checked_sub(balance.0)
+                        .expect("unreachable 'cause of the previous check");
+                    balance.0
+                } else {
+                    amount.0
+                };
                 match self.create_stream_op(
                     request.description,
-                    sender_id,
+                    sender_id.clone(),
                     request.owner_id,
                     request.receiver_id,
                     token_account_id,
-                    amount.into(),
-                    request.tokens_per_sec.into(),
+                    initial_balance,
+                    request.tokens_per_sec.0,
                     request.cliff_period_sec,
                     request.is_auto_start_enabled,
                     request.is_expirable,
                     request.is_locked,
                 ) {
-                    Ok(()) => PromiseOrValue::Value(U128::from(0)),
+                    Ok(()) => PromiseOrValue::Value(U128::from(refund)),
                     Err(err) => panic!("error on stream creation, {:?}", err),
                 }
             }
