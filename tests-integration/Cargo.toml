@@ -1,0 +1,16 @@
+[package]
+name = "tests-integration"
+version = "1.0.0"
+authors = ["Alex Kouprin <hello@kikimora.tech>"]
+edition = "2021"
+
+[dev-dependencies]
+near-contract-standards = "=4.0.0-pre.9"
+near-sdk = "=4.0.0-pre.9"
+near-sdk-sim = "=4.0.0-pre.9"
+
+finance = { path = "../finance" }
+streaming = { path = "../streaming" }
+locked-token = { path = "../locked_token" }
+roke-token = { path = "../roke_token" }
+nft-roketo = { path = "../examples/nft" }
