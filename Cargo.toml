@@ -4,10 +4,22 @@ version = "1.0.0"
 authors = ["Alex Kouprin <hello@kikimora.tech>"]
 edition = "2021"
 
+[dependencies]
+near-sdk = "=4.0.0-pre.9"
+near-contract-standards = "=4.0.0-pre.9"
+uint = { version = "0.9.3", default-features = false }
+
 [dev-dependencies]
+anyhow = "1.0"
+near-primitives = "0.5.0"
 near-contract-standards = "=4.0.0-pre.9"
 near-sdk = "=4.0.0-pre.9"
 near-sdk-sim = "=4.0.0-pre.9"
+near-units = "0.2.0"
+serde_json = "1.0"
+tokio = { version = "1.14", features = ["full"] }
+uint = { version = "0.9.3", default-features = false }
+workspaces = "0.4.1"
 
 finance = { path = "./finance" }
 streaming = { path = "./streaming" }
