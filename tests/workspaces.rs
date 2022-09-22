@@ -4,7 +4,9 @@ use near_units::parse_near;
 use workspaces::prelude::*;
 use workspaces::network::Sandbox;
 use workspaces::{Account, AccountId, Contract, Worker};
-use near_sdk::json_types::U128;
+pub use near_sdk::json_types::U128;
+use streaming::{Stream, StreamStatus, AccountView};
+use tokio::time::{sleep, Duration};
 // use workspaces::DevNetwork;
 
 use streaming::Dao;
@@ -217,19 +219,21 @@ async fn test_init_stream() -> anyhow::Result<()> {
     let worker = workspaces::sandbox().await?;
     let dao_account = worker.dev_create_account().await?;
 
-    let (_streaming_contract, _finance_contract, _token_contract, wrap_contract) =
+    let (streaming_contract, _finance_contract, _token_contract, wrap_contract) =
         init(&worker, &dao_account).await?;
 
     let sender_account = dao_account
         .create_subaccount(&worker, "sender")
-        .initial_balance(parse_near!("0.40 N"))
+        // .initial_balance(parse_near!("0.40 N"))
+        .initial_balance(parse_near!("10.00 N"))
         .transact()
         .await?
         .into_result()?;
 
-    let _receiver_account = dao_account
+    let receiver_account = dao_account
         .create_subaccount(&worker, "receiver")
-        .initial_balance(parse_near!("0.01 N"))
+        // .initial_balance(parse_near!("0.01 N"))
+        .initial_balance(parse_near!("0.50 N"))
         .transact()
         .await?
         .into_result()?;
@@ -237,7 +241,8 @@ async fn test_init_stream() -> anyhow::Result<()> {
     // make a deposit for subsequent transfer for the `sender` account
     let res = sender_account
         .call(&worker, wrap_contract.id(), "near_deposit")
-        .deposit(parse_near!("0.31 N"))
+        // .deposit(parse_near!("0.31 N"))
+        .deposit(parse_near!("5.51 N"))
         .transact()
         .await?;
     assert!(res.is_success());
@@ -250,8 +255,51 @@ async fn test_init_stream() -> anyhow::Result<()> {
         .view()
         .await?
         .json::<U128>()?;
-    assert_eq!(res, U128::from(parse_near!("0.30875 N"))); // the deposit for `sender` on `wrap` after comission
+    // assert_eq!(res, U128::from(parse_near!("0.30875 N"))); // the deposit for `sender` on `wrap` after comission
     println!("Sender Balance Result: {:?}", res);
+
+    // launching Roketo stream
+    let res = sender_account
+        .call(&worker, wrap_contract.id(), "ft_transfer_call")
+        .args_json(json!({
+            "receiver_id": streaming_contract.id(),
+            "amount": "300000000000000000000000",
+            "memo":
+            "Roketo transfer",
+            "msg": format!("{{\"Create\":{{\"request\":{{\"balance\":\"200000000000000000000000\",\"owner_id\":\"{}\",\"receiver_id\":\"{}\",\"token_name\":\"{}\",\"tokens_per_sec\":\"25000000000000000000000\",\"is_locked\":false,\"is_auto_start_enabled\":true,\"description\":\"{{\\\"c\\\":\\\"test\\\"}}\"}}}}}}",
+                           sender_account.id(), receiver_account.id(), wrap_contract.id()),
+        }))?
+        .deposit(ONE_YOCTO)
+        .gas(200000000000000)
+        .transact()
+        .await?;
+    assert!(res.is_success());
+
+    sleep(Duration::from_secs(5)).await; // sleep 5 seconds
+
+    // inspect sender account state
+    let res = dao_account
+        .call(&worker, streaming_contract.id(), "get_account")
+        .args_json(json!({"account_id": sender_account.id()}))?
+        .view()
+        .await?
+        .json::<AccountView>()?;
+    println!("Sender Account Inspection: {:?}", res);
+
+    // parse the stream Id
+    let stream_id_as_hash = res.last_created_stream.unwrap();
+    let stream_id = String::from(&stream_id_as_hash);
+    println!("Stream Id: {}", stream_id);
+
+    // check the stream status
+    let res = dao_account
+        .call(&worker, streaming_contract.id(), "get_stream")
+        .args_json(json!({ "stream_id": stream_id }))?
+        .view()
+        .await?
+        .json::<Stream>()?;
+    println!("Stream Details: {:#?}", res);
+    assert_eq!(res.status, StreamStatus::Active);
 
     Ok(())
 }
