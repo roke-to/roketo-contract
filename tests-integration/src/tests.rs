@@ -52,8 +52,6 @@
 // add tokens with is_payment = false
 // locked stream with instant stop
 
-mod setup;
-
 use crate::setup::*;
 
 #[test]

@@ -2,18 +2,14 @@ pub use std::cmp::min;
 pub use std::collections::HashSet;
 
 use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
-use near_contract_standards::non_fungible_token::metadata::{
-    NFTContractMetadata, NFT_METADATA_SPEC,
-};
+use near_contract_standards::non_fungible_token::metadata::{NFTContractMetadata, NFT_METADATA_SPEC};
 use near_contract_standards::non_fungible_token::{metadata::TokenMetadata, TokenId};
 pub use near_sdk::json_types::{Base58CryptoHash, U128};
 pub use near_sdk::serde_json::json;
 pub use near_sdk::CryptoHash;
 pub use near_sdk::{env, serde_json, AccountId, Balance, Timestamp, ONE_NEAR, ONE_YOCTO};
 use near_sdk_sim::runtime::GenesisConfig;
-use near_sdk_sim::{
-    deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount,
-};
+use near_sdk_sim::{deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount};
 use streaming::ContractContract as StreamingContract;
 pub use streaming::{
     AccountView, ContractError, CreateRequest, Dao, SafeFloat, Stats, Stream, StreamFinishReason,
@@ -24,14 +20,14 @@ pub use streaming::{
 };
 
 near_sdk_sim::lazy_static_include::lazy_static_include_bytes! {
-    FINANCE_WASM_BYTES => "res/finance.wasm",
-    NFT_ROKETO_WASM_BYTES => "res/nft_roketo.wasm",
-    ROKE_TOKEN_WASM_BYTES => "res/roke_token.wasm",
-    STREAMING_WASM_BYTES => "res/streaming.wasm",
+    FINANCE_WASM_BYTES => "../res/finance.wasm",
+    NFT_ROKETO_WASM_BYTES => "../res/nft_roketo.wasm",
+    ROKE_TOKEN_WASM_BYTES => "../res/roke_token.wasm",
+    STREAMING_WASM_BYTES => "../res/streaming.wasm",
 
-    AURORA_WASM_BYTES => "tests/aurora.wasm",
-    FUNGIBLE_TOKEN_WASM_BYTES => "tests/fungible_token.wasm",
-    WRAP_NEAR_WASM_BYTES => "tests/wrap_near.wasm",
+    AURORA_WASM_BYTES => "./res/aurora.wasm",
+    FUNGIBLE_TOKEN_WASM_BYTES => "./res/fungible_token.wasm",
+    WRAP_NEAR_WASM_BYTES => "./res/wrap_near.wasm",
 }
 
 pub const NEAR: &str = "near";

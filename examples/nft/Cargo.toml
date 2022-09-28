@@ -5,7 +5,7 @@ authors = ["Alex Kouprin <hello@kikimora.tech>"]
 edition = "2021"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 near-contract-standards = "=4.0.0-pre.9"
