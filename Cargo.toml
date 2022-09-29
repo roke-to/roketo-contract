@@ -1,20 +1,3 @@
-[package]
-name = "roketo"
-version = "1.0.0"
-authors = ["Alex Kouprin <hello@kikimora.tech>"]
-edition = "2021"
-
-[dev-dependencies]
-near-contract-standards = "=4.0.0-pre.9"
-near-sdk = "=4.0.0-pre.9"
-near-sdk-sim = "=4.0.0-pre.9"
-
-finance = { path = "./finance" }
-streaming = { path = "./streaming" }
-locked-token = { path = "./locked_token" }
-roke-token = { path = "./roke_token" }
-nft-roketo = { path = "./examples/nft" }
-
 [profile.release]
 codegen-units=1
 # Tell `rustc` to optimize for small code size
@@ -24,11 +7,14 @@ debug = false
 panic = "abort"
 overflow-checks = true
 
+
 [workspace]
 members = [
+    "common",
     "examples/nft",
     "finance",
-    "streaming",
+    "tests-integration",
+    "locked_token",
     "roke_token",
-    "locked_token"
+    "streaming",
 ]

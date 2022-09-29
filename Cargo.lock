@@ -2598,20 +2598,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "roketo"
-version = "1.0.0"
-dependencies = [
- "finance",
- "locked-token",
- "near-contract-standards",
- "near-sdk",
- "near-sdk-sim",
- "nft-roketo",
- "roke-token",
- "streaming",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2898,6 +2884,20 @@ dependencies = [
  "redox_syscall 0.2.13",
  "remove_dir_all",
  "winapi",
+]
+
+[[package]]
+name = "tests-integration"
+version = "1.0.0"
+dependencies = [
+ "finance",
+ "locked-token",
+ "near-contract-standards",
+ "near-sdk",
+ "near-sdk-sim",
+ "nft-roketo",
+ "roke-token",
+ "streaming",
 ]
 
 [[package]]
