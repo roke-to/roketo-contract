@@ -3,3 +3,6 @@ mod tests;
 
 #[cfg(test)]
 mod setup;
+
+#[cfg(test)]
+mod workspaces;
