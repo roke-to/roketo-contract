@@ -5,4 +5,7 @@ mod tests;
 mod setup;
 
 #[cfg(test)]
-mod workspaces;
+mod ws_tests;
+
+#[cfg(test)]
+mod ws_setup;
