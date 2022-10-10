@@ -1,37 +1,13 @@
-use near_sdk::serde_json::json;
+use near_sdk::serde_json::{json, to_string};
 use near_sdk::ONE_YOCTO;
 use near_units::parse_near;
-use workspaces::network::Sandbox;
-use workspaces::{Account, AccountId, Contract, Worker};
+use workspaces::{Account, Contract, Worker};
 pub use near_sdk::json_types::U128;
 use streaming::{Stream, StreamStatus, AccountView};
 use tokio::time::{sleep, Duration};
 // use workspaces::DevNetwork;
 
 use streaming::Dao;
-
-async fn pull_contract(
-    owner: &Account,
-    contract_account: &str,
-    worker: &Worker<Sandbox>,
-) -> anyhow::Result<Contract> {
-    let testnet = workspaces::testnet_archival().await?;
-    let contract_id: AccountId = contract_account.parse::<AccountId>().unwrap();
-    let contract = worker
-        .import_contract(&contract_id, &testnet)
-        .initial_balance(parse_near!("1000 N"))
-        // .block_height(BLOCK_HEIGHT)
-        .transact()
-        .await?;
-
-    owner
-        .call(contract.id(), "new")
-        // .deposit(ONE_YOCTO)
-        .transact()
-        .await?;
-
-    Ok(contract)
-}
 
 async fn init(
     // TODO:
@@ -54,11 +30,16 @@ async fn init(
         .dev_deploy(include_bytes!("../../res/roke_token.wasm").as_ref())
         .await?;
 
-    // spoon & deploy the `wrap.testnet` contract
-    let wrap_testnet = pull_contract(dao_account, "wrap.testnet", worker).await;
-    println!("Wrap spooning result: {:?}", wrap_testnet);
-    assert!(wrap_testnet.is_ok());
-    let wrap_contract = wrap_testnet?;
+    let wrap_contract = worker
+        .dev_deploy(include_bytes!("../res/wrap_near.wasm").as_ref())
+        .await?;
+
+    // init wrap contract
+    let res = dao_account
+        .call(wrap_contract.id(), "new")
+        .transact()
+        .await?;
+    assert!(res.is_success());
 
     // init finance and streaming contracts
     let res = dao_account
@@ -72,7 +53,7 @@ async fn init(
         .call(streaming_contract.id(), "new")
         .args_json((
             dao_account.id(),
-            streaming_contract.as_account().id(),
+            finance_contract.as_account().id(),
             token_contract.as_account().id(),
             18,
         ))
@@ -258,15 +239,28 @@ async fn test_init_stream() -> anyhow::Result<()> {
     println!("Sender Balance Result: {:?}", res);
 
     // launching Roketo stream
+    let msg = json!({
+        "Create": {
+            "request": {
+                "balance": "200000000000000000000000",
+                "owner_id": sender_account.id(),
+                "receiver_id": receiver_account.id(),
+                "token_name": wrap_contract.id(),
+                "tokens_per_sec": "25000000000000000000000",
+                "is_locked": false,
+                "is_auto_start_enabled": true,
+                "description": to_string(&json!({ "c": "test" })).unwrap(),
+            }
+        }
+    });
+
     let res = sender_account
         .call(wrap_contract.id(), "ft_transfer_call")
         .args_json(json!({
             "receiver_id": streaming_contract.id(),
             "amount": "300000000000000000000000",
-            "memo":
-            "Roketo transfer",
-            "msg": format!("{{\"Create\":{{\"request\":{{\"balance\":\"200000000000000000000000\",\"owner_id\":\"{}\",\"receiver_id\":\"{}\",\"token_name\":\"{}\",\"tokens_per_sec\":\"25000000000000000000000\",\"is_locked\":false,\"is_auto_start_enabled\":true,\"description\":\"{{\\\"c\\\":\\\"test\\\"}}\"}}}}}}",
-                           sender_account.id(), receiver_account.id(), wrap_contract.id()),
+            "memo": "Roketo transfer",
+            "msg": to_string(&msg).unwrap(),
         }))
         .deposit(ONE_YOCTO)
         .gas(200000000000000)
