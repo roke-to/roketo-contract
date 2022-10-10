@@ -5,14 +5,13 @@ use workspaces::{Account, Contract, Worker};
 pub use near_sdk::json_types::U128;
 use streaming::{Stream, StreamStatus, AccountView};
 use tokio::time::{sleep, Duration};
-// use workspaces::DevNetwork;
+use workspaces::DevNetwork;
 
 use streaming::Dao;
 
 async fn init(
-    // TODO:
-    // worker: &Worker<impl DevNetwork>,
-    worker: &Worker<workspaces::network::Sandbox>,
+    worker: &Worker<impl DevNetwork>,
+    // worker: &Worker<workspaces::network::Sandbox>,
     dao_account: &Account,
 ) -> anyhow::Result<(Contract, Contract, Contract, Contract)> {
     // let master_account = worker.dev_create_account().await?;
