@@ -1,3 +1,5 @@
+use near_sdk::log;
+
 use crate::*;
 
 #[near_bindgen]
@@ -17,7 +19,7 @@ impl Contract {
     #[payable]
     pub fn streaming_storage_needs_transfer(&mut self) -> Promise {
         self.check_owner().unwrap();
-
+        log!("Covering storage needs from finance contract");
         Promise::new(self.owner_id.clone()).transfer(STORAGE_NEEDS_PER_STREAM)
     }
 }
