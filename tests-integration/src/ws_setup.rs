@@ -14,21 +14,71 @@ pub async fn init(
     // let master_account = worker.dev_create_account().await?;
 
     // deployment of contracts
-    let streaming_contract = worker
-        .dev_deploy(include_bytes!("../../res/streaming.wasm").as_ref())
-        .await?;
+    // deploying under Dao-subaccounts, to obtain better namings.
 
-    let finance_contract = worker
-        .dev_deploy(include_bytes!("../../res/finance.wasm").as_ref())
-        .await?;
+    // let streaming_contract = worker
+    //     .dev_deploy(include_bytes!("../../res/streaming.wasm").as_ref())
+    //     .await?;
 
-    let token_contract = worker
-        .dev_deploy(include_bytes!("../../res/roke_token.wasm").as_ref())
-        .await?;
+    let streaming_account = dao_account
+        .create_subaccount("streaming")
+        .initial_balance(parse_near!("10.00 N"))
+        .transact()
+        .await?
+        .into_result()?;
 
-    let wrap_contract = worker
-        .dev_deploy(include_bytes!("../res/wrap_near.wasm").as_ref())
-        .await?;
+    let streaming_contract = streaming_account
+        .deploy(include_bytes!("../../res/streaming.wasm").as_ref())
+        .await?
+        .into_result()?;
+
+    // let finance_contract = worker
+    //     .dev_deploy(include_bytes!("../../res/finance.wasm").as_ref())
+    //     .await?;
+
+    let finance_account = dao_account
+        .create_subaccount("finance")
+        .initial_balance(parse_near!("10.00 N"))
+        .transact()
+        .await?
+        .into_result()?;
+
+    let finance_contract = finance_account
+        .deploy(include_bytes!("../../res/finance.wasm").as_ref())
+        .await?
+        .into_result()?;
+
+    // let token_contract = worker
+    //     .dev_deploy(include_bytes!("../../res/roke_token.wasm").as_ref())
+    //     .await?;
+
+    let token_account = dao_account
+        .create_subaccount("token")
+        .initial_balance(parse_near!("10.00 N"))
+        .transact()
+        .await?
+        .into_result()?;
+
+    let token_contract = token_account
+        .deploy(include_bytes!("../../res/roke_token.wasm").as_ref())
+        .await?
+        .into_result()?;
+
+    // let wrap_contract = worker
+    //     .dev_deploy(include_bytes!("../res/wrap_near.wasm").as_ref())
+    //     .await?;
+
+    let wrap_account = dao_account
+        .create_subaccount("wrap")
+        .initial_balance(parse_near!("10.00 N"))
+        .transact()
+        .await?
+        .into_result()?;
+
+    let wrap_contract = wrap_account
+        .deploy(include_bytes!("../res/wrap_near.wasm").as_ref())
+        .await?
+        .into_result()?;
 
     // init wrap contract
     let res = dao_account
