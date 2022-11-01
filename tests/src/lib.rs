@@ -25,7 +25,7 @@ const WRAP_NEAR_WASM: &str = "wrap_near.wasm";
 
 // Constants related to the wrap NEAR FT contract.
 const WRAP_NEAR_TESTNET_ACCOUNT_ID: &str = "wrap.testnet";
-const WRAP_NEAR_DEPOSIT_CALL: &str = "near_deposit";
+// const WRAP_NEAR_DEPOSIT_CALL: &str = "near_deposit";
 
 // Constant parameters for Roketo-streaming accounts setup.
 const STREAMING_SUBACCOUNT_ID: &str = "streaming";

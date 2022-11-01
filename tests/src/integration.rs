@@ -1,9 +1,8 @@
 pub use near_sdk::serde_json::json;
 use near_units::parse_near;
-use near_sdk::{serde_json::to_string, ONE_NEAR, ONE_YOCTO};
+use near_sdk::{serde_json::to_string, ONE_YOCTO};
 use near_sdk::json_types::U128;
-use tokio::time::{sleep, Duration}; //TODO: switch for fast forward
-use streaming::{Stream, StreamStatus, AccountView, Stats};
+use streaming::{Stream, StreamStatus, AccountView};
 use anyhow::Result;
 
 use crate::environment::Environment;
@@ -81,7 +80,7 @@ async fn test_env_init_stream() -> Result<()> {
         .await?;
     assert!(res.is_success());
 
-    sleep(Duration::from_secs(5)).await; // sleep 5 seconds
+    env.sandbox.fast_forward(500).await?;
 
     // inspect sender account state
     let res = env

@@ -1,13 +1,11 @@
-use std::{collections::HashMap, ops::Deref};
+use std::collections::HashMap;
 
 use near_sdk::Balance;
 use near_units::parse_near;
 use anyhow::Result;
-use near_contract_standards::fungible_token;
-// use futures::{stream::FuturesUnordered, TryStreamExt};
-use near_sdk::{json_types::U128, serde_json::json, ONE_YOCTO};
+use near_sdk::{serde_json::json, ONE_YOCTO};
 use tokio::fs::read;
-use workspaces::{network::Sandbox, testnet, Account, AccountId, Contract, Worker};
+use workspaces::{network::Sandbox, testnet, Account, Contract, Worker};
 
 use crate::{
     WRAP_NEAR_TESTNET_ACCOUNT_ID, STREAMING_WASMS_DIR, EXTERNAL_TEST_WASMS_DIR, WRAP_NEAR_WASM,
@@ -140,7 +138,6 @@ pub async fn init_roketo_contracts(
     finance: Contract,
     fungible_tokens: HashMap<String, Contract>,
 ) -> Result<(Contract, Contract)> {
-    let wrap_near = fungible_tokens.get(WRAP_NEAR_TESTNET_ACCOUNT_ID).unwrap();
     let roketo_ft = fungible_tokens.get(UTILITY_TOKEN_SUBACCOUNT_ID).unwrap();
 
     let res = dao
