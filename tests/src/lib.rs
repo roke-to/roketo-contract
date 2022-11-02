@@ -11,6 +11,9 @@ mod setup;
 mod integration;
 
 #[cfg(test)]
+mod pair_with_vault;
+
+#[cfg(test)]
 mod ws_tests;
 
 #[cfg(test)]

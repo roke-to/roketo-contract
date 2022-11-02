@@ -1,5 +1,6 @@
 mod format_helpers;
 mod setup;
+pub mod setup_for_vault;
 
 // use format_helpers::format_execution_result;
 
@@ -8,29 +9,33 @@ use crate::environment::setup::{
     deploy_utility_token_contract, init_roketo_contracts, register_fts_on_streaming,
     add_storage_deposit,
 };
+use crate::environment::setup_for_vault::{ExtVault, prepare_external_vault_contract};
 
 use crate::{WRAP_NEAR_TESTNET_ACCOUNT_ID, UTILITY_TOKEN_SUBACCOUNT_ID};
 
 use anyhow::Result;
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use workspaces::{network::Sandbox, sandbox, Account, Contract, Worker};
 
 /// Struct containing a set of contracts that streaming operations rely upon.
 /// Deployed for testing together under the following environment.
-pub struct Environment {
+pub struct Environment<Ext> {
     /// Sandboxed network worker.
     pub sandbox: Worker<Sandbox>,
     /// The DAO account that is in charge of the streaming environment.
     pub dao: Account,
     /// Hashmap collection of FT-contracts used throughout tests.
     pub fungible_tokens: HashMap<String, Contract>,
-    /// Roketo Streaming contract
+    /// Roketo Streaming contract.
     pub streaming: Contract,
-    /// Roketo Finance contract
+    /// Roketo Finance contract.
     pub finance: Contract,
+    /// Extension fields for complex environments
+    /// that include infrastructure for external contract testing.
+    pub extras: Option<Ext>,
 }
 
-impl Environment {
+impl<Ext> Environment<Ext> {
     pub async fn new() -> Result<Self> {
         let sandbox = sandbox().await?;
         println!("sandbox initialized");
@@ -88,6 +93,22 @@ impl Environment {
             fungible_tokens,
             streaming,
             finance,
+            extras: None,
         })
+    }
+}
+
+impl Environment<ExtVault> {
+    pub async fn add_vault_to_env(&mut self) -> Result<(), anyhow::Error> {
+        let vault = tokio::spawn(prepare_external_vault_contract(
+            self.sandbox.clone(),
+            self.dao.clone(),
+            self.fungible_tokens.clone(),
+        ));
+        let vault = vault.await??;
+        let extras = ExtVault { vault };
+        self.extras = Some(extras);
+
+        Ok(())
     }
 }

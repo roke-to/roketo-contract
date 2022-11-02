@@ -9,7 +9,7 @@ use crate::environment::Environment;
 
 #[tokio::test]
 async fn test_env_init_stream() -> Result<()> {
-    let env = Environment::new().await?;
+    let env: Environment<()> = Environment::new().await?;
     println!("\n<--- test environment initialized --->\n");
 
     let wrap_near = env.fungible_tokens.get("wrap.testnet").unwrap();
