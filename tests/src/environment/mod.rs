@@ -9,7 +9,10 @@ use crate::environment::setup::{
     deploy_utility_token_contract, init_roketo_contracts, register_fts_on_streaming,
     add_storage_deposit,
 };
-use crate::environment::setup_for_vault::{ExtVault, prepare_external_vault_contract};
+use self::setup_for_vault::{
+    ExtVault, prepare_external_vault_contract, prepare_issuer_account, prepare_nft_owner_account,
+    prepare_external_nft_contract,
+};
 
 use crate::{WRAP_NEAR_TESTNET_ACCOUNT_ID, UTILITY_TOKEN_SUBACCOUNT_ID};
 
@@ -100,13 +103,38 @@ impl<Ext> Environment<Ext> {
 
 impl Environment<ExtVault> {
     pub async fn add_vault_to_env(&mut self) -> Result<(), anyhow::Error> {
+        let issuer = tokio::spawn(prepare_issuer_account(
+            self.sandbox.clone(),
+            self.dao.clone(),
+            self.fungible_tokens.clone(),
+        ));
+        let nft_owner = tokio::spawn(prepare_nft_owner_account(
+            self.sandbox.clone(),
+            self.dao.clone(),
+            self.fungible_tokens.clone(),
+        ));
         let vault = tokio::spawn(prepare_external_vault_contract(
             self.sandbox.clone(),
             self.dao.clone(),
             self.fungible_tokens.clone(),
         ));
+        let nft = tokio::spawn(prepare_external_nft_contract(
+            self.sandbox.clone(),
+            self.dao.clone(),
+            self.fungible_tokens.clone(),
+        ));
+
+        let issuer = issuer.await??;
+        let nft_owner = nft_owner.await??;
         let vault = vault.await??;
-        let extras = ExtVault { vault };
+        let nft = nft.await??;
+
+        let extras = ExtVault {
+            issuer,
+            nft_owner,
+            vault,
+            nft,
+        };
         self.extras = Some(extras);
 
         Ok(())
