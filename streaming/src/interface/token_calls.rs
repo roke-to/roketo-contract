@@ -109,6 +109,17 @@ impl FungibleTokenReceiver for Contract {
                 PromiseOrValue::Value(U128::from(0))
             }
             TransferCallRequest::Create { request } => {
+                let amount_log: u128 = amount.into();
+                let flowrate: u128 = request.tokens_per_sec.into();
+                log!(
+                    "Stream creation by {0} from {1} to {2}. Amount: {3} of {4}, Flowrate: {5}",
+                    sender_id,
+                    request.owner_id,
+                    request.receiver_id,
+                    amount_log,
+                    token_account_id,
+                    flowrate
+                );
                 match self.create_stream_op(
                     request.description,
                     sender_id,
