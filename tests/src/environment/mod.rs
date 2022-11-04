@@ -2,7 +2,7 @@ mod format_helpers;
 mod setup;
 pub mod setup_for_vault;
 
-// use format_helpers::format_execution_result;
+use format_helpers::format_execution_result;
 
 use crate::environment::setup::{
     prepare_wrap_near_contract, deploy_streaming_contract, deploy_finance_contract,
@@ -10,8 +10,8 @@ use crate::environment::setup::{
     add_storage_deposit,
 };
 use self::setup_for_vault::{
-    ExtVault, prepare_external_vault_contract, prepare_issuer_account, prepare_nft_owner_account,
-    prepare_external_nft_contract,
+    Replenisher, ExtVault, prepare_external_vault_contract, prepare_issuer_account,
+    prepare_nft_owner_account, prepare_external_nft_contract,
 };
 
 use crate::{WRAP_NEAR_TESTNET_ACCOUNT_ID, UTILITY_TOKEN_SUBACCOUNT_ID};
@@ -19,6 +19,17 @@ use crate::{WRAP_NEAR_TESTNET_ACCOUNT_ID, UTILITY_TOKEN_SUBACCOUNT_ID};
 use anyhow::Result;
 use std::collections::HashMap;
 use workspaces::{network::Sandbox, sandbox, Account, Contract, Worker};
+use near_sdk::{
+    json_types::U128,
+    serde_json::{json, to_vec},
+};
+
+pub const NFT_TOKEN_ID: &str = "munch_scream";
+// pub const NFT_TRANSFER_CALL: &str = "nft_transfer";
+pub const VAULT_REPLENISH_CALLBACK: &str = "request_ft";
+pub const VAULT_REPLENISH_ARGS: &str = "{arg: \"some arg\"}";
+pub const VAULT_ADD_REPLENISHMENT_CALLBACK_CALL: &str = "add_replenishment_callback";
+pub const VAULT_VIEW_REPLENISHERS_CALL: &str = "replenishers";
 
 /// Struct containing a set of contracts that streaming operations rely upon.
 /// Deployed for testing together under the following environment.
@@ -138,5 +149,46 @@ impl Environment<ExtVault> {
         self.extras = Some(extras);
 
         Ok(())
+    }
+
+    pub async fn add_replenisher(&self) -> Result<()> {
+        let extras = self.extras.clone().unwrap();
+
+        let args = json!({
+            "nft_contract_id": extras.nft.id(),
+            "nft_id": NFT_TOKEN_ID,
+            "callback": VAULT_REPLENISH_CALLBACK,
+            "args": VAULT_REPLENISH_ARGS,
+        });
+        let res = extras
+            .issuer
+            .call(extras.vault.id(), VAULT_ADD_REPLENISHMENT_CALLBACK_CALL)
+            .args_json(args)
+            .deposit(1)
+            .transact()
+            .await?;
+
+        println!("add replenisher: {}", format_execution_result(&res));
+
+        Ok(())
+    }
+
+    pub async fn view_replenishers(&self) -> Result<Option<Vec<Replenisher>>> {
+        let extras = self.extras.clone().unwrap();
+
+        let args = to_vec(&json!({
+            "nft_contract_id": extras.nft.id(),
+            "nft_id": NFT_TOKEN_ID,
+        }))?;
+        let res = extras
+            .issuer
+            .view(extras.vault.id(), VAULT_VIEW_REPLENISHERS_CALL, args)
+            .await?;
+
+        println!("view replenishers logs: {:?}", res.logs);
+
+        let replenishers = res.json()?;
+
+        Ok(replenishers)
     }
 }

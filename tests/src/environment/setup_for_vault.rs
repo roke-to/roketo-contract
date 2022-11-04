@@ -6,6 +6,11 @@ use anyhow::Result;
 use near_sdk::{serde_json::json, ONE_YOCTO};
 use tokio::fs::read;
 use workspaces::{network::Sandbox, testnet, Account, Contract, Worker};
+use near_sdk::{
+    AccountId,
+    borsh::{self, BorshDeserialize, BorshSerialize},
+    serde::{Deserialize, Serialize},
+};
 
 use crate::{
     WRAP_NEAR_TESTNET_ACCOUNT_ID, STREAMING_WASMS_DIR, EXTERNAL_TEST_WASMS_DIR, WRAP_NEAR_WASM,
@@ -19,8 +24,31 @@ use super::format_helpers::format_execution_result;
 const DEFAULT_INITIAL_BALANCE: Balance = parse_near!("20.00 N");
 const DEFAULT_STORAGE_DEPOSIT: Balance = parse_near!("0.0125 N");
 
+#[derive(Debug, BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Replenisher {
+    contract_id: AccountId,
+    callback: String,
+    args: String,
+}
+
+impl Replenisher {
+    pub fn contract_id(&self) -> &AccountId {
+        &self.contract_id
+    }
+
+    pub fn callback(&self) -> &str {
+        self.callback.as_ref()
+    }
+
+    pub fn args(&self) -> &str {
+        self.args.as_ref()
+    }
+}
+
 /// Extension for the testing environment consisting of the contracts
 /// used for interoperation with `nft_benefits_vault`.
+#[derive(Debug, Clone)]
 pub struct ExtVault {
     /// The account that issues NFT and pays benefits.
     pub issuer: Account,
