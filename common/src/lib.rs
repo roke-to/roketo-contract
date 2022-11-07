@@ -1,3 +1,4 @@
+pub mod abbrevs;
 mod aurora;
 mod err;
 mod primitives;

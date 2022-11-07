@@ -6,6 +6,8 @@ use anyhow::Result;
 use near_sdk::{serde_json::json, ONE_YOCTO};
 use tokio::fs::read;
 use workspaces::{network::Sandbox, testnet, Account, Contract, Worker};
+// use common::abbrevs::*;
+use crate::environment::methods::{ft_storage_deposit, get_ft_balance};
 
 use crate::{
     WRAP_NEAR_TESTNET_ACCOUNT_ID, STREAMING_WASMS_DIR, EXTERNAL_TEST_WASMS_DIR, WRAP_NEAR_WASM,
@@ -47,6 +49,22 @@ pub async fn prepare_wrap_near_contract(sandbox: Worker<Sandbox>) -> Result<Cont
     println!(
         "\nwrapNEAR contract initialization outcome: {}\n",
         format_execution_result(&res)
+    );
+
+    let root = sandbox.root_account()?;
+    ft_storage_deposit(&root, contract.id(), root.id())
+        .await?
+        .into_result()?;
+    let res = root
+        .call(contract.id(), "near_deposit")
+        .deposit(parse_near!("1_000_000 N"))
+        .transact()
+        .await?;
+    assert!(res.is_success());
+    let root_balance = get_ft_balance(contract.as_account(), &root).await?;
+    println!(
+        "Root wNEAR Deposit Result: {:?}\nRoot wNEAR Balance: {}",
+        res, root_balance
     );
 
     Ok(contract)
@@ -136,7 +154,7 @@ pub async fn init_roketo_contracts(
     dao: Account,
     streaming: Contract,
     finance: Contract,
-    fungible_tokens: HashMap<String, Contract>,
+    fungible_tokens: HashMap<&str, Contract>,
 ) -> Result<(Contract, Contract)> {
     let roketo_ft = fungible_tokens.get(UTILITY_TOKEN_SUBACCOUNT_ID).unwrap();
 
@@ -177,7 +195,7 @@ pub async fn init_roketo_contracts(
 pub async fn register_fts_on_streaming(
     dao: Account,
     streaming: Contract,
-    fungible_tokens: HashMap<String, Contract>,
+    fungible_tokens: HashMap<&str, Contract>,
 ) -> Result<Contract> {
     let wrap_near = fungible_tokens.get(WRAP_NEAR_TESTNET_ACCOUNT_ID).unwrap();
     let roketo_ft = fungible_tokens.get(UTILITY_TOKEN_SUBACCOUNT_ID).unwrap();
@@ -241,8 +259,8 @@ pub async fn add_storage_deposit(
     dao: Account,
     streaming: Contract,
     finance: Contract,
-    mut fungible_tokens: HashMap<String, Contract>,
-) -> Result<HashMap<String, Contract>> {
+    mut fungible_tokens: HashMap<&str, Contract>,
+) -> Result<HashMap<&str, Contract>> {
     let wrap_near = fungible_tokens
         .get(WRAP_NEAR_TESTNET_ACCOUNT_ID)
         .unwrap()
@@ -252,67 +270,21 @@ pub async fn add_storage_deposit(
         .unwrap()
         .clone();
 
-    let res = dao
-        .call(wrap_near.id(), "storage_deposit")
-        .args_json(json!({
-            "account_id": finance.id()
-        }))
-        .deposit(DEFAULT_STORAGE_DEPOSIT)
-        .transact()
-        .await?;
-    assert!(res.is_success());
+    //@TODO: Parallelize these calls?
+    ft_storage_deposit(&dao, wrap_near.id(), finance.id())
+        .await?
+        .into_result()?;
+    ft_storage_deposit(&dao, wrap_near.id(), streaming.id())
+        .await?
+        .into_result()?;
+    ft_storage_deposit(&dao, roketo_ft.id(), finance.id())
+        .await?
+        .into_result()?;
+    ft_storage_deposit(&dao, roketo_ft.id(), streaming.id())
+        .await?
+        .into_result()?;
 
-    println!(
-        "\nStorage deposit for Finance on wNEAR outcome: {}\n",
-        format_execution_result(&res)
-    );
-
-    let res = dao
-        .call(wrap_near.id(), "storage_deposit")
-        .args_json(json!({
-            "account_id": streaming.id()
-        }))
-        .deposit(DEFAULT_STORAGE_DEPOSIT)
-        .transact()
-        .await?;
-    assert!(res.is_success());
-
-    println!(
-        "\nStorage deposit for Streaming on wNEAR outcome: {}\n",
-        format_execution_result(&res)
-    );
-
-    let res = dao
-        .call(roketo_ft.id(), "storage_deposit")
-        .args_json(json!({
-            "account_id": finance.id()
-        }))
-        .deposit(DEFAULT_STORAGE_DEPOSIT)
-        .transact()
-        .await?;
-    assert!(res.is_success());
-
-    println!(
-        "\nStorage deposit for Finance on Roketo FT outcome: {}\n",
-        format_execution_result(&res)
-    );
-
-    let res = dao
-        .call(roketo_ft.id(), "storage_deposit")
-        .args_json(json!({
-            "account_id": streaming.id()
-        }))
-        .deposit(DEFAULT_STORAGE_DEPOSIT)
-        .transact()
-        .await?;
-    assert!(res.is_success());
-
-    println!(
-        "\nStorage deposit for Streaming on Roketo FT outcome: {}\n",
-        format_execution_result(&res)
-    );
-
-    fungible_tokens.insert(WRAP_NEAR_TESTNET_ACCOUNT_ID.to_string(), wrap_near);
-    fungible_tokens.insert(UTILITY_TOKEN_SUBACCOUNT_ID.to_string(), roketo_ft);
+    fungible_tokens.insert(WRAP_NEAR_TESTNET_ACCOUNT_ID, wrap_near);
+    fungible_tokens.insert(UTILITY_TOKEN_SUBACCOUNT_ID, roketo_ft);
     Ok(fungible_tokens)
 }

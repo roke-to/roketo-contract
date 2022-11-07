@@ -1,16 +1,72 @@
 pub use near_sdk::serde_json::json;
 use near_units::parse_near;
-use near_sdk::{serde_json::to_string, ONE_YOCTO};
+use near_sdk::{serde_json::to_string, ONE_YOCTO, Balance};
 use near_sdk::json_types::U128;
 use streaming::{Stream, StreamStatus, AccountView};
 use anyhow::Result;
 
 use crate::environment::Environment;
+use crate::environment::methods::get_near_balance;
+use crate::environment::setup_integration::ExtIntegration;
+
+use common::m_e_n;
+
+#[tokio::test]
+async fn test_env_balance() -> Result<()> {
+    let b = m_e_n(13, 2);
+    assert_eq!(Balance::from(1300u128), b);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_env_dummy() -> Result<()> {
+    let env: Environment<()> = Environment::new().await?;
+
+    let b = get_near_balance(env.streaming.as_account()).await?;
+    println!("streaming contract balance: {}", b);
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_env_integration() -> Result<()> {
+    let mut env: Environment<ExtIntegration> = Environment::new().await?;
+
+    env.extend_env().await?; //
+
+    assert!(env.extras.is_some());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_env_stream_sanity() -> Result<()> {
+    let mut env: Environment<ExtIntegration> = Environment::new().await?;
+
+    env.extend_env().await?;
+
+    let amount = m_e_n(101, 23);
+    let velocity = m_e_n(1, 23);
+    let users = env.extras.as_ref().unwrap().users.clone();
+    let alice = users.get("alice").unwrap();
+    let bob = users.get("bob").unwrap();
+    let fts = env.fungible_tokens.clone();
+    let wrap_near = fts.get("wrap.testnet").unwrap();
+
+    let stream_id = env
+        .create_stream(alice, bob, wrap_near.as_account(), amount, velocity)
+        .await?;
+
+    let stream = env.get_stream(&stream_id).await?;
+    assert_eq!(stream.status, StreamStatus::Active);
+    println!("Stream Balance: {:?}", stream.balance);
+
+    Ok(())
+}
 
 #[tokio::test]
 async fn test_env_init_stream() -> Result<()> {
     let env: Environment<()> = Environment::new().await?;
-    println!("\n<--- test environment initialized --->\n");
 
     let wrap_near = env.fungible_tokens.get("wrap.testnet").unwrap();
 

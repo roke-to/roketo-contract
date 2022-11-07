@@ -36,7 +36,7 @@ pub struct ExtVault {
 pub async fn prepare_issuer_account(
     sandbox: Worker<Sandbox>,
     dao: Account,
-    fungible_tokens: HashMap<String, Contract>,
+    fungible_tokens: HashMap<&str, Contract>,
 ) -> Result<Account> {
     let issuer = dao
         .create_subaccount("issuer")
@@ -83,7 +83,7 @@ pub async fn prepare_issuer_account(
 pub async fn prepare_nft_owner_account(
     sandbox: Worker<Sandbox>,
     dao: Account,
-    fungible_tokens: HashMap<String, Contract>,
+    fungible_tokens: HashMap<&str, Contract>,
 ) -> Result<Account> {
     let nft_owner = dao
         .create_subaccount("nft_owner")
@@ -121,7 +121,7 @@ pub async fn prepare_nft_owner_account(
 pub async fn prepare_external_vault_contract(
     sandbox: Worker<Sandbox>,
     dao: Account,
-    fungible_tokens: HashMap<String, Contract>,
+    fungible_tokens: HashMap<&str, Contract>,
 ) -> Result<Contract> {
     let path = format!("{EXTERNAL_TEST_WASMS_DIR}/nft_benefits_vault.wasm");
     println!("read Vault contract WASM code from: {path}");
@@ -159,7 +159,7 @@ pub async fn prepare_external_vault_contract(
 pub async fn prepare_external_nft_contract(
     sandbox: Worker<Sandbox>,
     dao: Account,
-    fungible_tokens: HashMap<String, Contract>,
+    fungible_tokens: HashMap<&str, Contract>,
 ) -> Result<Contract> {
     let path = format!("{EXTERNAL_TEST_WASMS_DIR}/non_fungible_token.wasm");
     println!("read NFT contract WASM code from: {path}");

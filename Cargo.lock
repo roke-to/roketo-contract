@@ -4176,6 +4176,7 @@ name = "tests"
 version = "1.0.0"
 dependencies = [
  "anyhow",
+ "common",
  "finance",
  "locked-token",
  "near-contract-standards",

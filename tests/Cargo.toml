@@ -17,6 +17,7 @@ uint = { version = "0.9.3", default-features = false }
 workspaces = "0.6.0"
 
 [dependencies]
+common = { path = "../common" }
 finance = { path = "../finance" }
 streaming = { path = "../streaming" }
 locked-token = { path = "../locked_token" }

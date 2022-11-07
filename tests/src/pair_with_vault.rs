@@ -5,13 +5,12 @@ use near_sdk::json_types::U128;
 use streaming::{Stream, StreamStatus, AccountView};
 use anyhow::Result;
 
-use crate::environment::setup_for_vault::ExtVault;
+use crate::environment::setup_vault::ExtVault;
 use crate::environment::Environment;
 
 #[tokio::test]
 async fn test_env_init_with_vault() -> Result<()> {
     let mut env: Environment<ExtVault> = Environment::new().await?;
-    println!("\n<--- base test environment initialized --->\n");
 
     env.add_vault_to_env().await?;
     println!("\n<--- augmented environment with benefits_vault setup --->\n");

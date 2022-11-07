@@ -12,6 +12,13 @@ pub const MAX_AMOUNT: u128 = 10u128.pow(33 as _); // 1e33
 pub const TICKS_PER_SECOND: u64 = 10u64.pow(9 as _); // 1e9
 
 pub const ONE_TERA: u64 = Gas::ONE_TERA.0; // near-sdk Gas is totally useless
+                                           // The following definitions still use Gas from `near-sdk`.
+                                           // Although I agree that referring to value here as to 0-elt
+                                           // is rather ugly, if not "totally useless".
+                                           //@TODO: think how to improve it throughout the codebase.
+pub const T_GAS: Gas = Gas(1_000_000_000_000);
+pub const DEFAULT_GAS: Gas = Gas(15 * T_GAS.0);
+pub const MAX_GAS: Gas = Gas(300 * T_GAS.0);
 
 // Commission in NEAR for tokens that we don't want to accept as payment.
 pub const DEFAULT_COMMISSION_NON_PAYMENT_FT: Balance = ONE_NEAR / 10; // 0.1 NEAR
@@ -97,6 +104,20 @@ impl SafeFloat {
             x * self.val as u128 * 10u128.pow(self.pow as _)
         }
     }
+}
+
+/// A shorthand function to return the `m x 10^n` u128 value.
+/// Used for testing amiunts of type [near_sdk::Balance] etc.
+/// Internally uses `SafeFloat` representation of the number
+/// to avoid integer overflow.
+///
+/// [https://en.wikipedia.org/wiki/Scientific_notation#E_notation]
+pub fn m_e_n(m: u32, n: u8) -> u128 {
+    let f = SafeFloat {
+        val: m,
+        pow: n as i8,
+    };
+    f.mult_safe(1)
 }
 
 pub fn check_deposit(deposit_needed: Balance) -> Result<(), ContractError> {
