@@ -1,11 +1,21 @@
 use std::collections::HashMap;
 
+use near_sdk::{
+    borsh::{self, BorshDeserialize, BorshSerialize},
+    collections::{UnorderedMap, UnorderedSet},
+    require,
+    serde::{Deserialize, Serialize},
+};
+
 use near_sdk::Balance;
 use near_units::parse_near;
 use anyhow::Result;
-use near_sdk::{serde_json::json, ONE_YOCTO};
+use near_sdk::{
+    serde_json::{json, to_vec},
+    ONE_YOCTO,
+};
 use tokio::fs::read;
-use workspaces::{network::Sandbox, testnet, Account, Contract, Worker};
+use workspaces::{network::Sandbox, testnet, AccountId, Account, Contract, Worker};
 
 use crate::{
     WRAP_NEAR_TESTNET_ACCOUNT_ID, STREAMING_WASMS_DIR, EXTERNAL_TEST_WASMS_DIR, WRAP_NEAR_WASM,
@@ -13,6 +23,7 @@ use crate::{
     UTILITY_TOKEN_SUBACCOUNT_ID, UTILITY_TOKEN_WASM, UTILITY_TOKEN_DECIMALS,
 };
 
+use crate::environment::Environment;
 use super::format_helpers::format_execution_result;
 
 // Constant parameters used to setup the environment.
@@ -21,6 +32,7 @@ const DEFAULT_STORAGE_DEPOSIT: Balance = parse_near!("0.0125 N");
 
 /// Extension for the testing environment consisting of the contracts
 /// used for interoperation with `nft_benefits_vault`.
+#[derive(Clone)]
 pub struct ExtVault {
     /// The account that issues NFT and pays benefits.
     pub issuer: Account,
@@ -30,6 +42,56 @@ pub struct ExtVault {
     pub vault: Contract,
     /// A simple NFT contract.
     pub nft: Contract,
+}
+
+#[derive(Debug, BorshSerialize, BorshDeserialize, Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Replenisher {
+    contract_id: AccountId,
+    callback: String,
+    args: String,
+}
+
+impl Environment<'static, ExtVault> {
+    pub async fn vault_add_replenisher(&self) -> Result<()> {
+        let nft = self.extras.as_ref().unwrap().nft.clone();
+        let vault = self.extras.as_ref().unwrap().vault.clone();
+        let issuer = self.extras.as_ref().unwrap().issuer.clone();
+
+        let args = json!({
+            "nft_contract_id": nft.id(),
+            "nft_id": "test_nft_img",
+            "callback": "request_ft",
+            "args": "{arg: \"some value\"}",
+        });
+        let res = issuer
+            .call(vault.id(), "add_replenishment_callback")
+            .args_json(args)
+            .deposit(1)
+            .transact()
+            .await?;
+
+        println!("add replenisher: {}", format_execution_result(&res));
+
+        Ok(())
+    }
+
+    pub async fn vault_view_replenishers(&self) -> Result<Option<Vec<Replenisher>>> {
+        let nft = self.extras.as_ref().unwrap().nft.clone();
+        let vault = self.extras.as_ref().unwrap().vault.clone();
+        let issuer = self.extras.as_ref().unwrap().issuer.clone();
+
+        let args = to_vec(&json!({
+            "nft_contract_id": nft.id(),
+            "nft_id": "test_nft_img",
+        }))?;
+        let res = issuer.view(vault.id(), "replenishers", args).await?;
+
+        println!("view replenishers: logs: {:#?}", res.logs);
+        let replenishers = res.json()?;
+
+        Ok((replenishers))
+    }
 }
 
 /// NFT Issuer account registration.
