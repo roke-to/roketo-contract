@@ -108,7 +108,7 @@ impl<Ext> Environment<'_, Ext> {
     }
 }
 
-impl Environment<'_, ExtIntegration<'_>> {
+impl Environment<'_, ExtIntegration> {
     pub async fn extend_env(&mut self) -> Result<(), anyhow::Error> {
         let users = tokio::spawn(prepare_users(self.sandbox.clone())).await??;
 

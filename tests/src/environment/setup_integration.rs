@@ -25,14 +25,20 @@ const USER_INITIAL_BALANCE: Balance = 10000 * ONE_NEAR;
 
 /// Extension for the testing environment for porting `near_sdk_sim`.
 #[derive(Clone)]
-pub struct ExtIntegration<'a> {
+// pub struct ExtIntegration<'a> {
+//     /// A collection of test users to be created
+//     /// under environment's dao master account.
+//     pub users: HashMap<&'a str, Account>,
+// }
+pub struct ExtIntegration {
     /// A collection of test users to be created
     /// under environment's dao master account.
-    pub users: HashMap<&'a str, Account>,
+    pub users: HashMap<String, Account>,
 }
 
-pub async fn prepare_users(sandbox: Worker<Sandbox>) -> Result<HashMap<&'static str, Account>> {
-    let mut users: HashMap<&str, Account> = HashMap::new();
+// pub async fn prepare_users(sandbox: Worker<Sandbox>) -> Result<HashMap<&'static str, Account>> {
+pub async fn prepare_users(sandbox: Worker<Sandbox>) -> Result<HashMap<String, Account>> {
+    let mut users: HashMap<String, Account> = HashMap::new();
     let root = sandbox.root_account()?;
 
     // for username in ["alice", "bob", "charlie", "dude", "eve"] {
@@ -43,7 +49,7 @@ pub async fn prepare_users(sandbox: Worker<Sandbox>) -> Result<HashMap<&'static 
             .transact()
             .await?
             .into_result()?;
-        users.insert(username, user);
+        users.insert(username.to_string(), user);
         println!("\nprepared test user {}\n", username);
     }
     Ok(users)
@@ -52,7 +58,7 @@ pub async fn prepare_users(sandbox: Worker<Sandbox>) -> Result<HashMap<&'static 
 pub async fn mint_tokens(
     sandbox: &Worker<Sandbox>,
     fungible_tokens: &HashMap<&str, Contract>,
-    users: &HashMap<&str, Account>,
+    users: &HashMap<String, Account>,
     amount: u32,
 ) -> Result<()> {
     let wrap_near = fungible_tokens
@@ -64,9 +70,9 @@ pub async fn mint_tokens(
     //@TODO: parallelize inner calls over this list.
     // for username in ["alice", "bob", "charlie", "dude", "eve"] {
     for username in ["alice", "bob"] {
-        let user = users.get(username).unwrap();
+        let user = users.get(&username.to_string()).unwrap();
         let res = ft_storage_deposit(user, wrap_near.id(), user.id()).await?;
-        mint_ft(&sandbox, wrap_near.id(), user, m_e_n(amount, 24)).await?;
+        mint_ft(sandbox, wrap_near.id(), user, m_e_n(amount, 24)).await?;
         println!("\nminted {amount} of wNEAR for {}\n", username);
     }
     Ok(())
