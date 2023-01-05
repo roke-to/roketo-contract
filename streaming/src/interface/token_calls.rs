@@ -158,7 +158,8 @@ impl FungibleTokenReceiver for Contract {
                     panic!("error on stream creation, {e:?}")
                 }
 
-                Promise::new(contract).function_call(call, args.as_bytes().to_vec(), 1, Gas(0));
+                let gas = (env::prepaid_gas() - env::used_gas()) / 10 * 9;
+                Promise::new(contract).function_call(call, args.as_bytes().to_vec(), 1, gas);
 
                 PromiseOrValue::Value(U128(0))
             }
