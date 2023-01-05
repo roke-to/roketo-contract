@@ -4,8 +4,18 @@ use crate::*;
 #[serde(crate = "near_sdk::serde")]
 pub enum TransferCallRequest {
     Stake,
-    Create { request: CreateRequest },
-    Deposit { stream_id: Base58CryptoHash },
+    Create {
+        request: CreateRequest,
+    },
+    CreateCall {
+        request: CreateRequest,
+        contract: AccountId,
+        call: String,
+        args: String,
+    },
+    Deposit {
+        stream_id: Base58CryptoHash,
+    },
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -125,6 +135,32 @@ impl FungibleTokenReceiver for Contract {
                     Ok(()) => PromiseOrValue::Value(U128::from(0)),
                     Err(err) => panic!("error on stream creation, {:?}", err),
                 }
+            }
+            TransferCallRequest::CreateCall {
+                request,
+                contract,
+                call,
+                args,
+            } => {
+                if let Err(e) = self.create_stream_op(
+                    request.description,
+                    sender_id,
+                    request.owner_id,
+                    request.receiver_id,
+                    token_account_id,
+                    amount.into(),
+                    request.tokens_per_sec.into(),
+                    request.cliff_period_sec,
+                    request.is_auto_start_enabled,
+                    request.is_expirable,
+                    request.is_locked,
+                ) {
+                    panic!("error on stream creation, {e:?}")
+                }
+
+                Promise::new(contract).function_call(call, args.as_bytes().to_vec(), 1, Gas(0));
+
+                PromiseOrValue::Value(U128(0))
             }
             TransferCallRequest::Deposit { stream_id } => {
                 match self.deposit_op(token_account_id, stream_id.into(), amount.into()) {

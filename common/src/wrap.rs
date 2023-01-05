@@ -1,3 +1,5 @@
+use near_sdk::Promise;
+
 use crate::*;
 
 #[ext_contract(ext_wrap_near)]

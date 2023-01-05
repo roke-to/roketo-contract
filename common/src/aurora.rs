@@ -14,5 +14,5 @@ pub fn is_aurora_address(account_id: &AccountId) -> bool {
 }
 
 pub fn aurora_transfer_call_msg(account_id: &AccountId) -> String {
-    env::current_account_id().to_string() + ":" + &"0".repeat(64) + account_id.as_ref()
+    env::current_account_id().to_string() + ":" + &"0".repeat(64) + account_id.as_str()
 }

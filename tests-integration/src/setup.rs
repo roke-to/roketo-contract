@@ -2,14 +2,18 @@ pub use std::cmp::min;
 pub use std::collections::HashSet;
 
 use near_contract_standards::fungible_token::metadata::{FungibleTokenMetadata, FT_METADATA_SPEC};
-use near_contract_standards::non_fungible_token::metadata::{NFTContractMetadata, NFT_METADATA_SPEC};
+use near_contract_standards::non_fungible_token::metadata::{
+    NFTContractMetadata, NFT_METADATA_SPEC,
+};
 use near_contract_standards::non_fungible_token::{metadata::TokenMetadata, TokenId};
 pub use near_sdk::json_types::{Base58CryptoHash, U128};
 pub use near_sdk::serde_json::json;
 pub use near_sdk::CryptoHash;
 pub use near_sdk::{env, serde_json, AccountId, Balance, Timestamp, ONE_NEAR, ONE_YOCTO};
 use near_sdk_sim::runtime::GenesisConfig;
-use near_sdk_sim::{deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount};
+use near_sdk_sim::{
+    deploy, init_simulator, to_yocto, ContractAccount, ExecutionResult, UserAccount,
+};
 use streaming::ContractContract as StreamingContract;
 pub use streaming::{
     AccountView, ContractError, CreateRequest, Dao, SafeFloat, Stats, Stream, StreamFinishReason,

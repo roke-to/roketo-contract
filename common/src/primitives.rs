@@ -1,3 +1,5 @@
+use near_sdk::Promise;
+
 use crate::*;
 
 pub const NO_DEPOSIT: Balance = 0;

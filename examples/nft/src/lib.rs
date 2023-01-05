@@ -135,16 +135,15 @@ impl Contract {
     #[payable]
     pub fn nft_transfer_call(
         &mut self,
-        receiver_id: AccountId,
-        token_id: TokenId,
+        _receiver_id: AccountId,
+        _token_id: TokenId,
         _approval_id: Option<u64>,
         _memo: Option<String>,
         _msg: String,
     ) -> PromiseOrValue<bool> {
         // Disabled because of `assert_one_yocto` conflict.
-        // assert!(false, "Unimplemented");
         unimplemented!();
-        self.roketo_change_receiver(&receiver_id, &token_id);
+        self.roketo_change_receiver(&_receiver_id, &_token_id);
         // However it's not a big deal to enable it.
         // Code from `nft_transfer_call` of NEP-141 must be inserted below.
         unreachable!()
