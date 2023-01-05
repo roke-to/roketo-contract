@@ -145,4 +145,23 @@ impl Environment {
         assert_all_success(&res);
         Ok(())
     }
+
+    pub async fn wrap_near_ft_transfer_call(&self, sender: &Account) -> Result<()> {
+        let args = args::wrap_near_ft_transfer_call_json(
+            self.streaming().id(),
+            10u128.pow(23),
+            sender.id(),
+            self.vault().id(),
+        );
+        let res = sender
+            .call(self.wrap_near().id(), "ft_transfer_call")
+            .args_json(args)
+            .deposit(1)
+            .max_gas()
+            .transact()
+            .await?;
+        info!("wrap near ft_transfer_call called");
+        assert_all_success(&res);
+        Ok(())
+    }
 }

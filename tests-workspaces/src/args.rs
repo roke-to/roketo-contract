@@ -1,4 +1,7 @@
-use near_sdk::serde_json::{json, Value};
+use near_sdk::{
+    json_types::U128,
+    serde_json::{json, Value},
+};
 use workspaces::AccountId;
 
 pub fn streaming_new_json(id: &AccountId, finance: &AccountId) -> Value {
@@ -35,5 +38,45 @@ pub fn finance_new_json(streaming: &AccountId) -> Value {
 pub fn wrap_near_storage_deposit_json(account: &AccountId) -> Value {
     json!({
         "account_id": account,
+    })
+}
+
+pub fn wrap_near_ft_transfer_call_json(
+    to: &AccountId,
+    amount: u128,
+    owner_id: &AccountId,
+    vault_id: &AccountId,
+) -> Value {
+    let request = json!({
+        "owner_id": owner_id,
+        "receiver_id": vault_id,
+        "tokens_per_sec": "1000",
+        "is_auto_start_enabled": true,
+    });
+    let stream_ids: Vec<String> = vec![];
+    let withdraw_args = json!({
+        "stream_ids": stream_ids,
+    })
+    .to_string();
+    let vault_args = json!({
+        "nft_contract_id": "nft.testnet",
+        "nft_id": "token_id_0",
+        "callback": "withdraw",
+        "args": withdraw_args,
+    })
+    .to_string();
+    let msg = json!({
+        "CreateCall": {
+            "request": request,
+            "contract": vault_id,
+            "call": "add_replenishment_callback",
+            "args": vault_args,
+        },
+    })
+    .to_string();
+    json!({
+        "receiver_id": to,
+        "amount": U128(amount),
+        "msg": msg,
     })
 }
