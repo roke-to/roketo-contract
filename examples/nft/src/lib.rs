@@ -142,7 +142,8 @@ impl Contract {
         _msg: String,
     ) -> PromiseOrValue<bool> {
         // Disabled because of `assert_one_yocto` conflict.
-        assert!(false, "Unimplemented");
+        // assert!(false, "Unimplemented");
+        unimplemented!();
         self.roketo_change_receiver(&receiver_id, &token_id);
         // However it's not a big deal to enable it.
         // Code from `nft_transfer_call` of NEP-141 must be inserted below.
@@ -187,13 +188,14 @@ impl Contract {
             .get(token_id)
             .expect("Token must exist");
         if let Some(extra) = token.extra {
-            Some(ext_roketo_contract::nft_change_receiver(
-                Base58CryptoHash::try_from(extra).unwrap(),
-                receiver_id.clone(),
-                Contract::roketo_account_id(),
-                env::attached_deposit(),
-                DEFAULT_GAS_FOR_ROKETO_TRANSFER,
-            ))
+            let promise = ext_roketo_contract::ext(Contract::roketo_account_id())
+                .with_attached_deposit(env::attached_deposit())
+                .with_static_gas(DEFAULT_GAS_FOR_ROKETO_TRANSFER)
+                .nft_change_receiver(
+                    Base58CryptoHash::try_from(extra).unwrap(),
+                    receiver_id.clone(),
+                );
+            Some(promise)
         } else {
             None
         }

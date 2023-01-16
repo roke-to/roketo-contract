@@ -140,11 +140,10 @@ impl Contract {
         )?;
 
         // Covering storage needs from finance contract
-        ext_finance::streaming_storage_needs_transfer(
-            self.finance_id.clone(),
-            ONE_YOCTO,
-            Gas::ONE_TERA * 10,
-        );
+        ext_finance::ext(self.finance_id.clone())
+            .with_attached_deposit(ONE_YOCTO)
+            .with_static_gas(Gas::ONE_TERA * 10)
+            .streaming_storage_needs_transfer();
 
         self.save_stream(stream)?;
 
@@ -511,13 +510,11 @@ impl Contract {
         self.save_account(prev_receiver)?;
         self.save_account(new_receiver)?;
 
-        promises.push(ext_storage_management::storage_deposit(
-            Some(new_receiver_id.clone()),
-            Some(true),
-            token.account_id,
-            deposit_needed,
-            token.gas_for_storage_deposit,
-        ));
+        let storage_deposit_promise = ext_storage_management::ext(token.account_id)
+            .with_attached_deposit(deposit_needed)
+            .with_static_gas(token.gas_for_storage_deposit)
+            .storage_deposit(Some(new_receiver_id.clone()), Some(true));
+        promises.push(storage_deposit_promise);
 
         stream.receiver_id = new_receiver_id;
         self.save_stream(stream)?;
