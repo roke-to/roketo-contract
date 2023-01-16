@@ -4,6 +4,8 @@ use near_sdk::{
 };
 use workspaces::AccountId;
 
+use crate::NFT_TOKEN_ID;
+
 pub fn streaming_new_json(id: &AccountId, finance: &AccountId) -> Value {
     json!({
         "dao_id": id,
@@ -46,11 +48,13 @@ pub fn wrap_near_ft_transfer_call_json(
     amount: u128,
     owner_id: &AccountId,
     vault_id: &AccountId,
+    nft_contract_id: &AccountId,
 ) -> Value {
+    let amount = U128(amount);
     let request = json!({
         "owner_id": owner_id,
         "receiver_id": vault_id,
-        "tokens_per_sec": "1000",
+        "tokens_per_sec": amount,
         "is_auto_start_enabled": true,
     });
     let stream_ids: Vec<String> = vec![];
@@ -59,10 +63,11 @@ pub fn wrap_near_ft_transfer_call_json(
     })
     .to_string();
     let vault_args = json!({
-        "nft_contract_id": "nft.testnet",
-        "nft_id": "token_id_0",
+        "nft_contract_id": nft_contract_id,
+        "nft_id": NFT_TOKEN_ID,
         "callback": "withdraw",
         "args": withdraw_args,
+        "deposit": U128(1),
     })
     .to_string();
     let msg = json!({
@@ -76,7 +81,7 @@ pub fn wrap_near_ft_transfer_call_json(
     .to_string();
     json!({
         "receiver_id": to,
-        "amount": U128(amount),
+        "amount": amount,
         "msg": msg,
     })
 }

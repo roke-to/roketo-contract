@@ -14,7 +14,7 @@ impl Contract {
         is_auto_start_enabled: Option<bool>,
         is_expirable: Option<bool>,
         is_locked: Option<bool>,
-    ) -> Result<(), ContractError> {
+    ) -> Result<Base58CryptoHash, ContractError> {
         // NEP-141 forbids zero-token transfers, so this should never happen.
         assert_ne!(initial_balance, 0);
 
@@ -145,9 +145,10 @@ impl Contract {
             .with_static_gas(Gas::ONE_TERA * 10)
             .streaming_storage_needs_transfer();
 
+        let id = stream.id;
         self.save_stream(stream)?;
 
-        Ok(())
+        Ok(id.into())
     }
 
     pub(crate) fn deposit_op(
@@ -159,7 +160,7 @@ impl Contract {
         // NEP-141 forbids zero-token transfers, so this should never happen.
         assert_ne!(amount, 0);
 
-        let stream_id = stream_id.into();
+        let stream_id = stream_id;
         let mut stream = self.extract_stream(&stream_id)?;
         if stream.status.is_terminated() {
             return Err(ContractError::StreamTerminated { stream_id });

@@ -132,7 +132,7 @@ impl FungibleTokenReceiver for Contract {
                     request.is_expirable,
                     request.is_locked,
                 ) {
-                    Ok(()) => PromiseOrValue::Value(U128::from(0)),
+                    Ok(_) => PromiseOrValue::Value(U128::from(0)),
                     Err(err) => panic!("error on stream creation, {:?}", err),
                 }
             }
@@ -142,7 +142,7 @@ impl FungibleTokenReceiver for Contract {
                 call,
                 args,
             } => {
-                if let Err(e) = self.create_stream_op(
+                match self.create_stream_op(
                     request.description,
                     sender_id,
                     request.owner_id,
@@ -155,11 +155,15 @@ impl FungibleTokenReceiver for Contract {
                     request.is_expirable,
                     request.is_locked,
                 ) {
-                    panic!("error on stream creation, {e:?}")
+                    Ok(id) => {
+                        let args = inject_stream_id(args, id);
+                        let gas = (env::prepaid_gas() - env::used_gas()) / 10 * 9;
+                        Promise::new(contract).function_call(call, args, 1, gas);
+                    }
+                    Err(e) => {
+                        panic!("error on stream creation, {e:?}")
+                    }
                 }
-
-                let gas = (env::prepaid_gas() - env::used_gas()) / 10 * 9;
-                Promise::new(contract).function_call(call, args.as_bytes().to_vec(), 1, gas);
 
                 PromiseOrValue::Value(U128(0))
             }
@@ -176,4 +180,35 @@ impl FungibleTokenReceiver for Contract {
             }
         }
     }
+}
+
+fn inject_stream_id(args: String, id: Base58CryptoHash) -> Vec<u8> {
+    log!("trying to inject [{:?}] to [{}]", String::from(&id), args);
+    let mut args: serde_json::Value = serde_json::from_str(&args).unwrap();
+    log!("{:?}", args);
+    let args_inner = args.as_object_mut().unwrap().get_mut("args").unwrap();
+    log!("{:?}", args_inner);
+    let stream_ids_str = args_inner.as_str().unwrap();
+    log!("{:?}", stream_ids_str);
+    let mut stream_ids: serde_json::Value = serde_json::from_str(stream_ids_str).unwrap();
+    log!("{:?}", stream_ids);
+    let stream_ids_array = stream_ids
+        .as_object_mut()
+        .unwrap()
+        .get_mut("stream_ids")
+        .unwrap();
+    stream_ids_array
+        .as_array_mut()
+        .unwrap()
+        .push(serde_json::to_value(id).unwrap());
+    log!("{:?}", stream_ids);
+    let stream_ids_str = serde_json::to_string(&stream_ids).unwrap();
+    log!("{:?}", stream_ids_str);
+    let stream_ids_value = serde_json::to_value(&stream_ids_str).unwrap();
+    log!("{:?}", stream_ids_value);
+    *args_inner = stream_ids_value;
+    let args_str = serde_json::to_string(&args).unwrap();
+    log!("{}", args_str);
+
+    serde_json::to_vec(&args).unwrap()
 }

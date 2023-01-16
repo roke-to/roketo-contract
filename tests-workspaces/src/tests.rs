@@ -1,7 +1,9 @@
+use std::time::Duration;
+
 use anyhow::Result;
 use log::info;
 
-use crate::environment::Environment;
+use crate::{environment::Environment, init_logger};
 
 #[tokio::test]
 async fn test_token_calls_create_stream_call() -> Result<()> {
@@ -13,6 +15,9 @@ async fn test_token_calls_create_stream_call() -> Result<()> {
     env.deploy_vault().await?;
     let sender = env.sandbox().dev_create_account().await?;
     info!("sender account created: {}", sender.id());
+    env.deploy_nft().await?;
+    let nft_owner = env.sandbox().dev_create_account().await?;
+    env.nft_mint_to(nft_owner.id()).await?;
 
     // Register accounts in wrap near contract.
     env.wrap_near_register(&sender).await?;
@@ -25,19 +30,20 @@ async fn test_token_calls_create_stream_call() -> Result<()> {
     info!("wrap near near_deposit to sender called");
 
     // Make ft_transfer_call with subsequent call to vault.
-    env.wrap_near_ft_transfer_call(&sender).await?;
+    env.wrap_near_ft_transfer_call(&sender, nft_owner.id())
+        .await?;
     info!("wrap near ft_transfer_call called");
-    todo!()
-}
-
-pub fn init_logger() {
-    if let Err(e) = env_logger::Builder::new()
-        .parse_env("RUST_LOG")
-        .format_timestamp(None)
-        .format_module_path(false)
-        .format_target(false)
-        .try_init()
-    {
-        info!("logger already initialized: {}", e);
+    info!("waiting for 5 secs");
+    for i in 0..5 {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        info!(". . . . {}", 5 - i - 1);
     }
+    info!("Done!");
+
+    env.vault_withdraw(&nft_owner).await?;
+
+    let nft_owner_balance = env.wrap_near_ft_balance_of(&nft_owner).await?;
+    info!("nft_owner balance: {nft_owner_balance}");
+    assert_eq!(nft_owner_balance, 10u128.pow(24));
+    Ok(())
 }
