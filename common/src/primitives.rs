@@ -170,6 +170,7 @@ pub enum ActionType {
     Start,
     Pause,
     Withdraw,
+    WithdrawCall { msg: String },
     Stop { reason: StreamFinishReason },
 }
 
