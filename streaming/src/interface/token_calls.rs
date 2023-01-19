@@ -156,7 +156,9 @@ impl FungibleTokenReceiver for Contract {
                     request.is_locked,
                 ) {
                     Ok(id) => {
-                        let args = inject_stream_id(args, id);
+                        let args = try_inject_stream_id(&args, id).unwrap_or_else(|| {
+                            serde_json::to_vec(&args).expect("failed to serialize str to bytes")
+                        });
                         let gas = (env::prepaid_gas() - env::used_gas()) / 10 * 9;
                         Promise::new(contract).function_call(call, args, 1, gas);
                     }
@@ -182,33 +184,27 @@ impl FungibleTokenReceiver for Contract {
     }
 }
 
-fn inject_stream_id(args: String, id: Base58CryptoHash) -> Vec<u8> {
-    log!("trying to inject [{:?}] to [{}]", String::from(&id), args);
-    let mut args: serde_json::Value = serde_json::from_str(&args).unwrap();
-    log!("{:?}", args);
-    let args_inner = args.as_object_mut().unwrap().get_mut("args").unwrap();
-    log!("{:?}", args_inner);
-    let stream_ids_str = args_inner.as_str().unwrap();
-    log!("{:?}", stream_ids_str);
-    let mut stream_ids: serde_json::Value = serde_json::from_str(stream_ids_str).unwrap();
-    log!("{:?}", stream_ids);
-    let stream_ids_array = stream_ids
-        .as_object_mut()
-        .unwrap()
-        .get_mut("stream_ids")
-        .unwrap();
-    stream_ids_array
-        .as_array_mut()
-        .unwrap()
-        .push(serde_json::to_value(id).unwrap());
-    log!("{:?}", stream_ids);
-    let stream_ids_str = serde_json::to_string(&stream_ids).unwrap();
-    log!("{:?}", stream_ids_str);
-    let stream_ids_value = serde_json::to_value(&stream_ids_str).unwrap();
-    log!("{:?}", stream_ids_value);
-    *args_inner = stream_ids_value;
-    let args_str = serde_json::to_string(&args).unwrap();
-    log!("{}", args_str);
+fn try_inject_stream_id(args: &str, id: Base58CryptoHash) -> Option<Vec<u8>> {
+    log!("injecting stream id into vault args");
+    let mut args_value: serde_json::Value = serde_json::from_str(args).ok()?;
 
-    serde_json::to_vec(&args).unwrap()
+    // Decomposition.
+    let args_inner_value = args_value.as_object_mut()?.get_mut("args")?;
+
+    let stream_id_args_str = args_inner_value.as_str()?;
+    let mut stream_id_value: serde_json::Value = serde_json::from_str(stream_id_args_str).ok()?;
+    let stream_id_str = stream_id_value.as_object_mut()?.get_mut("stream_id")?;
+    let new_stream_id = serde_json::to_value(id).ok()?;
+
+    // Replacing the value.
+    *stream_id_str = new_stream_id;
+
+    // Recomposition.
+    let stream_ids_str = serde_json::to_string(&stream_id_value).ok()?;
+    let stream_ids_value = serde_json::to_value(stream_ids_str).ok()?;
+
+    *args_inner_value = stream_ids_value;
+    let args_str = serde_json::to_string(&args).ok()?;
+
+    serde_json::to_vec(&args).ok()
 }
