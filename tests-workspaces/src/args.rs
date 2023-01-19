@@ -51,25 +51,31 @@ pub fn wrap_near_ft_transfer_call_json(
     nft_contract_id: &AccountId,
 ) -> Value {
     let amount = U128(amount);
+    let vault_request = json!({
+        "nft_id": NFT_TOKEN_ID,
+        "nft_contract_id": nft_contract_id,
+        "kind": "Transfer",
+    })
+    .to_string();
+    let withdraw_args = json!({
+        "stream_id": "",
+        "msg": vault_request,
+    })
+    .to_string();
+    let vault_args = json!({
+        "nft_contract_id": nft_contract_id,
+        "nft_id": NFT_TOKEN_ID,
+        "callback": "withdraw_call",
+        "args": withdraw_args,
+        "deposit": U128(1),
+    })
+    .to_string();
     let request = json!({
         "owner_id": owner_id,
         "receiver_id": vault_id,
         "tokens_per_sec": amount,
         "is_auto_start_enabled": true,
     });
-    let stream_ids: Vec<String> = vec![];
-    let withdraw_args = json!({
-        "stream_ids": stream_ids,
-    })
-    .to_string();
-    let vault_args = json!({
-        "nft_contract_id": nft_contract_id,
-        "nft_id": NFT_TOKEN_ID,
-        "callback": "withdraw",
-        "args": withdraw_args,
-        "deposit": U128(1),
-    })
-    .to_string();
     let msg = json!({
         "CreateCall": {
             "request": request,

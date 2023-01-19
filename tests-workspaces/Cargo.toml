@@ -4,7 +4,7 @@ version = "0.0.0"
 authors = ["Pavel Iakushin <piakushin@roke.to>"]
 edition = "2021"
 
-[dependencies]
+[dev-dependencies]
 tokio = { version = "1.23", features = ["macros", "rt"] }
 futures = "0.3"
 anyhow = "1.0"

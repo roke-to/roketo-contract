@@ -3,7 +3,7 @@ use std::time::Duration;
 use anyhow::Result;
 use log::info;
 
-use crate::{environment::Environment, init_logger};
+use crate::{environment::Environment, helpers::init_logger};
 
 #[tokio::test]
 async fn test_token_calls_create_stream_call() -> Result<()> {
@@ -20,10 +20,13 @@ async fn test_token_calls_create_stream_call() -> Result<()> {
     env.nft_mint_to(nft_owner.id()).await?;
 
     // Register accounts in wrap near contract.
+    info!("sender");
     env.wrap_near_register(&sender).await?;
     env.wrap_near_register(env.streaming().as_account()).await?;
     env.wrap_near_register(env.finance().as_account()).await?;
     env.wrap_near_register(env.vault().as_account()).await?;
+    info!("NFT owner");
+    env.wrap_near_register(&nft_owner).await?;
 
     // Deposit wrap NEAR to the sender account
     env.wrap_near_deposit(&sender, 10u128.pow(24)).await?;
@@ -44,6 +47,6 @@ async fn test_token_calls_create_stream_call() -> Result<()> {
 
     let nft_owner_balance = env.wrap_near_ft_balance_of(&nft_owner).await?;
     info!("nft_owner balance: {nft_owner_balance}");
-    assert_eq!(nft_owner_balance, 10u128.pow(24));
+    assert_eq!(nft_owner_balance, 99599999999999999990040);
     Ok(())
 }

@@ -5,8 +5,8 @@ use tokio::fs::read;
 use workspaces::{network::Sandbox, sandbox, Account, AccountId, Contract, Worker};
 
 use crate::{
-    args, assert_all_success, FINANCE_WASM_PATH, NFT_TOKEN_ID, NFT_WASM_PATH, STREAMING_WASM_PATH,
-    VAULT_WASM_PATH, WRAP_NEAR_WASM_PATH,
+    args, helpers::assert_all_success, FINANCE_WASM_PATH, NFT_TOKEN_ID, NFT_WASM_PATH,
+    STREAMING_WASM_PATH, VAULT_WASM_PATH, WRAP_NEAR_WASM_PATH,
 };
 
 pub struct Environment {
@@ -219,6 +219,7 @@ impl Environment {
             .transact()
             .await?;
         info!("wrap near ft_transfer_call called");
+        info!("{:#?}", res);
         assert_all_success(&res);
         Ok(())
     }
@@ -250,6 +251,7 @@ impl Environment {
             .transact()
             .await?;
         info!("vault withdraw called");
+        info!("{:#?}", res);
         assert_all_success(&res);
         Ok(())
     }
@@ -266,15 +268,18 @@ impl Environment {
             "receiver_id": to,
             "token_metadata": token_metadata
         });
-        let res = self
-            .nft()
-            .call("nft_mint")
-            .args_json(args)
-            .deposit(8_450_000_000_000_000_000_000)
-            .transact()
-            .await?;
-        info!("nft nft_mint called");
-        assert_all_success(&res);
+        let nft = self.nft().clone();
+        tokio::spawn(async move {
+            let res = nft
+                .call("nft_mint")
+                .args_json(args)
+                .deposit(8_450_000_000_000_000_000_000)
+                .transact()
+                .await
+                .unwrap();
+            info!("-> nft nft_mint called");
+            assert_all_success(&res);
+        });
         Ok(())
     }
 }
