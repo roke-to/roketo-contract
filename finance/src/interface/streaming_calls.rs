@@ -1,3 +1,5 @@
+use near_sdk::log;
+
 use crate::*;
 
 #[near_bindgen]
@@ -12,6 +14,20 @@ impl Contract {
         self.check_owner().unwrap();
 
         self.ft_transfer(token_account_id, receiver, amount.into())
+    }
+
+    #[payable]
+    pub fn streaming_ft_transfer_call(
+        &mut self,
+        token_account_id: AccountId,
+        receiver: AccountId,
+        amount: U128,
+        msg: String,
+    ) -> Promise {
+        log!("streaming_ft_transfer_call");
+        self.check_owner().unwrap();
+
+        self.ft_transfer_call(token_account_id, receiver, amount.into(), msg)
     }
 
     #[payable]

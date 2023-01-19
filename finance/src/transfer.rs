@@ -69,4 +69,27 @@ impl Contract {
                 .ft_transfer(receiver, U128(amount), None)
         }
     }
+
+    pub(crate) fn ft_transfer_call(
+        &self,
+        token_account_id: AccountId,
+        receiver: AccountId,
+        amount: Balance,
+        msg: String,
+    ) -> Promise {
+        if amount == 0 {
+            // NEP-141 forbids zero token transfers
+            //
+            // Return empty promise
+            return Promise::new(receiver);
+        }
+
+        if is_aurora_address(&receiver) {
+            unimplemented!();
+        }
+        ext_ft_core::ext(token_account_id)
+            .with_attached_deposit(ONE_YOCTO)
+            .with_static_gas(env::prepaid_gas() - env::used_gas() - Gas::ONE_TERA * 10)
+            .ft_transfer_call(receiver, U128(amount), None, msg)
+    }
 }
