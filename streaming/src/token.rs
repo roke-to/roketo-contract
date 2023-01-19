@@ -60,6 +60,14 @@ pub trait ExtFinanceContract {
         receiver: AccountId,
         amount: U128,
     ) -> Promise;
+
+    fn streaming_ft_transfer_call(
+        &mut self,
+        token_account_id: AccountId,
+        receiver: AccountId,
+        amount: U128,
+        msg: String,
+    ) -> Promise;
 }
 
 #[ext_contract]
@@ -86,6 +94,27 @@ impl Contract {
             .with_attached_deposit(ONE_YOCTO)
             .with_static_gas(gas_needed)
             .streaming_ft_transfer(token_account_id, receiver, U128(amount));
+        Ok(Some(promise))
+    }
+
+    pub(crate) fn ft_transfer_call_from_finance(
+        &self,
+        token_account_id: AccountId,
+        receiver: AccountId,
+        amount: Balance,
+        msg: String,
+    ) -> Result<Option<Promise>, ContractError> {
+        if amount == 0 {
+            // NEP-141 forbids zero token transfers
+            return Ok(None);
+        }
+
+        let gas_needed = Gas::ONE_TERA * 50;
+        check_gas(gas_needed)?;
+        let promise = ext_finance_contract::ext(self.finance_id.clone())
+            .with_attached_deposit(ONE_YOCTO)
+            .with_static_gas(gas_needed)
+            .streaming_ft_transfer_call(token_account_id, receiver, U128(amount), msg);
         Ok(Some(promise))
     }
 

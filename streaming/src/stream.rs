@@ -303,6 +303,31 @@ impl Contract {
                         self.stats_dec_active_streams(&stream.token_account_id);
                     }
                 }
+                ActionType::WithdrawCall { msg } => {
+                    check_integrity(stream.status == StreamStatus::Active)?;
+                    if let Some(promise) = self.process_payment_call(stream, &mut receiver, msg)? {
+                        promises.push(promise);
+                    }
+                    if stream.status.is_terminated() {
+                        check_integrity(
+                            stream.status
+                                == StreamStatus::Finished {
+                                    reason: StreamFinishReason::FinishedNaturally,
+                                },
+                        )?;
+                        check_integrity(owner.active_outgoing_streams.remove(&stream.id))?;
+                        check_integrity(receiver.active_incoming_streams.remove(&stream.id))?;
+                        owner
+                            .total_outgoing
+                            .entry(stream.token_account_id.clone())
+                            .and_modify(|e| *e -= stream.tokens_per_sec);
+                        receiver
+                            .total_incoming
+                            .entry(stream.token_account_id.clone())
+                            .and_modify(|e| *e -= stream.tokens_per_sec);
+                        self.stats_dec_active_streams(&stream.token_account_id);
+                    }
+                }
             }
         }
 
@@ -327,6 +352,28 @@ impl Contract {
             .or_insert(payment);
         self.stats_withdraw(&token, payment, commission);
         self.ft_transfer_from_finance(token.account_id, stream.receiver_id.clone(), payment)
+    }
+
+    fn process_payment_call(
+        &mut self,
+        stream: &mut Stream,
+        account: &mut Account,
+        msg: String,
+    ) -> Result<Option<Promise>, ContractError> {
+        let token = self.dao.get_token(&stream.token_account_id);
+        let (payment, commission) = stream.process_withdraw(&token);
+        account
+            .total_received
+            .entry(stream.token_account_id.clone())
+            .and_modify(|e| *e += payment)
+            .or_insert(payment);
+        self.stats_withdraw(&token, payment, commission);
+        self.ft_transfer_call_from_finance(
+            token.account_id,
+            stream.receiver_id.clone(),
+            payment,
+            msg,
+        )
     }
 
     fn process_refund(&mut self, stream: &mut Stream) -> Result<Option<Promise>, ContractError> {

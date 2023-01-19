@@ -397,6 +397,45 @@ impl Contract {
         Ok(promises)
     }
 
+    pub fn withdraw_call_op(
+        &mut self,
+        sender_id: &AccountId,
+        stream_id: CryptoHash,
+        msg: String,
+    ) -> Result<Vec<Promise>, ContractError> {
+        let mut stream = self.extract_stream(&stream_id)?;
+
+        let receiver_view = self.view_account(&stream.receiver_id, true)?;
+
+        if receiver_view.id != *sender_id && !receiver_view.is_cron_allowed {
+            return Err(ContractError::CronCallsForbidden {
+                received: receiver_view.id,
+            });
+        }
+
+        if stream.status != StreamStatus::Active {
+            return Err(ContractError::CannotWithdraw {
+                stream_status: stream.status,
+            });
+        }
+
+        stream.update_cliff();
+
+        if stream.cliff.is_some() {
+            return Err(ContractError::CliffNotPassed {
+                timestamp: stream.cliff.unwrap(),
+            });
+        }
+
+        // Validations passed
+
+        let promises = self.process_action(&mut stream, ActionType::WithdrawCall { msg })?;
+
+        self.save_stream(stream)?;
+
+        Ok(promises)
+    }
+
     pub fn change_description_op(
         &mut self,
         sender_id: &AccountId,
