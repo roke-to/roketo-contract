@@ -1,3 +1,5 @@
+use near_sdk::assert_one_yocto;
+
 use crate::*;
 
 #[near_bindgen]
@@ -61,6 +63,14 @@ impl Contract {
             .into_iter()
             .flatten()
             .collect())
+    }
+
+    #[payable]
+    pub fn withdraw_call(&mut self, stream_id: Base58CryptoHash, msg: String) {
+        log!("withdraw_call called");
+        assert_one_yocto();
+        self.withdraw_call_op(&env::predecessor_account_id(), stream_id.into(), msg)
+            .unwrap();
     }
 
     #[handle_result]
