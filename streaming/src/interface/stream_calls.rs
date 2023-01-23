@@ -111,7 +111,7 @@ impl Contract {
 
         self.change_receiver_op(
             &stream_view.receiver_id,
-            stream_id.into(),
+            stream_id,
             receiver_id,
             deposit_needed,
         )

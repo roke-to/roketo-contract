@@ -31,7 +31,7 @@ impl Contract {
 
         if is_aurora_address(&receiver) {
             if token_account_id == aurora_account_id() {
-                let promise = ext_ft_core::ext(aurora_account_id())
+                ext_ft_core::ext(aurora_account_id())
                     .with_attached_deposit(ONE_YOCTO)
                     .with_static_gas(env::prepaid_gas() - env::used_gas() - Gas::ONE_TERA * 10)
                     .ft_transfer_call(
@@ -39,10 +39,9 @@ impl Contract {
                         U128(amount),
                         None,
                         aurora_transfer_call_msg(&receiver),
-                    );
-                return promise;
+                    )
             } else {
-                let promise = ext_ft_core::ext(token_account_id)
+                ext_ft_core::ext(token_account_id)
                     .with_attached_deposit(ONE_YOCTO)
                     .with_static_gas(env::prepaid_gas() - env::used_gas() - Gas::ONE_TERA * 10)
                     .ft_transfer_call(
@@ -50,8 +49,7 @@ impl Contract {
                         U128(amount),
                         None,
                         receiver.to_string(),
-                    );
-                return promise;
+                    )
             }
         } else if token_account_id == wrap_near_account_id() {
             let near_withdraw_promise = ext_wrap_near::ext(wrap_near_account_id())

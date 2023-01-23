@@ -142,8 +142,7 @@ impl Contract {
         _msg: String,
     ) -> PromiseOrValue<bool> {
         // Disabled because of `assert_one_yocto` conflict.
-        unimplemented!();
-        self.roketo_change_receiver(&_receiver_id, &_token_id);
+        // self.roketo_change_receiver(&_receiver_id, &_token_id);
         // However it's not a big deal to enable it.
         // Code from `nft_transfer_call` of NEP-141 must be inserted below.
         unreachable!()
@@ -289,7 +288,7 @@ mod tests {
         let mut context = get_context(accounts(0));
         testing_env!(context.build());
         let mut contract = Contract::new(
-            accounts(0).into(),
+            accounts(0),
             NFTContractMetadata {
                 spec: NFT_METADATA_SPEC.to_string(),
                 name: accounts(0).to_string(),

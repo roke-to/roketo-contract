@@ -8,7 +8,7 @@ impl Contract {
         check_deposit(ONE_YOCTO)?;
         self.dao.check_owner()?;
 
-        self.dao.dao_id = new_dao_id.into();
+        self.dao.dao_id = new_dao_id;
         Ok(())
     }
 
@@ -18,7 +18,8 @@ impl Contract {
         check_deposit(ONE_YOCTO)?;
         self.dao.check_owner()?;
 
-        Ok(self.mint(amount.into(), Some(&reason)))
+        self.mint(amount.into(), Some(&reason));
+        Ok(())
     }
 
     #[handle_result]
@@ -30,7 +31,7 @@ impl Contract {
         check_deposit(ONE_YOCTO)?;
         self.dao.check_owner()?;
 
-        self.dao.roke_token_account_id = new_roke_token_account_id.into();
+        self.dao.roke_token_account_id = new_roke_token_account_id;
         Ok(())
     }
 

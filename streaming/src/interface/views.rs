@@ -26,7 +26,7 @@ pub struct AccountView {
 #[near_bindgen]
 impl Contract {
     pub fn get_stats(self) -> Stats {
-        let mut stats: Stats = self.stats.get().clone().unwrap().into();
+        let mut stats: Stats = self.stats.get().unwrap().into();
         stats.total_dao_tokens = stats.dao_tokens.len() as _;
         stats.total_accounts = self.accounts.len() as _;
         stats.total_streams = self.streams.len() as _;
@@ -40,7 +40,7 @@ impl Contract {
     pub fn get_token(self, token_account_id: AccountId) -> (Token, Option<TokenStats>) {
         (
             self.dao.get_token(&token_account_id),
-            (Stats::from(self.stats.get().clone().unwrap()))
+            (Stats::from(self.stats.get().unwrap()))
                 .dao_tokens
                 .remove(&token_account_id),
         )
@@ -57,7 +57,7 @@ impl Contract {
         account_id: AccountId,
         only_if_exist: Option<bool>,
     ) -> Result<AccountView, ContractError> {
-        self.view_account(&account_id.into(), only_if_exist.unwrap_or(false))
+        self.view_account(&account_id, only_if_exist.unwrap_or(false))
             .map(|a| AccountView {
                 active_incoming_streams: a.active_incoming_streams.len() as _,
                 active_outgoing_streams: a.active_outgoing_streams.len() as _,
@@ -67,20 +67,20 @@ impl Contract {
                 total_incoming: self
                     .dao
                     .tokens
-                    .iter()
-                    .map(|(k, _)| (k.clone(), U128(*a.total_incoming.get(k).unwrap_or(&0))))
+                    .keys()
+                    .map(|k| (k.clone(), U128(*a.total_incoming.get(k).unwrap_or(&0))))
                     .collect(),
                 total_outgoing: self
                     .dao
                     .tokens
-                    .iter()
-                    .map(|(k, _)| (k.clone(), U128(*a.total_outgoing.get(k).unwrap_or(&0))))
+                    .keys()
+                    .map(|k| (k.clone(), U128(*a.total_outgoing.get(k).unwrap_or(&0))))
                     .collect(),
                 total_received: self
                     .dao
                     .tokens
-                    .iter()
-                    .map(|(k, _)| (k.clone(), U128(*a.total_received.get(k).unwrap_or(&0))))
+                    .keys()
+                    .map(|k| (k.clone(), U128(*a.total_received.get(k).unwrap_or(&0))))
                     .collect(),
 
                 deposit: a.deposit,
@@ -99,7 +99,7 @@ impl Contract {
     ) -> Result<Vec<Stream>, ContractError> {
         let from = from.unwrap_or(0);
         let limit = limit.unwrap_or(DEFAULT_VIEW_STREAMS_LIMIT);
-        let account = self.view_account(&account_id.into(), false)?;
+        let account = self.view_account(&account_id, false)?;
         Ok(self.collect_account_data(
             &account.active_incoming_streams,
             &account.inactive_incoming_streams,
@@ -117,7 +117,7 @@ impl Contract {
     ) -> Result<Vec<Stream>, ContractError> {
         let from = from.unwrap_or(0);
         let limit = limit.unwrap_or(DEFAULT_VIEW_STREAMS_LIMIT);
-        let account = self.view_account(&account_id.into(), false)?;
+        let account = self.view_account(&account_id, false)?;
         Ok(self.collect_account_data(
             &account.active_outgoing_streams,
             &account.inactive_outgoing_streams,
@@ -145,7 +145,7 @@ impl Contract {
         account_id: AccountId,
         token_account_id: AccountId,
     ) -> Result<(U128, U128, U128), ContractError> {
-        let account = self.view_account(&account_id.into(), false)?;
+        let account = self.view_account(&account_id, false)?;
         Ok((
             (*account.total_incoming.get(&token_account_id).unwrap_or(&0)).into(),
             (*account.total_outgoing.get(&token_account_id).unwrap_or(&0)).into(),

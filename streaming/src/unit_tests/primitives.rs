@@ -69,19 +69,19 @@ mod tests {
         let msg = "{\"Create\":{\"request\":{\"description\":\"{\\\"comment\\\":\\\"\\\"}\",
             \"balance\":\"3000000000000000000000000\",\"owner_id\":\"roketo-payouts.near\",
             \"receiver_id\":\"a.r\",\"tokens_per_sec\":\"27\",\"is_auto_start_enabled\":true}}}";
-        let key: Result<TransferCallRequest, _> = serde_json::from_str(&msg);
+        let key: Result<TransferCallRequest, _> = serde_json::from_str(msg);
         assert!(key.is_ok());
 
         let msg = "{\"Create\":{\"request\":{\"description\":\"{\\\"comment\\\":\\\"\\\"}\",
             \"balance\":\"3000000000000000000000000\",\"owner_id\":\"roketo-payouts.near-\",
             \"receiver_id\":\"a.r\",\"tokens_per_sec\":\"27\",\"is_auto_start_enabled\":true}}}";
-        let key: Result<TransferCallRequest, _> = serde_json::from_str(&msg);
+        let key: Result<TransferCallRequest, _> = serde_json::from_str(msg);
         assert!(key.is_err());
 
         let msg = "{\"Create\":{\"request\":{\"description\":\"{\\\"comment\\\":\\\"\\\"}\",
             \"balance\":\"3000000000000000000000000\",\"owner_id\":\"roketo-payouts.near\",
             \"receiver_id\":\"a..r\",\"tokens_per_sec\":\"27\",\"is_auto_start_enabled\":true}}}";
-        let key: Result<TransferCallRequest, _> = serde_json::from_str(&msg);
+        let key: Result<TransferCallRequest, _> = serde_json::from_str(msg);
         assert!(key.is_err());
     }
 }

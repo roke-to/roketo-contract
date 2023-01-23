@@ -95,7 +95,7 @@ impl FungibleTokenReceiver for Contract {
                         PromiseOrValue::Value(U128::from(0))
                     }
                     Err(err) => {
-                        panic!("Error {:?} on {:?}", err, key);
+                        panic!("Error {err:?} on {key:?}");
                     }
                 };
             } else {
@@ -133,7 +133,7 @@ impl FungibleTokenReceiver for Contract {
                     request.is_locked,
                 ) {
                     Ok(_) => PromiseOrValue::Value(U128::from(0)),
-                    Err(err) => panic!("error on stream creation, {:?}", err),
+                    Err(err) => panic!("error on stream creation, {err:?}"),
                 }
             }
             TransferCallRequest::CreateCall {
@@ -177,7 +177,7 @@ impl FungibleTokenReceiver for Contract {
                         // return everything back
                         PromiseOrValue::Value(amount)
                     }
-                    Err(err) => panic!("error on stream depositing, {:?}", err),
+                    Err(err) => panic!("error on stream depositing, {err:?}"),
                 }
             }
         }
@@ -186,25 +186,22 @@ impl FungibleTokenReceiver for Contract {
 
 fn try_inject_stream_id(args: &str, id: Base58CryptoHash) -> Option<Vec<u8>> {
     log!("injecting stream id into vault args");
-    let mut args_value: serde_json::Value = serde_json::from_str(args).ok()?;
 
     // Decomposition.
-    let args_inner_value = args_value.as_object_mut()?.get_mut("args")?;
-
-    let stream_id_args_str = args_inner_value.as_str()?;
-    let mut stream_id_value: serde_json::Value = serde_json::from_str(stream_id_args_str).ok()?;
-    let stream_id_str = stream_id_value.as_object_mut()?.get_mut("stream_id")?;
+    let mut args_value: serde_json::Value = serde_json::from_str(args).ok()?;
+    let args_inner = args_value.as_object_mut()?.get_mut("args")?;
+    let stream_id_args_str = args_inner.as_str()?;
+    let mut stream_id: serde_json::Value = serde_json::from_str(stream_id_args_str).ok()?;
+    let stream_id_str = stream_id.as_object_mut()?.get_mut("stream_id")?;
     let new_stream_id = serde_json::to_value(id).ok()?;
 
-    // Replacing the value.
+    // Insert value.
     *stream_id_str = new_stream_id;
 
-    // Recomposition.
-    let stream_ids_str = serde_json::to_string(&stream_id_value).ok()?;
+    // Composition.
+    let stream_ids_str = serde_json::to_string(&stream_id).ok()?;
     let stream_ids_value = serde_json::to_value(stream_ids_str).ok()?;
+    *args_inner = stream_ids_value;
 
-    *args_inner_value = stream_ids_value;
-    let args_str = serde_json::to_string(&args).ok()?;
-
-    serde_json::to_vec(&args).ok()
+    serde_json::to_vec(&args_value).ok()
 }

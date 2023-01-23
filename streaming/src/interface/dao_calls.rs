@@ -8,7 +8,7 @@ impl Contract {
         check_deposit(ONE_YOCTO)?;
         self.dao.check_owner()?;
 
-        self.dao.dao_id = new_dao_id.into();
+        self.dao.dao_id = new_dao_id;
         Ok(())
     }
 

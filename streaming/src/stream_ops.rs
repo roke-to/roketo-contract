@@ -21,7 +21,7 @@ impl Contract {
         if description.is_some() && description.clone().unwrap().len() >= MAX_DESCRIPTION_LEN {
             return Err(ContractError::DescriptionTooLong {
                 max_description_len: MAX_DESCRIPTION_LEN,
-                received: description.clone().unwrap().len(),
+                received: description.unwrap().len(),
             });
         }
         if tokens_per_sec == 0 || tokens_per_sec > MAX_STREAMING_SPEED {
@@ -31,18 +31,9 @@ impl Contract {
                 received: tokens_per_sec,
             });
         }
-        let is_auto_start_enabled = match is_auto_start_enabled {
-            Some(value) => value,
-            None => true,
-        };
-        let is_expirable = match is_expirable {
-            Some(value) => value,
-            None => true,
-        };
-        let is_locked = match is_locked {
-            Some(value) => value,
-            None => false,
-        };
+        let is_auto_start_enabled = is_auto_start_enabled.unwrap_or(true);
+        let is_expirable = is_expirable.unwrap_or(true);
+        let is_locked = is_locked.unwrap_or(false);
 
         self.create_account_if_not_exist(&creator_id)?;
         self.create_account_if_not_exist(&owner_id)?;
@@ -445,15 +436,11 @@ impl Contract {
         let mut stream = self.extract_stream(&stream_id)?;
 
         if stream.status.is_terminated() {
-            return Err(ContractError::StreamTerminated {
-                stream_id: stream_id,
-            });
+            return Err(ContractError::StreamTerminated { stream_id });
         }
 
         if stream.is_locked {
-            return Err(ContractError::StreamLocked {
-                stream_id: stream_id,
-            });
+            return Err(ContractError::StreamLocked { stream_id });
         }
 
         if stream.owner_id != *sender_id {
