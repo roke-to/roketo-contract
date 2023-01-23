@@ -5,4 +5,4 @@ authors = ["Alex Kouprin <hello@kikimora.tech>"]
 edition = "2021"
 
 [dependencies]
-near-sdk = "=4.0.0-pre.9"
+near-sdk = "4.1.1"

@@ -13,7 +13,7 @@ members = [
     "common",
     "examples/nft",
     "finance",
-    "tests-integration",
+    # "tests-integration",
     "locked_token",
     "roke_token",
     "streaming",

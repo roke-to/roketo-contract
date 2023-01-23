@@ -22,14 +22,12 @@ pub use crate::token::*;
 
 pub use common::*;
 
-use near_contract_standards::fungible_token::core_impl::ext_fungible_token;
 use near_contract_standards::fungible_token::receiver::FungibleTokenReceiver;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{UnorderedMap, UnorderedSet};
+use near_sdk::collections::{LazyOption, UnorderedMap, UnorderedSet};
 use near_sdk::json_types::{Base58CryptoHash, U128};
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::serde_json;
-use near_sdk::store::LazyOption;
 use near_sdk::{
     env, ext_contract, log, near_bindgen, AccountId, Balance, BorshStorageKey, CryptoHash, Gas,
     PanicOnDefault, Promise, PromiseOrValue, Timestamp, ONE_YOCTO,
@@ -70,7 +68,7 @@ impl Contract {
             finance_id,
             accounts: UnorderedMap::new(StorageKey::Accounts),
             streams: UnorderedMap::new(StorageKey::Streams),
-            stats: LazyOption::new(StorageKey::Stats, Some(Stats::default().into())),
+            stats: LazyOption::new(StorageKey::Stats, Some(&Stats::default().into())),
         }
     }
 

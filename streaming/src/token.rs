@@ -1,3 +1,5 @@
+use near_contract_standards::fungible_token::core::ext_ft_core;
+
 use crate::*;
 
 #[derive(BorshDeserialize, BorshSerialize, Serialize, Deserialize, Clone)]
@@ -80,14 +82,11 @@ impl Contract {
         // TODO #16
         let gas_needed = Gas::ONE_TERA * 50;
         check_gas(gas_needed)?;
-        Ok(Some(ext_finance_contract::streaming_ft_transfer(
-            token_account_id,
-            receiver,
-            amount.into(),
-            self.finance_id.clone(),
-            ONE_YOCTO,
-            gas_needed,
-        )))
+        let promise = ext_finance_contract::ext(self.finance_id.clone())
+            .with_attached_deposit(ONE_YOCTO)
+            .with_static_gas(gas_needed)
+            .streaming_ft_transfer(token_account_id, receiver, U128(amount));
+        Ok(Some(promise))
     }
 
     pub(crate) fn ft_transfer_from_self(
@@ -104,37 +103,35 @@ impl Contract {
         if is_aurora_address(&receiver_id) {
             check_gas(MIN_GAS_FOR_AURORA_TRANFSER)?;
             if token_account_id == aurora_account_id() {
-                Ok(Some(ext_fungible_token::ft_transfer_call(
-                    aurora_account_id(),
-                    U128(amount),
-                    None,
-                    aurora_transfer_call_msg(&receiver_id),
-                    aurora_account_id(),
-                    ONE_YOCTO,
-                    MIN_GAS_FOR_AURORA_TRANFSER,
-                )))
+                let promise = ext_ft_core::ext(aurora_account_id())
+                    .with_attached_deposit(ONE_YOCTO)
+                    .with_static_gas(MIN_GAS_FOR_AURORA_TRANFSER)
+                    .ft_transfer_call(
+                        aurora_account_id(),
+                        U128(amount),
+                        None,
+                        aurora_transfer_call_msg(&receiver_id),
+                    );
+                Ok(Some(promise))
             } else {
-                Ok(Some(ext_fungible_token::ft_transfer_call(
-                    aurora_account_id(),
-                    U128(amount),
-                    None,
-                    receiver_id.to_string(),
-                    token_account_id,
-                    ONE_YOCTO,
-                    MIN_GAS_FOR_AURORA_TRANFSER,
-                )))
+                let promise = ext_ft_core::ext(token_account_id)
+                    .with_attached_deposit(ONE_YOCTO)
+                    .with_static_gas(MIN_GAS_FOR_AURORA_TRANFSER)
+                    .ft_transfer_call(
+                        aurora_account_id(),
+                        U128(amount),
+                        None,
+                        receiver_id.to_string(),
+                    );
+                Ok(Some(promise))
             }
         } else {
             check_gas(MIN_GAS_FOR_FT_TRANFSER)?;
-            Ok(Some(ext_fungible_token::ft_transfer(
-                receiver_id,
-                U128(amount),
-                // TODO write full explanation
-                None,
-                token_account_id,
-                ONE_YOCTO,
-                MIN_GAS_FOR_FT_TRANFSER,
-            )))
+            let promise = ext_ft_core::ext(token_account_id)
+                .with_attached_deposit(ONE_YOCTO)
+                .with_static_gas(MIN_GAS_FOR_FT_TRANFSER)
+                .ft_transfer(receiver_id, U128(amount), None); // TODO write full explanation
+            Ok(Some(promise))
         }
     }
 }

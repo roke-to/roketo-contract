@@ -1,3 +1,5 @@
+use near_contract_standards::fungible_token::core::ext_ft_core;
+
 use crate::*;
 
 #[near_bindgen]
@@ -41,13 +43,10 @@ impl Contract {
         self.burn(amount);
 
         // TODO process withdraw failure if needed
-        Ok(ext_fungible_token::ft_transfer(
-            env::predecessor_account_id(),
-            U128(amount),
-            None,
-            self.dao.roke_token_account_id.clone(),
-            ONE_YOCTO,
-            Gas::ONE_TERA * 30, // TODO gas
-        ))
+        let promise = ext_ft_core::ext(self.dao.roke_token_account_id.clone())
+            .with_attached_deposit(ONE_YOCTO)
+            .with_static_gas(Gas::ONE_TERA * 30) // TODO gas
+            .ft_transfer(env::predecessor_account_id(), U128(amount), None);
+        Ok(promise)
     }
 }

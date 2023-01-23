@@ -3,7 +3,6 @@ mod transfer;
 
 pub use crate::transfer::*;
 
-use near_contract_standards::fungible_token::core_impl::ext_fungible_token;
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::UnorderedMap;
 use near_sdk::json_types::U128;
